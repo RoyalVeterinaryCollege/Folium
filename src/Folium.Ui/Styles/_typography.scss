@@ -42,63 +42,60 @@ h4, .h4 {
     font-size: 1.25rem;
 }
 @font-face {
-    font-family: 'PDD';
-    src: url("../fonts/PDD.eot?wanmdk");
-    src: url("../fonts/PDD.eot?wanmdk#iefix") format("embedded-opentype"), url("../fonts/PDD.woff2?wanmdk") format("woff2"), url("../fonts/PDD.ttf?wanmdk") format("truetype"), url("../fonts/PDD.woff?wanmdk") format("woff"), url("../fonts/PDD.svg?wanmdk#PDD") format("svg");
+    font-family: 'Folium';
+    src:  url('../fonts/Folium.eot?tlboyk#iefix') format('embedded-opentype'),
+      url('../fonts/Folium.ttf?tlboyk') format('truetype'),
+      url('../fonts/Folium.woff?tlboyk') format('woff'),
+      url('../fonts/Folium.svg?tlboyk#Folium') format('svg');
     font-weight: normal;
     font-style: normal;
-}
-[class^="pdd-"], [class*=" pdd-"] {
+  }
+  
+  [class^="folium-"], [class*=" folium-"] {
     /* use !important to prevent issues with browser extensions that change fonts */
-    font-family: 'PDD' !important;
+    font-family: 'Folium' !important;
     speak: none;
     font-style: normal;
     font-weight: normal;
-    font-variant: normal; 
+    font-variant: normal;
     text-transform: none;
+    line-height: 1;
+  
     /* Better Font Rendering =========== */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
-.white-text {
-    color: white;
-}
-.pdd-bundle-empty:before {
-    content: "\e909";
-}
-.pdd-bundle-full:before {
-    content: "\e90a";
-}
-.pdd-post:before {
-    content: "\e904";
-}
-.pdd-pre:before {
-    content: "\e905";
-}
-.pdd-slider:before {
-	content: "\e90f";
-}
-.pdd-tutor:before {
-    content: "\e906";
-}
-.pdd-placement:before {
+  }
+  
+  .folium-placement-full:before {
     content: "\e900";
-}
-.pdd-entry:before {
+  }
+  .folium-tutee:before {
     content: "\e901";
-}
-.pdd-report:before {
+  }
+  .folium-placement:before {
     content: "\e902";
-}
-.pdd-skill:before {
+  }
+  .folium-entires:before {
     content: "\e903";
-}
-.pdd-check:before {
-	content: "\e90d";
-}
-.pdd-check {
-     content: "\e90d";
-}
+  }
+  .folium-report:before {
+    content: "\e904";
+  }
+  .folium-skills:before {
+    content: "\e905";
+  }
+  .folium-skills-choice:before {
+    content: "\e906";
+  }
+  .folium-check:before {
+    content: "\e90d";
+  }
+  .folium-bundle:before {
+    content: "\e90e";
+  }
+  .folium-slider:before {
+    content: "\e90f";
+  }
 .fs-search {
     font-size: 1.45rem !important;
 }

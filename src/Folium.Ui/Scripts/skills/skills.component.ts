@@ -22,16 +22,23 @@ import {
 } from "@angular/core";
 
 import { SkillBundleService } from "./skill-bundle.service";
+import { User } from "../dtos";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
-	template: "<skills-browser [autoSave]='true'></skills-browser>"
+	template: "<skills-browser [user]='user' [autoSave]='true'></skills-browser>"
 })
 export class SkillsComponent implements OnInit {
+	user: User;
 
 	constructor(
-		private skillBundleService: SkillBundleService) { }
+		private skillBundleService: SkillBundleService,
+		private route: ActivatedRoute) { }
 
 	ngOnInit() {
 		this.skillBundleService.resetBundle();
+		this.route.data.forEach((data: { currentUser: User }) => {
+			this.user = data.currentUser;
+		});
 	}
 }

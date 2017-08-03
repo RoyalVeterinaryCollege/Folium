@@ -35,7 +35,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 	<div class="row hidden-md-up">
 		<div #group [attr.isOpen] *ngFor="let filter of skillFilters" class="col-sm-12 mb-3">
 			<h4>
-				<a href="" (click)="group.isOpen = !group.isOpen; false;" >{{ filter.name }}<i class="fa float-right" [ngClass]="group?.isOpen ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i></a> <span *ngIf="getSelectedFacetCount(filter) > 0" class="float-right mr-1">{{getSelectedFacetCount(filter)}}</span>
+				<a [routerLink]="" (click)="group.isOpen = !group.isOpen" >{{ filter.name }}<i class="fa float-right" [ngClass]="group?.isOpen ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i></a> <span *ngIf="getSelectedFacetCount(filter) > 0" class="float-right mr-1">{{getSelectedFacetCount(filter)}}</span>
 			</h4>
 			<div [collapse]="!group.isOpen">	
 				<div *ngFor="let facet of filter.facets">
@@ -44,6 +44,9 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 			</div>								
 		</div>				
 	</div>
+</div>
+<div *ngIf="skillFilters && skillFilters.length === 0">
+	Sorry, there are no filters for this skill set.
 </div>
 
 

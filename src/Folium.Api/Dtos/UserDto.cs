@@ -26,9 +26,11 @@ namespace Folium.Api.Dtos {
         public string Email { get; set; } 
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string Pic { get; set; }
-        public DateTime LastSignIn { get; set; }
+	    public string Pic => HasProfilePic ? $"{Id}_{ProfilePicVersion}.jpg" : null;
+		public DateTime LastSignIn { get; set; }
 		public List<int> Courses { get; set; }
+		public bool HasProfilePic { get; set; }
+		public int ProfilePicVersion { get; set; }
 
 		public UserDto() { }
 
@@ -41,7 +43,8 @@ namespace Folium.Api.Dtos {
             LastName = user.LastName;
             LastSignIn = user.LastSignIn;
 	        Courses = user.Courses;
-            Pic = user.HasProfilePic ? $"{user.Id}_{user.ProfilePicVersion}.jpg" : null;
+	        HasProfilePic = user.HasProfilePic;
+	        ProfilePicVersion = user.ProfilePicVersion;
         }
     }
 }      

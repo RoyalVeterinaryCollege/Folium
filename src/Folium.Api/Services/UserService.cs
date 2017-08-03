@@ -17,28 +17,28 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Folium.Api.Models;
 using Dapper;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.FileProviders;
-using ImageSharp;
-using System.Net.Http;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
 using Folium.Api.Dtos;
 using Folium.Api.Extensions;
 using Microsoft.AspNetCore.Hosting;
+using SixLabors.ImageSharp;
+using SixLabors.Primitives;
+using System.Data;
 
 namespace Folium.Api.Services {
     public interface IUserService {
         Task<User> GetUserAsync(ClaimsPrincipal claimsPrincipal);
 	    Task<User> GetUserAsync(int userId);
+        User GetUser(int userId, IDbTransaction transaction = null);
 
-		Task<User> CreateUserAsync(User user);
+        Task<User> CreateUserAsync(User user);
 	    Task<User> GetOrCreateSystemUserAsync();
 
 		Task<User> RegisterUserSignInAsync(UserDto user);
@@ -46,11 +46,14 @@ namespace Folium.Api.Services {
         Task UpdateUserAsync(User user, Stream imageStream);
         Task RemoveUserImage(User user);
 	    Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId);
+	    Task RefreshCollaboratorOptionsAsync();
+	    IEnumerable<CollaboratorOptionDto> GetCollaboratorOptions(User user, string matchMe);
     }
     public class UserService : IUserService {
         private readonly IDbService _dbService;
         private readonly string _profilePicDirectory;		
         private readonly ILogger<UserService> _logger;
+	    private readonly List<CollaboratorOptionDto> _collaboratorOptions; // local cache of all possible collaborators. 
         public UserService(
             ILogger<UserService> logger,
             IHostingEnvironment hostingEnvironment,
@@ -58,6 +61,7 @@ namespace Folium.Api.Services {
             _logger = logger;
             _dbService = dbService;            
             _profilePicDirectory = $"{hostingEnvironment.WebRootPath}{Path.DirectorySeparatorChar}images{Path.DirectorySeparatorChar}profiles{Path.DirectorySeparatorChar}150x150{Path.DirectorySeparatorChar}";
+			_collaboratorOptions = new List<CollaboratorOptionDto>();
         }
 
         public async Task<User> GetUserAsync(ClaimsPrincipal claimsPrincipal) {
@@ -111,7 +115,46 @@ namespace Folium.Api.Services {
 				return user;
 			}
 		}
-		public async Task<User> CreateUserAsync(User user) {
+
+        public User GetUser(int userId, IDbTransaction transaction = null) {
+            IDbConnection connection = null;
+            if (transaction == null) {
+                connection = _dbService.GetConnection();
+            } else {
+                connection = transaction.Connection;
+            }
+            var closedConnection = connection.State == ConnectionState.Closed;
+            if (closedConnection) { 
+                connection.Open();
+            }
+            try { 
+				var user = connection.QueryFirstOrDefault<User>(@"
+                    SELECT *
+                    FROM [dbo].[User]
+                    WHERE [Id] = @UserId",
+					new {
+						UserId = userId
+					}, transaction);
+				if (user != null) {
+					user.Courses = connection.Query<int>(@"
+					    SELECT [CourseId]
+					    FROM [dbo].[CourseEnrolment]
+					    WHERE [UserId] = @UserId
+					    AND [Removed] = 0
+					    ",
+						new {
+							UserId = userId
+						}, transaction).ToList();
+				}
+				return user;
+			}
+            finally {
+                if (connection != null && closedConnection && connection is IDisposable) {
+                    connection.Dispose();
+                }
+            }
+        }
+        public async Task<User> CreateUserAsync(User user) {
             using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
                 var userId = await connection.ExecuteScalarAsync<int>(@"
@@ -137,9 +180,10 @@ namespace Folium.Api.Services {
 					When = DateTime.UtcNow
 				});
                 user.Id = userId;
-                return user;
             }
-        }
+			await RefreshCollaboratorOptionsAsync();
+			return user;
+		}
 		public async Task<User> GetOrCreateSystemUserAsync() {
 			using (var connection = _dbService.GetConnection()) {
 				var user = await connection.QueryFirstAsync<User>(@"
@@ -168,8 +212,8 @@ namespace Folium.Api.Services {
             using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
                 var updatedUser = await connection.QueryFirstAsync<User>(@"
-					INSERT INTO [dbo].[UserActivity] ([UserId], [Type], [When], [Title])
-					VALUES (@UserId, @Type, @When, 'Successfully signed in');
+					INSERT INTO [dbo].[UserSignInActivity] ([UserId], [When])
+					VALUES (@UserId, @When);
 					
 					UPDATE [dbo].[User] 
                     SET [LastSignIn] = @When
@@ -181,7 +225,6 @@ namespace Folium.Api.Services {
                     new {
                         Email = user.Email,
 						UserId = user.Id,
-						Type = (int)UserActivityType.SignIn,
 						When =  DateTime.UtcNow
                     });
                 return updatedUser;
@@ -197,7 +240,9 @@ namespace Folium.Api.Services {
                 WHERE [Email] = @email;",                
                 user);
             }
-        }
+
+			await RefreshCollaboratorOptionsAsync();
+		}
         public async Task UpdateUserAsync(User user, Stream imageStream) {
             // Resize and save the new image.
             ResizeAndSaveUserImage(user, imageStream);
@@ -243,6 +288,8 @@ namespace Folium.Api.Services {
             if(user.HasProfilePic) {
                 DeleteUserImage(user);
             }
+
+	        await RefreshCollaboratorOptionsAsync();
         }
 
 	    public async Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId) {
@@ -268,6 +315,54 @@ namespace Folium.Api.Services {
 			}
 		}
 
+		/// <summary>
+		/// Refresh the local collaborator options list which is used to autocomplete when sharing.
+		/// </summary>
+		/// <returns></returns>
+	    public async Task RefreshCollaboratorOptionsAsync() {
+			using (var connection = _dbService.GetConnection()) {
+				await connection.OpenAsync();
+				var users = await connection.QueryAsync<CollaboratorOptionDto, UserDto, CollaboratorOptionDto>(@"
+                    SELECT [User].[Id]
+							,'""' + ISNULL([User].[FirstName], '') + ' ' + ISNULL([User].[LastName], '') + '"" &lt;' + [User].[Email] + '&gt;' AS [Name]
+							,[User].*
+                    FROM [dbo].[User]
+					WHERE [Id] >= 0;",
+					(collaboratorOptionDto, user) => { collaboratorOptionDto.User = user; return collaboratorOptionDto; });
+				var groups = await connection.QueryParentChildAsync<CollaboratorOptionDto, UserDto, int, List<UserDto>>(@"
+                    SELECT	[TuteeGroup].[Id]
+							,'""' + [Title] + ' Tutor Group""' AS [Name]
+							,[User].*
+					FROM [dbo].[CourseEnrolment]
+					INNER JOIN [dbo].[Tutee]
+					ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
+					INNER JOIN [dbo].[TuteeGroup]
+					ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
+					INNER JOIN [dbo].[User]
+					ON [CourseEnrolment].[UserId] = [User].Id
+					UNION					
+					SELECT	[TuteeGroup].[Id]
+							,'""' + [Title] + ' Tutor Group""' AS [Name]
+							,[User].*
+					FROM [dbo].[TuteeGroup]
+					INNER JOIN [dbo].[User]
+					ON [TuteeGroup].TutorId = [User].Id;",
+					collaboratorOptionDto => collaboratorOptionDto.Id,
+					collaboratorOptionDto => collaboratorOptionDto.Group ?? (collaboratorOptionDto.Group = new List<UserDto>()),
+					(group, user) => group.Add(user));
+
+				_collaboratorOptions.Clear();
+				_collaboratorOptions.AddRange(users);
+				_collaboratorOptions.AddRange(groups);
+			}
+		}
+
+	    public IEnumerable<CollaboratorOptionDto> GetCollaboratorOptions(User user, string matchMe) {
+		    return string.IsNullOrWhiteSpace(matchMe) 
+				? null 
+				: _collaboratorOptions.Where(c => c.Name.IndexOf(matchMe, StringComparison.OrdinalIgnoreCase) >= 0 && (!c.IsGroup || c.Group.Exists(u => u.Id == user.Id) /* the user exists within the group */));
+	    }
+
 	    private void DeleteUserImage(User user) {
 			var fileName = $"{user.Id}_{user.ProfilePicVersion}.jpg";
 			var filePath = _profilePicDirectory + fileName;
@@ -286,25 +381,28 @@ namespace Folium.Api.Services {
 	        }
 
             // We want a 150x150 image.
-            using(var orginalImage = new Image(imageStream)) {
+			using(var originalImage = Image.Load<Rgba32>(imageStream)) {
 				_logger.LogTrace($"Initialised image from stream");
 				// First we want to resize the image so that the smallist side is 150,  passing a 0 will maintain the aspect ratio.
-				var size = orginalImage.Width == orginalImage.Height
+				var size = originalImage.Width == originalImage.Height
                     ? new Size(150, 150)
-                    : orginalImage.Width > orginalImage.Height
+                    : originalImage.Width > originalImage.Height
                         ? new Size(0, 150)
                         : new Size(150, 0);
 
                 // The crop rectange needs to be adjusted on the x axis if the width>150, so we crop it in the centre.
-                var cropRectangle = orginalImage.Width > orginalImage.Height
-                    ? new Rectangle((orginalImage.Width-150)/2, 0, 150, 150)
+                var cropRectangle = originalImage.Width > originalImage.Height
+                    ? new Rectangle(((150 * originalImage.Width / originalImage.Height)-150)/2, 0, 150, 150)
                     : new Rectangle(0, 0, 150, 150);
 
 				_logger.LogTrace($"Begin resize and crop image");
-				orginalImage
-                    .Resize(size) // resize to min 150 width or height.
-                    .Crop(cropRectangle) // crop to 150x150.
-                    .Save(filePath); // save to disk.
+				
+				using (var outputStream = new FileStream(filePath, FileMode.CreateNew)) {
+					originalImage.Mutate(x => x
+						.Resize(size) // resize to min 150 width or height.
+						.Crop(cropRectangle)); // crop to 150x150.
+					originalImage.SaveAsJpeg(outputStream); // save to disk.
+				}
 				_logger.LogTrace($"Finished resize and crop image");
 			}
         }

@@ -18,9 +18,9 @@
 */
 import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from "@angular/core";
 import { Router, ActivatedRoute } from "@angular/router";
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
-import { Entry, SkillGroup, SelfAssessmentScale, EntrySummary } from "./../dtos";
+import { Entry, SkillGroup, SelfAssessmentScale, EntrySummary, User } from "./../dtos";
 import { EntriesService } from "./entries.service";
 import { SkillService } from "../skills/skill.service";
 import { NotificationService } from "../common/notification.service"
@@ -29,15 +29,14 @@ import { SkillAssessmentService } from "../skills/skill-assessment.service";
 import { SkillBundleService } from "../skills/skill-bundle.service";
 
 @Component({
-	selector: "entry-viewer",
-  templateUrl: "html/entries/view.component.html",
-  providers: [SkillBundleService] // Use a new instance of the skills bundle.
+  templateUrl: "html/entries/view-entry.component.html"
 })
 export class ViewEntryComponent implements OnInit, OnDestroy {
-
-  skillGroups: SkillGroup[];
-	bundleSize: number;
-	entry: Entry;
+	entry: EntrySummary;
+	user: User;
+	loaded = false;
+	
+	private paramsSubscription: any;
 	
   constructor(
 		private router: Router,
@@ -47,69 +46,42 @@ export class ViewEntryComponent implements OnInit, OnDestroy {
 		private skillAssessmentService: SkillAssessmentService,
 		private skillBundleService: SkillBundleService,
 		private notificationService: NotificationService,
-    private dialog: MdDialog) { }
-
-	@Input()
-	entrySummary: EntrySummary;
-
-	@Output() 
-	onEditEntry = new EventEmitter<EntrySummary>();
-
-	@Output()
-	onRemoveEntry = new EventEmitter<EntrySummary>();
-
-	@Output() 
-	onClose = new EventEmitter();
+    private dialog: MatDialog) { }
 
   ngOnInit() {
-		this.loadEntry();
+    this.route.data.forEach((data: { currentUser: User }) => {
+      this.user = data.currentUser;
+		});
+		this.paramsSubscription = this.route.params.subscribe(params => {
+			// Load the entry.
+			this.loadEntry(params['id']);
+		});
 	}
 
-  editEntry() {
-		this.onEditEntry.emit(this.entrySummary);
+  onDeleteEntry() {
+		// Navigate to users entries.		
+	  this.router.navigate(['/entries']);
   }
 
-  removeEntry() {
-    let dialogRef = this.dialog.open(DialogDeleteConfirmComponent);
-    dialogRef.afterClosed().subscribe(result => {
-      if(result === "true") {
-				this.onRemoveEntry.emit(this.entrySummary);
-			}
-		});
-  }
-
-  loadEntry() {
-		this.entriesService.getEntry(this.entrySummary.id)
-			.subscribe((entry: Entry) => {
+  loadEntry(id: string) {
+		this.entriesService.getEntrySummary(id)
+			.subscribe((entry: EntrySummary) => {
 				this.entry = entry;
-				this.loadSkills();
+				this.loaded = true;
 			},
 			(error: any) => this.notificationService.addDanger(`There was an error trying to load the entry, please try again.
 				${error}`));  
   }
 
-	loadSkills() {
-		this.skillBundleService.setBundleItems(this.entry.assessmentBundle);
-		this.skillService.getSkillGroups(this.entry.skillSetId)
-			.subscribe(skillGroups => {
-				this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.entry.skillSetId, skillGroups, this.entry.assessmentBundle);
-				this.skillGroups = skillGroups;
-				this.bundleSize = Object.keys(this.entry.assessmentBundle).length;
-		},
-		(error: any) => this.notificationService.addDanger(`There was an error trying to load the skills, please try again.
-			${error}`)); 
-	}
-	
-	onCloseClick(event: Event) {		
-		event.preventDefault();
-		this.onClose.emit();
+	onEditEntry() {
+		this.entry.editing = true;
 	}
 
-	print() {
-		window.print();
+	onEditEntryClose() {		
+		this.entry.editing = false;
 	}
 	
   ngOnDestroy() {
-		this.onClose.emit();
-  }
+		this.paramsSubscription.unsubscribe();
+	}
 }

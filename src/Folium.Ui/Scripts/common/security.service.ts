@@ -18,8 +18,6 @@
 */
 import { Injectable, NgZone, EventEmitter, Injector } from "@angular/core";
 import { Router } from "@angular/router";
-import { HttpService } from "../common/http.service";
-import { UserService } from "../user/user.service";
 declare var appSettings;
 
 @Injectable()

@@ -18,6 +18,7 @@
 */
 import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { MatDialogModule } from "@angular/material";
 
 import { AlertModule, ModalModule } from "ngx-bootstrap";
 
@@ -25,7 +26,7 @@ import { DialogDeleteConfirmComponent } from "./dialog-delete-confirm.component"
 import { DialogHelpComponent } from "./dialog-help.component";
 import { FormAutoSaveDirective } from "./form-autosave.directive";
 import { NotificationsComponent } from "./notifications.component";
-import { SignInComponent } from "./sign-in.component";
+import { ModalSignInComponent } from "./modal-sign-in.component";
 import { ActiveElementComponent } from "./active-element.component";
 import { TinyMceDirective } from "./tinymce.directive";
 
@@ -34,6 +35,7 @@ import { TinyMceDirective } from "./tinymce.directive";
     imports: [        
         AlertModule.forRoot(),        
         ModalModule.forRoot(),
+        MatDialogModule,
 
         CommonModule
     ],
@@ -42,8 +44,8 @@ import { TinyMceDirective } from "./tinymce.directive";
         DialogDeleteConfirmComponent,
         DialogHelpComponent,
         FormAutoSaveDirective,
+        ModalSignInComponent,
         NotificationsComponent,
-        SignInComponent,
         TinyMceDirective
     ],
     exports: [
@@ -51,8 +53,8 @@ import { TinyMceDirective } from "./tinymce.directive";
         DialogDeleteConfirmComponent,
         DialogHelpComponent,
         FormAutoSaveDirective,
+        ModalSignInComponent,
         NotificationsComponent,
-        SignInComponent,
         TinyMceDirective
     ],
     entryComponents: [ DialogDeleteConfirmComponent, DialogHelpComponent ]

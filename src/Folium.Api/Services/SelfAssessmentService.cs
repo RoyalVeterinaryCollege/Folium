@@ -21,11 +21,15 @@ using System.Collections.Generic;
 using Folium.Api.Models;
 using Dapper;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommonDomain.Persistence;
 using EventSaucing.Aggregates;
 using Folium.Api.Dtos;
+using Folium.Api.Extensions;
 using Folium.Api.Models.SelfAssessing;
+using IdentityModel;
+using Microsoft.Extensions.Logging;
 
 namespace Folium.Api.Services {
     public interface ISelfAssessmentService {
@@ -39,14 +43,17 @@ namespace Folium.Api.Services {
         private readonly IDbService _dbService;
 		private readonly IConstructAggregates _factory;
 		private readonly IRepository _repository;
+		private readonly ILogger<SelfAssessmentService> _logger;
 
 		public SelfAssessmentService(
 			IDbService dbService,
 			IConstructAggregates factory,
-			IRepository repository) {
+			IRepository repository,
+			ILogger<SelfAssessmentService> logger) {
 			_dbService = dbService;
 			_factory = factory;
 			_repository = repository;
+			_logger = logger;
 		}
 
 		public async Task<IReadOnlyList<SelfAssessment>> GetSelfAssessmentsAsync(int skillSetId, int userId) {
@@ -96,6 +103,8 @@ namespace Folium.Api.Services {
 		}
 
 		public void CreateSelfAssessments(User user, int skillSetId, Dictionary<int, SelfAssessmentDto> selfAssessments, EntryDto entry = null) {
+			if (selfAssessments.Count == 0) return;
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: CreateSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called.\n");
 			// Get the UserSkillsAggregate.
 			var aggregate = GetUserSkillSetAggregate(user.Id, skillSetId);
 			// Loop the self assessments, adding them to the aggregate.
@@ -112,6 +121,7 @@ namespace Folium.Api.Services {
 						CreatedAt = entry?.When ?? selfAssessment.Value.CreatedAt
 					});
 			}
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: CreateSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
 			_repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
 		}
 		/// <summary>
@@ -123,10 +133,12 @@ namespace Folium.Api.Services {
 		/// <param name="entry"></param>
 		/// <returns></returns>
 		public Dictionary<int, SelfAssessment> RemoveSelfAssessments(User user, int skillSetId, Dictionary<int, SelfAssessmentDto> selfAssessments, EntryDto entry) {
+			var latestSelfAssessments = new Dictionary<int, SelfAssessment>();
+			if (selfAssessments.Count == 0) return latestSelfAssessments;
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: RemoveSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry.Id}) called.\n");
 			// Self Assessments maybe removed, if they are attached to entries
 			// Get the UserSkillsAggregate.
 			var aggregate = GetUserSkillSetAggregate(user.Id, skillSetId);
-			var latestSelfAssessments = new Dictionary<int, SelfAssessment>();
 			// Loop the self assessments, removing them from the aggregate.
 			foreach (var selfAssessment in selfAssessments) {
 				var latest = aggregate.RemoveSelfAssessment(
@@ -142,15 +154,18 @@ namespace Folium.Api.Services {
 					});
 				latestSelfAssessments.Add(selfAssessment.Key, latest);
 			}
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: RemoveSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
 			_repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
 			return latestSelfAssessments;
 		}
 
 		private SelfAssessingAggregate GetUserSkillSetAggregate(int userId, int skillSetId) {
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: GetUserSkillSetAggregate({userId}, {skillSetId}) called.\n");
 			// We use a deterministic id for this aggregate as we need to access it using the userId & skillsSetId.
 			var id = AggregateIdentityGenerator.CreateDeterministicGuid($"{userId}{skillSetId}");
 			// Get the aggregate.
 			var aggregate = _repository.GetById<SelfAssessingAggregate>(id);
+			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: GetUserSkillSetAggregate({userId}, {skillSetId}) - Aggregate.Version: {aggregate.Version}.\n");
 			// Check we have the aggregate, otherwise create it.
 			if (aggregate.Version == 0) {
 				aggregate = (SelfAssessingAggregate)_factory.Build(typeof(SelfAssessingAggregate), id, null);
@@ -160,6 +175,5 @@ namespace Folium.Api.Services {
 			}
 			return aggregate;
 		}
-
 	}
 }

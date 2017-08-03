@@ -12,11 +12,6 @@ import { ViewChild, NgModule, Component, Input, ElementRef, OnInit, OnDestroy } 
   template: "<div #root><ng-content></ng-content></div>"
 })
 
-@NgModule({
-  declarations: [ Slim ],
-  exports: [ Slim ]
-})
-
 export class Slim {
 
   @ViewChild("root")

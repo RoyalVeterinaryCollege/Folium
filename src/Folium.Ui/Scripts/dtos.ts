@@ -40,7 +40,7 @@ export class SelfAssessment {
 	}
 }
 
-export class SelfAssessmentBundle { [skillId: number]: SelfAssessment } 
+export class SelfAssessments { [skillId: number]: SelfAssessment } 
 
 export class SkillAssessment {
   skill: Skill;
@@ -62,6 +62,7 @@ export class SkillSet {
   id: number;
   name: string;
   description: string;
+  selected: boolean;
 }
 
 export class SelfAssessmentScale {
@@ -93,9 +94,12 @@ export class Entry {
   where: string;
   when: Date;
   skillSetId: number;
-  assessmentBundle: SelfAssessmentBundle;
+  assessmentBundle: SelfAssessments;
   entryType: EntryType;
   lastUpdatedAt: Date;
+  author: User;
+  comments: EntryCommentDto[];
+  shared: boolean;
 }
 
 export class EntrySummary {
@@ -103,7 +107,10 @@ export class EntrySummary {
   title: string;
   where: string;
   when: Date;
-  type: string;  
+  type: string;
+  author: User;
+  shared: boolean;
+  skillSetId: number;
   viewing: boolean; // Whether the entry is being viewed.
   editing: boolean; // Whether the entry is being edited.
 	public constructor(entry: Entry) {
@@ -112,13 +119,17 @@ export class EntrySummary {
     this.type = entry.entryType ? entry.entryType.name : undefined;
     this.when = entry.when;
     this.where = entry.where;
+    this.author = entry.author;
+    this.shared = entry.shared;
+    this.skillSetId = entry.skillSetId;
 	}
 }
 
 export class EntryType {
   id: number;
   name: string;
-  template: [ { title: string; help: string; } ]; 
+  template: [ { title: string; help: string; } ];
+  skillSetId: number;
 }
 
 export class User {
@@ -127,7 +138,8 @@ export class User {
 	lastName: string;
 	pic: string;
 	lastSignIn: Date;
-	courses: number[];
+  courses: number[];
+  email: string;
 }
 
 export class Where {
@@ -146,4 +158,25 @@ export class Placement {
   entryCount: number;
   editing: boolean;
   lastUpdatedAt: Date;
+}
+
+export class CollaboratorOption {
+	name: string;
+	user: User;
+	isGroup: boolean;
+	group: User[];
+}
+
+export class EntryCommentDto {
+  id: number;
+  entryId: string; // guid
+  comment: string;
+  author: User;
+  createdAt: Date;
+}
+  
+export class ShareEntryDto {
+  entryId: string; // guid
+	collaboratorIds: number[];
+	message: string;
 }

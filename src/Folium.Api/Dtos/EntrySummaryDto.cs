@@ -26,5 +26,8 @@ namespace Folium.Api.Dtos {
 		public string Where { get; set; }
 		public DateTime When { get; set; }
 		public string Type { get; set; }
+		public bool Shared { get; set; }
+        public int SkillSetId { get; set; }
+        public UserDto Author { get; set; }
 	}
 }

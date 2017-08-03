@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using EventSaucing.Aggregates;
 using Folium.Api.Models.Entry.Events;
 
@@ -37,11 +38,17 @@ namespace Folium.Api.Models.Entry {
         public DateTime LastUpdatedAt { get; private set; }
 		public int? TypeId { get; private set; }
 		private readonly List<Dictionary<int, SelfAssessment>> _assessmentBundle = new List<Dictionary<int, SelfAssessment>>();
+		private readonly HashSet<int> _sharedWith = new HashSet<int>();
+		public bool IsShared => _sharedWith.Count > 0;
+		readonly Dictionary<int, EntryComment> _comments = new Dictionary<int, EntryComment>();
+
+		public ReadOnlyCollection<EntryComment> FieldDefinitions => _comments.Values.ToList().AsReadOnly();
 
 		/// <summary>
 		/// Gets all the assessment bundles, the most recent of which will be the last.
 		/// </summary>
 		public ReadOnlyCollection<Dictionary<int, SelfAssessment>> AssessmentBundle => _assessmentBundle.AsReadOnly();
+		public ReadOnlyCollection<int> SharedWith => _sharedWith.ToList().AsReadOnly();
 
 		private bool _isCreated;
 		private bool _isRemoved;
@@ -68,6 +75,20 @@ namespace Folium.Api.Models.Entry {
 		public void UpdateAssessmentBundle(Dictionary<int, SelfAssessment> selfAssessments) {
 			if (!_isCreated || _isRemoved) return;
 			RaiseEvent(new AssessmentBundleUpdated(selfAssessments));
+		}
+		public void ShareWith(int userId, List<int> collaboratorIds, string message) {
+			if (!_isCreated || _isRemoved) return;
+			RaiseEvent(new EntryShared(userId, collaboratorIds, message));
+		}
+		public void RemoveShareWith(int userId, int collaboratorId) {
+			if (!_isCreated || _isRemoved) return;
+			if (!_sharedWith.Contains(collaboratorId)) return;
+			RaiseEvent(new EntryCollaboratorRemoved(userId, collaboratorId));
+		}
+		public int CreateComment(string comment, int createdBy, DateTime createdAt) {
+			var newId = _comments.Count + 1;
+			RaiseEvent(new EntryCommentCreated(newId, comment, createdBy, createdAt));
+			return newId;
 		}
 
 		#region Events
@@ -105,6 +126,22 @@ namespace Folium.Api.Models.Entry {
 			_assessmentBundle.Clear();
 			_assessmentBundle.Add(@event.SelfAssessments);
 		}
+		void Apply(EntryShared @event) {
+			foreach (var collaboratorId in @event.CollaboratorIds) {
+				_sharedWith.Add(collaboratorId);
+			}
+		}
+		void Apply(EntryCollaboratorRemoved @event) {
+			_sharedWith.Remove(@event.CollaboratorId);
+		}
+		void Apply(EntryCommentCreated @event) {
+			_comments.Add(@event.Id, new EntryComment {
+				Comment = @event.Comment,
+				CreatedAt = @event.CreatedAt,
+				CreatedBy = @event.CreatedBy
+			});
+		}
+
 		#region Deprecated Events
 		void Apply(SkillsBundleAdded @event) {
 			_assessmentBundle.Add(@event.SelfAssessments);

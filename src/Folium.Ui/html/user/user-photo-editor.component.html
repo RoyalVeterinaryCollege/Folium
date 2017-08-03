@@ -1,0 +1,37 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div class="card profile-card profile">
+  <div mat-dialog-title class="dark-background profile-head">
+  </div>
+  <div mat-dialog-content>
+    <slim [options]="slimOptions">
+        <input type="file" name="originalUserPic" #originalUserPic>
+        <input type="hidden" name="editedUserPic" #editedUserPic>
+    </slim>  
+    <div *ngIf="user.pic" class="mt-2 d-flex justify-content-center">
+        <button class="btn btn-secondary" type="button" (click)="onNoPhotoClick()">No photo</button>
+    </div>
+  </div>
+  <div mat-dialog-actions class="w-100 d-flex justify-content-between">
+    <button class="btn btn-link" type="button" (click)="onCancelClick()">Cancel</button>
+    <button class="btn btn-primary" type="button" (click)="onSaveClick()">Save</button>
+  </div>
+</div>

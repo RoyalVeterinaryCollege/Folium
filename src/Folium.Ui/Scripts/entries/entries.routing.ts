@@ -18,15 +18,22 @@
 */
 import { Routes, RouterModule } from "@angular/router";
 import { ViewEntryComponent } from "./view-entry.component";
-import { SkillSetResolve } from "./../skill-set/resolve.service";
-import { EntriesComponent } from "./entries.component";
+import { ViewEntriesComponent } from "./view-entries.component";
+import { CurrentUserResolve } from "../user/user-resolve.service";
 
 const entriesRoutes: Routes = [
     {
         path: "",
-        component: EntriesComponent,
+        component: ViewEntriesComponent,
         resolve: {
-            skillSet: SkillSetResolve
+            currentUser: CurrentUserResolve
+        },
+    },
+    {
+        path: ":id",
+        component: ViewEntryComponent,
+        resolve: {
+            currentUser: CurrentUserResolve
         }
     }
 ];

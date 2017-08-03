@@ -18,21 +18,22 @@
 */
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { Router, ActivatedRoute } from "@angular/router";
-import { MdDialog } from '@angular/material';
+import { MatDialog } from '@angular/material';
 
 import { Subscription } from "rxjs/subscription";
 
-import { Placement, Entry } from "./../dtos";
+import { Placement, Entry, SkillSet, User } from "./../dtos";
 import { PlacementsService } from "./placements.service";
 import { EntriesService } from "./../entries/entries.service";
 import { NotificationService } from "../common/notification.service"
 import { DialogDeleteConfirmComponent } from "./../common/dialog-delete-confirm.component";
 
 @Component({
-  templateUrl: "html/placements/view.component.html",
+  templateUrl: "html/placements/view-placement.component.html",
 })
 export class ViewPlacementComponent implements OnInit, OnDestroy {
   placement: Placement;
+  user: User;
 
   private paramsSubscription: any;
 
@@ -41,13 +42,16 @@ export class ViewPlacementComponent implements OnInit, OnDestroy {
 		private route: ActivatedRoute,
 		private placementsService: PlacementsService,
 		private notificationService: NotificationService,
-    private dialog: MdDialog) { }
+    private dialog: MatDialog) { }
 
   ngOnInit() {
-	this.paramsSubscription = this.route.params.subscribe(params => {
+	  this.paramsSubscription = this.route.params.subscribe(params => {
 			// Load the placement.
 			this.loadPlacement(params['id']);
 		});
+    this.route.data.forEach((data: { skillSet: SkillSet, currentUser: User }) => {
+      this.user = data.currentUser;
+    });
   }
 
   loadPlacement(id: string) {

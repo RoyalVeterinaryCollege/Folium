@@ -20,12 +20,14 @@ import { Component,
          Input,
          Output,
          OnInit,
-         OnDestroy } from "@angular/core";
+         OnDestroy, 
+         OnChanges,
+         SimpleChanges,
+         SimpleChange} from "@angular/core";
 
-import { SkillFilter, SkillSet, SkillFilterFacet } from "../dtos";
+import { SkillFilter, SkillFilterFacet } from "../dtos";
 import { SkillService } from "./skill.service";
 import { SkillFiltersService } from "./skill-filters.service";
-import { SkillSetSelectionService } from "../skill-set/selection.service";
 import { NotificationService } from "../common/notification.service";
 
 import { Subscription } from "rxjs/subscription";
@@ -34,28 +36,34 @@ import { Subscription } from "rxjs/subscription";
   selector: "skill-filters",
   templateUrl: "html/skills/skill-filters.component.html"
 })
-export class SkillFiltersComponent implements OnInit, OnDestroy {
+export class SkillFiltersComponent implements OnInit, OnDestroy, OnChanges {
   skillFilters: SkillFilter[];
 
-  private skillSet: SkillSet;
+	@Input()
+  skillSetId: number;
+
   private selectedFacets: SkillFilterFacet[] = [];
   private onFilterUpdated$: Subscription;
-  private onSkillSetChanged$: Subscription;
 
   constructor(
-    private skillSetSelectionService: SkillSetSelectionService,
     private skillService: SkillService,
 	  private skillFiltersService: SkillFiltersService,
 	  private notificationService: NotificationService) { }
 
   ngOnInit() {
-    this.skillSet = this.skillSetSelectionService.skillSet;
     this.selectedFacets = this.skillFiltersService.filterFacets;
     this.onFilterUpdated$ = this.skillFiltersService.onFilterFacetUpdated.subscribe(f => this.onFacetUpdated(f));
-    this.onSkillSetChanged$ = this.skillSetSelectionService.onSkillSetChanged.subscribe(s => this.onSkillSetChanged(s));
 
     // Populate the filters and any selected facets.
     this.getSkillFilters();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // The skillset id can change, update the filters when it does.
+    const skillSetId: SimpleChange = changes.skillSetId;
+    if (skillSetId && (skillSetId.previousValue !== skillSetId.currentValue)) {
+      this.getSkillFilters();
+    }
   }
 
   getSelectedFacetCount(skillFilter: SkillFilter) {
@@ -74,14 +82,6 @@ export class SkillFiltersComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.onFilterUpdated$.unsubscribe();
-    this.onSkillSetChanged$.unsubscribe();
-  }
-
-  private onSkillSetChanged(s: SkillSet) {
-    // Clear any current filters and search terms.
-    this.skillFiltersService.clearFilterFacets();
-    this.skillSet = s;
-    this.getSkillFilters();
   }
 
   private onFacetUpdated(facet: SkillFilterFacet) {
@@ -97,7 +97,8 @@ export class SkillFiltersComponent implements OnInit, OnDestroy {
   }
 
   private getSkillFilters() {
-    this.skillService.getSkillFilters(this.skillSet.id)
+    this.skillFilters = [];
+    this.skillService.getSkillFilters(this.skillSetId)
 		.subscribe(s => {
 			this.skillFilters = s;
 			// Loop each of the facets and call updated to include it.

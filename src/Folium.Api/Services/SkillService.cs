@@ -31,11 +31,13 @@ namespace Folium.Api.Services {
     public interface ISkillService {
         Task<IReadOnlyList<string>> ImportSkillsAsync(int courseId, string description, Stream fileStream);
         Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync(int userId);
-	    Task<SkillSet> GetSkillSetAsync(int skillSetId);
+        Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync();
+        Task<SkillSet> GetSkillSetAsync(int skillSetId);
+        Task AddUserSkillSetAsync(int userId, int skillSetId);
+        Task RemoveUserSkillSetAsync(int userId, int skillSetId);
 
-		Task<IReadOnlyList<Skill>> GetSkillsAsync(int skillSetId);
+        Task<IReadOnlyList<Skill>> GetSkillsAsync(int skillSetId);
 	    Task<Skill> GetSkillAsync(int skillSetId, int skillId);
-
     }
     public class SkillService : ISkillService {
         private readonly IDbService _dbService;
@@ -102,7 +104,6 @@ namespace Folium.Api.Services {
                         VALUES (@Version
                                 ,@Name
                                 ,@Description
-                                ,@CourseId
                                 ,@When
                                 ,-1 --System User
                                 ,@When
@@ -113,7 +114,6 @@ namespace Folium.Api.Services {
                             Version = skillSetVersion,
                             Name = $"{course.Title} Skills (v{skillSetVersion})",
                             Description = description,
-                            CourseId = courseId,
 							When = DateTime.UtcNow
                         },
                         transaction))
@@ -388,6 +388,17 @@ namespace Folium.Api.Services {
             }
             return failureMessages;
         }
+        
+        public async Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync() {
+            using(var connection = _dbService.GetConnection()){
+                await connection.OpenAsync();
+                var skillSets = await connection.QueryAsync<SkillSet>(@" 
+                    SELECT [SkillSet].*
+                    FROM [dbo].[SkillSet]
+					ORDER BY [Name]");
+                return skillSets.ToList();
+            }
+		}
 
         public async Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync(int userId) {
             using(var connection = _dbService.GetConnection()){
@@ -395,18 +406,19 @@ namespace Folium.Api.Services {
                 var skillSets = await connection.QueryAsync<SkillSet>(@" 
                     SELECT [SkillSet].*
                     FROM [dbo].[SkillSet]
-					LEFT JOIN [dbo].[UserSkillSet]
+					INNER JOIN [dbo].[UserSkillSet]
 							ON [SkillSet].[Id] = [UserSkillSet].[SkillSetId]
-							AND [UserSkillSet].[UserId] = @UserId 
-					WHERE ([SkillSet].[SelfAssignable] = 1 OR [UserSkillSet].[SkillSetId] IS NOT NULL)", 
+							AND [UserSkillSet].[UserId] = @UserId
+					ORDER BY [Name]", 
                     new {UserId = userId});
                 return skillSets.ToList();
             }
 		}
+
 		public async Task<SkillSet> GetSkillSetAsync(int skillSetId) {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
-				var skillSet = await connection.QueryFirstOrDefaultAsync<SkillSet>(@" 
+				var skillSet = await connection.QueryFirstOrDefaultAsync<SkillSet>(@"
                     SELECT *
                     FROM [dbo].[SkillSet]
                     WHERE (Id = @SkillSetId)",
@@ -443,8 +455,40 @@ namespace Folium.Api.Services {
 					});
 				return skill;
 			}
-		}
-	}
+        }
+
+        public async Task AddUserSkillSetAsync(int userId, int skillSetId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                await connection.ExecuteAsync(@" 
+				    INSERT INTO [dbo].[UserSkillSet]
+					       ([UserId]
+                           ,[SkillSetId])
+				     SELECT
+                            @UserId
+					       ,@SkillSetId
+				    WHERE NOT EXISTS(SELECT * FROM [dbo].[UserSkillSet] WHERE [UserId] = @UserId AND [SkillSetId] = @SkillSetId);",
+                    new {
+                        UserId = userId,
+                        SkillSetId = skillSetId
+                    });
+            }
+        }
+
+        public async Task RemoveUserSkillSetAsync(int userId, int skillSetId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                await connection.ExecuteAsync(@" 
+				    DELETE FROM [dbo].[UserSkillSet]
+                    WHERE [UserId] = @UserId 
+                    AND [SkillSetId] = @SkillSetId;",
+                    new {
+                        UserId = userId,
+                        SkillSetId = skillSetId
+                    });
+            }
+        }
+    }
 
     class ImportedSkill{
         public int Id { get; set; } 

@@ -24,14 +24,18 @@ using Folium.Api.Models.SelfAssessing.Events;
 using NEventStore;
 using NEventStore.Persistence;
 using Scalesque;
+using Microsoft.Extensions.Logging;
+using EventSaucing.NEventStore;
 
 namespace Folium.Api.Projections.SelfAssessment {
 	[Projector(2)]
 	public class SelfAssessmentProjector : ProjectorBase {
 		readonly ConventionBasedCommitProjecter _conventionProjector;
 
-		public SelfAssessmentProjector(IDbService dbService, IPersistStreams persistStreams):base(persistStreams, dbService) {
-			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome())
+		public SelfAssessmentProjector(IDbService dbService, IPersistStreams persistStreams, ILogger<SelfAssessmentProjector> logger) :base(persistStreams, dbService) {
+			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
+				logger.LogWarning($"Commit contains null events. CommitId:{commit.CommitId}, CommitSequence:{commit.CommitSequence}, StreamId:{commit.StreamId}, StreamRevision:{commit.StreamRevision}, EventCount:{commit.Events.Count}, AggregateId {commit.AggregateId()}");
+			})
 			   .FirstProject<SkillSelfAssessmentCreated>(CreateSelfAssessment)
 			   .ThenProject<SkillSelfAssessmentUpdated>(UpdateSelfAssessment)
 			   .ThenProject<SkillSelfAssessmentRemoved>(RemoveSelfAssessment);

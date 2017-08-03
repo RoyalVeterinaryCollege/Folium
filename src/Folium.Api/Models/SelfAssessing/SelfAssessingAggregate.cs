@@ -102,8 +102,11 @@ namespace Folium.Api.Models.SelfAssessing {
 			SkillSetId = @event.SkillSetId;
 			CreatedAt = @event.CreatedAt;
 		}
+
 		void Apply(SkillSelfAssessmentCreated @event) {
-			_selfAssessments.Add(@event.SelfAssessment.SkillId, new SortedList<double, SelfAssessment> { { @event.SelfAssessment.CreatedAt.ToUnixTimeMilliseconds(), @event.SelfAssessment } });
+			if (!_selfAssessments.ContainsKey(@event.SelfAssessment.SkillId)) {
+				_selfAssessments.Add(@event.SelfAssessment.SkillId, new SortedList<double, SelfAssessment> {{@event.SelfAssessment.CreatedAt.ToUnixTimeMilliseconds(), @event.SelfAssessment}});
+			}
 		}
 		void Apply(SkillSelfAssessmentUpdated @event) {
 			if(@event.SelfAssessment.EntryId.HasValue) return; // Don't make any changes for assessments linked to entries, they have their own events.
@@ -129,7 +132,7 @@ namespace Folium.Api.Models.SelfAssessing {
 			// noop - handled by SkillSelfAssessmentCreated.
 		}
 		void Apply(EntrySelfAssessmentAdded @event) {
-			if (_selfAssessments.ContainsKey(@event.SelfAssessment.SkillId)) {
+			if (_selfAssessments.ContainsKey(@event.SelfAssessment.SkillId) && !_selfAssessments[@event.SelfAssessment.SkillId].ContainsKey(@event.SelfAssessment.CreatedAt.ToUnixTimeMilliseconds())) {
 				// Add the new Self assessment.
 				_selfAssessments[@event.SelfAssessment.SkillId].Add(@event.SelfAssessment.CreatedAt.ToUnixTimeMilliseconds(), @event.SelfAssessment);
 			}

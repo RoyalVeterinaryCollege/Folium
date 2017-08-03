@@ -119,16 +119,24 @@ namespace Folium.Api.Services {
 	    public async Task<IEnumerable<EntrySummaryDto>> GetPlacementEntriesAsync(Guid placementId, int skip, int take) {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
-				var entries = await connection.QueryAsync<EntrySummaryDto>(@" 
-                    SELECT [Id]
-						,[Title]
-						,[Where]
-						,[When]
-						,[TypeName] AS [Type]
-                    FROM [dbo].[PlacementProjector.Entry]
+				var entries = await connection.QueryAsync<EntrySummaryDto, UserDto, EntrySummaryDto>(@" 
+                    SELECT [Entry].[Id]
+						,[Entry].[Title]
+						,[Entry].[Where]
+						,[Entry].[When]
+						,[Entry].[TypeName] AS [Type]
+						,[Entry].[Shared]
+						,[User].*
+                    FROM [dbo].[PlacementProjector.Entry] [Entry]
+					INNER JOIN [dbo].[User]
+					ON [Entry].[UserId] = [User].[Id]
                     WHERE [PlacementId] = @PlacementId
 					ORDER BY [When] DESC
 					OFFSET (@Skip) ROWS FETCH NEXT (@Take) ROWS ONLY",
+					(entrySummaryDto, userDto) => {
+						entrySummaryDto.Author = userDto;
+						return entrySummaryDto;
+					},
 					new {
 						PlacementId = placementId,
 						Skip = skip,

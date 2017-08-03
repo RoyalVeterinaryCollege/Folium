@@ -26,8 +26,7 @@ namespace Folium.Api.Dtos {
 		public int SkillSetId { get; set; }
 		public string Title { get; set; }
 		private string _description;
-		public dynamic Description
-		{
+		public dynamic Description {
 			get {
 				return (EntryType == null || _description == null) ? _description : JsonConvert.DeserializeObject(_description);
 			}
@@ -43,8 +42,10 @@ namespace Folium.Api.Dtos {
 		public Dictionary<int, SelfAssessmentDto> AssessmentBundle { get; set; }
 		public string Where { get; set; }
 		public DateTime When { get; set; }
-		public int UserId { get; set; }
+		public UserDto Author { get; set; }
 		public EntryTypeDto EntryType { get; set; }
 		public DateTime LastUpdatedAt { get; set; }
+		public List<EntryCommentDto> Comments { get; set; }
+		public bool Shared { get; set; }
 	}
 }

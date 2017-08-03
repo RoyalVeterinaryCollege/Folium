@@ -59,6 +59,9 @@
         color:white;
         margin-bottom:0.5556rem;
     }
+    h2 {
+        color: white;
+    }
     .close {
         color:white;
         font-weight: 100;
@@ -67,15 +70,10 @@
         text-shadow: none;
     }
 }
-.modal-user-edit {
-    .modal-body {
-        padding:0;
-    }
-}
 .modal-open {
     background-color: $dark-blue;
 }
-//Media Queries
+// Media Queries
 @include media-breakpoint-up(sm) {
     .modal-full-screen .modal-content section.title .container {
     padding-left:30px;

@@ -20,31 +20,23 @@ import { NgModule, APP_INITIALIZER, ErrorHandler }       from "@angular/core";
 import { BrowserModule  } from "@angular/platform-browser";
 import { RouterModule } from "@angular/router";
 import { HttpModule, Http } from "@angular/http";
-import { FormsModule,
-         ReactiveFormsModule } from "@angular/forms";
-import { MdDialogModule, MdChipsModule, MD_DATE_FORMATS } from "@angular/material";
+import { MatDialogModule, MatChipsModule, MAT_DATE_FORMATS } from "@angular/material";
 
-import { ModalModule, BsDropdownModule } from "ngx-bootstrap";
+import { ModalModule } from "ngx-bootstrap";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { HAMMER_GESTURE_CONFIG } from "@angular/platform-browser";
+import { MATERIAL_COMPATIBILITY_MODE } from '@angular/material';
 
 import { appRouting,
          appRoutingProviders } from "./app.routing";
-import { SkillSetResolve } from "./skill-set/resolve.service";
-import { SkillSetSelectionService } from "./skill-set/selection.service";
 import { SkillService } from "./skills/skill.service";
 import { SkillBundleService }     from "./skills/skill-bundle.service";
 import { SkillAssessmentService }     from "./skills/skill-assessment.service";
 import { EntriesService } from "./entries/entries.service";
 import { AppComponent }   from "./app.component";
-import { MdGestureConfig }     from "./skills/assessment-slider.component";
+import { MatGestureConfig }     from "./skills/assessment-slider.component";
 import { HomeComponent } from "./home/home.component";
-import { Slim } from "./slim/slim.angular2";
 import { UserService } from "./user/user.service";
-import { UserPicDirective } from "./user/user-pic.directive";
-import { UserMenuComponent } from "./user/user-menu.component";
-import { EditUserComponent } from "./user/user-edit.component";
-import { UserCardComponent } from "./user/user-card.component";
 import { PlacementsService } from "./placements/placements.service";
 import { SecurityService } from "./common/security.service";
 import { FmCommonModule } from "./common/common.module";
@@ -54,6 +46,9 @@ import { ResponseService } from "./common/response.service";
 import { GlobalErrorHandler } from "./common/global-error.handler";
 import { HttpService } from "./common/http.service";
 import { FOLIUM_DATE_FORMATS } from "./common/date-formats";
+import { CurrentUserResolve } from "./user/user-resolve.service";
+import { FmUserModule } from "./user/user.module";
+import { Slim } from "./slim/slim.angular2";
 
 export function onInitApp(securityService: SecurityService) {
 	// NOTE: this factory needs to return a function (that then returns a promise)
@@ -63,30 +58,22 @@ export function onInitApp(securityService: SecurityService) {
 @NgModule({
     imports: [
         BrowserAnimationsModule,
-        BrowserModule,        
-        FormsModule,
+        BrowserModule,
         HttpModule,
-        ReactiveFormsModule,
         
-        MdDialogModule,
-
-        BsDropdownModule.forRoot(),
-        ModalModule.forRoot(),
+        MatDialogModule,
         
         appRouting,
-        FmCommonModule
+        FmCommonModule,
+        FmUserModule
     ],
     declarations: [
         AppComponent,
-        EditUserComponent,
-        HomeComponent,
-        Slim,
-        UserCardComponent,
-        UserMenuComponent,
-        UserPicDirective
+        HomeComponent
     ],
     providers: [
         AuthGuard,
+        CurrentUserResolve,
         EntriesService,
         NotificationService,        
         PlacementsService,
@@ -95,8 +82,6 @@ export function onInitApp(securityService: SecurityService) {
         SkillAssessmentService,
         SkillBundleService,
         SkillService,
-        SkillSetResolve,
-        SkillSetSelectionService,
 		UserService,
 		{
 			'provide': APP_INITIALIZER, // Calls a function when the app starts, used to ensure the user is authenticated.
@@ -105,9 +90,10 @@ export function onInitApp(securityService: SecurityService) {
 			'multi': true,
 		},
         { provide: ErrorHandler, useClass: GlobalErrorHandler },
-        { provide: HAMMER_GESTURE_CONFIG, useClass: MdGestureConfig },
+        { provide: HAMMER_GESTURE_CONFIG, useClass: MatGestureConfig },
         { provide: Http, useClass: HttpService },
-        { provide: MD_DATE_FORMATS, useValue: FOLIUM_DATE_FORMATS}
+        { provide: MAT_DATE_FORMATS, useValue: FOLIUM_DATE_FORMATS},
+        { provide: MATERIAL_COMPATIBILITY_MODE, useValue: true },
 	],
     bootstrap:    [ AppComponent ]
 })

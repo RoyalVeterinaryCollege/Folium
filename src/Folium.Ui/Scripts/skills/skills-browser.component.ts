@@ -22,20 +22,25 @@ import {  Component,
           Output,
           EventEmitter
         } from "@angular/core";
+import { MatDialog } from '@angular/material';
 
 import { Subscription } from "rxjs/subscription";
 
 import {  SkillFilterFacet,
           SkillGroup,
           SelfAssessmentScale,
-          SelfAssessment
+          SelfAssessment,
+          SkillSet,
+          User
         } from "../dtos";
 import { SkillFiltersService } from "./skill-filters.service";
 import { SkillBundleService } from "./skill-bundle.service";
 import { SkillService } from "./skill.service";
 import { SkillAssessmentService } from "./skill-assessment.service";
-import { SkillSetSelectionService } from "../skill-set/selection.service";
 import { NotificationService } from "../common/notification.service";
+import { UserService } from "../user/user.service";
+import { DialogManageUserSkillSetsComponent } from "../user/dialog-manage-user-skill-sets.component";
+import { DialogChangeSkillSetComponent } from "./dialog-change-skill-set.component";
 
 @Component({
   templateUrl: "html/skills/skills-browser.component.html",
@@ -43,24 +48,32 @@ import { NotificationService } from "../common/notification.service";
   providers: [SkillFiltersService] // Use a new instance of the filters.
 })
 export class SkillsBrowserComponent implements OnInit {
-
   filters: SkillFilterFacet[] = [];
   filterCount: number = 0;
+  skillSets: SkillSet[];
+
   private filterFacetUpdated$: Subscription;
 
   constructor(
 	  private skillFiltersService: SkillFiltersService,
 		private skillBundleService: SkillBundleService,
 		private skillService: SkillService,
+		private userService: UserService,
 		private skillAssessmentService: SkillAssessmentService,
-		private skillSetSelectionService: SkillSetSelectionService,
-		private notificationService: NotificationService) { }
+		private notificationService: NotificationService,
+    private dialog: MatDialog) { }
 
   @Input()
   autoSave: boolean = false;
 
   @Input()
+  user: User;
+
+  @Input()
   skillGroups: SkillGroup[];
+
+  @Input()
+  skillSet: SkillSet;
   
   @Output()
   selfAssessmentChange = new EventEmitter<SelfAssessment>();
@@ -69,21 +82,36 @@ export class SkillsBrowserComponent implements OnInit {
 	  this.filterFacetUpdated$ = this.skillFiltersService.onFilterFacetUpdated.subscribe(f => this.onFilterFacetUpdated());
 	  this.filters = this.skillFiltersService.filterFacets;
 
-    if(!this.skillGroups){
-      // If we haven't been supplied any skills then load them.
-      this.loadSkills();
+    if(!this.skillSet){
+      this.loadSkillSets()
+    } else {
+      if(!this.skillGroups){
+        // If we haven't been supplied any skills then load them.
+        this.loadSkills();
+      }
     }
   }
 
-	loadSkills() {
-		this.skillService.getSkillGroups(this.skillSetSelectionService.skillSet.id)
-			.subscribe(skillGroups => {
-				this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.skillSetSelectionService.skillSet.id, skillGroups);
-				this.skillGroups = skillGroups;
-		},
-		(error: any) => this.notificationService.addDanger(`There was an error trying to load the skills, please try again.
-			${error}`)); 
-	}
+	onSelectUserSkillSetClick(){
+    this.dialog.open(DialogManageUserSkillSetsComponent, {
+      data: this.user
+    }).afterClosed().subscribe(_ => {
+      this.loadSkillSets();
+    });
+  }
+  
+  onChangeSkillSetClick(){
+    this.dialog.open(DialogChangeSkillSetComponent, {
+      data: this.skillSets
+    }).afterClosed().subscribe(_ => {
+      let selectedSkillSet = this.skillSets.find(s => s.selected);
+      if(selectedSkillSet.id !== this.skillSet.id) {
+        this.skillSet = selectedSkillSet;
+        this.skillFiltersService.clearFilterFacets();
+        this.loadSkills();
+      }
+    });
+  }
 
   onRemoveFilterFacetClick(filter: SkillFilterFacet) {
     this.skillFiltersService.removeFilterFacet(filter);
@@ -91,6 +119,37 @@ export class SkillsBrowserComponent implements OnInit {
 
   onRemoveAllFilterFacetsClick() {
     this.skillFiltersService.clearFilterFacets();
+  }
+  
+  private loadSkillSets() {
+    this.userService.getSkillSets(this.user)
+      .subscribe(skillSets => {
+        this.skillSets = skillSets;
+        // Can't do anything if we don't have any skill sets.
+        if(skillSets.length === 0) return;
+
+        // If we don't have aselected skillset then pick the first one.
+        this.skillSet = this.skillSets.find(s => s.selected);
+        if(!this.skillSet){
+          this.skillSet = this.skillSets[0];
+          this.skillSet.selected = true;
+        }
+        this.loadSkills();
+      },
+      (error: any) => this.notificationService.addDanger(`There was an error trying to load the skill sets, please try again.
+        ${error}`)); 
+  }
+  
+  private loadSkills() {
+    this.skillService.getSkillGroups(this.skillSet.id)
+      .subscribe(skillGroups => {
+        this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.skillSet.id, skillGroups)
+          .subscribe(_ => {
+            this.skillGroups = skillGroups
+          });
+      },
+      (error: any) => this.notificationService.addDanger(`There was an error trying to load the skills, please try again.
+        ${error}`)); 
   }
 
   private onFilterFacetUpdated(){

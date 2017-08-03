@@ -36,11 +36,8 @@ export class UserPicDirective implements OnChanges {
   }
 
   ngOnChanges() {
-    if (this.user) {
-        this.setPic(this.user.pic);
-    };
+    this.setPic(this.user ? this.user.pic : undefined);
   }
-
 
   private setPic(pic?: string) {
     let path = this.apiRootUri + "images/profiles/150x150/" + (pic ? pic : "_ghost.png");

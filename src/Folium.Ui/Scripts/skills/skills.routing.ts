@@ -18,15 +18,15 @@
 */
 import { Routes, RouterModule } from "@angular/router";
 import { SkillsComponent } from "./skills.component";
-import { SkillSetResolve } from "./../skill-set/resolve.service";
+import { CurrentUserResolve } from "../user/user-resolve.service";
 
 const routes: Routes = [
     {
         path: "",
         component: SkillsComponent,
         resolve: {
-            skillSet: SkillSetResolve
-        }
+            currentUser: CurrentUserResolve
+        },
     }
 ];
 

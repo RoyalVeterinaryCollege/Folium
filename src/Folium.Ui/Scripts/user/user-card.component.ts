@@ -22,7 +22,6 @@ import { ModalDirective } from "ngx-bootstrap";
 import { Subscription } from "rxjs/subscription";
 
 import { UserService } from "./user.service";
-import { SkillSetSelectionService } from "../skill-set/selection.service";
 import { User } from "./../dtos";
 
 @Component({
@@ -37,8 +36,7 @@ export class UserCardComponent implements OnInit, OnDestroy {
   private signedInUser$: Subscription;
 
   constructor(
-    private userService: UserService,
-	  private skillSetSelectionService: SkillSetSelectionService,) { }
+    private userService: UserService) { }
 
   ngOnInit() {
 	  this.signedInUser$ = this.userService.signedInUser.subscribe(user => {

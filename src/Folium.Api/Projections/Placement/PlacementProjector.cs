@@ -36,16 +36,19 @@ namespace Folium.Api.Projections.Placement {
 		private readonly ConventionBasedCommitProjecter _conventionProjector;
 		private readonly ILogger<PlacementProjector> _logger;
 
-		public PlacementProjector(IDbService dbService, IPersistStreams persistStreams,
-		ILogger<PlacementProjector> logger) : base(persistStreams, dbService) {
-			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome())
+		public PlacementProjector(IDbService dbService, IPersistStreams persistStreams, ILogger<PlacementProjector> logger) : base(persistStreams, dbService) {
+			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
+				logger.LogWarning($"Commit contains null events. CommitId:{commit.CommitId}, CommitSequence:{commit.CommitSequence}, StreamId:{commit.StreamId}, StreamRevision:{commit.StreamRevision}, EventCount:{commit.Events.Count}, AggregateId {commit.AggregateId()}");
+			})
 				.FirstProject<PlacementCreated>(OnPlacementCreated)
 				.ThenProject<PlacementUpdated>(OnPlacementUpdated)
 				.ThenProject<PlacementRemoved>(OnPlacementRemoved)
 			    .ThenProject<EntryCreated>(OnEntryCreated)
 			    .ThenProject<EntryCreatedWithType>(OnEntryCreatedWithType)
 				.ThenProject<EntryUpdated>(OnEntryUpdated)
-			    .ThenProject<EntryRemoved>(OnEntryRemoved);
+			    .ThenProject<EntryRemoved>(OnEntryRemoved)
+			    .ThenProject<EntryShared>(OnEntryShared)
+			    .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved);
 
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
 			_logger = logger;
@@ -132,7 +135,8 @@ namespace Folium.Api.Projections.Placement {
 					   ,[Description]
 					   ,[UserId]
 					   ,[Where]
-					   ,[When])
+					   ,[When]
+					   ,[Shared])
 				SELECT TOP 1
 					   @Id
 					   ,Id
@@ -142,6 +146,7 @@ namespace Folium.Api.Projections.Placement {
 					   ,@UserId
 					   ,[FullyQualifiedTitle]
 					   ,@When
+					   ,0 -- Not shared
 				FROM [PlacementProjector.Placement]
 				WHERE [FullyQualifiedTitle] = @Where
 				AND [UserId] = @UserId
@@ -199,6 +204,45 @@ namespace Folium.Api.Projections.Placement {
 				DELETE FROM [dbo].[PlacementProjector.Entry]
 				WHERE [Id] = @Id;";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntryCollaboratorRemoved(IDbTransaction tx, ICommit commit, EntryCollaboratorRemoved @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				@event.UserId
+			};
+
+			const string sql = @"
+				DELETE FROM [dbo].[PlacementProjector.EntrySharedWith]
+				WHERE [EntryId] = @EntryId
+					  AND [UserId] = @UserId;
+
+				UPDATE [PlacementProjector.Entry]
+				SET	[Shared] = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[PlacementProjector.EntrySharedWith] WHERE [EntryId] = @EntryId) THEN 1 ELSE 0 END
+				WHERE [Id] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntryShared(IDbTransaction tx, ICommit commit, EntryShared @event) {
+			foreach (var collaboratorId in @event.CollaboratorIds) {
+				var sqlParams = new {
+					EntryId = commit.AggregateId(),
+					UserId = collaboratorId
+				};
+				const string sql = @"
+				INSERT INTO [dbo].[PlacementProjector.EntrySharedWith]
+					   ([EntryId]
+					   ,[UserId])
+				 SELECT
+					   @EntryId
+					   ,@UserId
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[PlacementProjector.EntrySharedWith] WHERE EntryId = @EntryId AND UserId = @UserId);
+				
+				UPDATE [PlacementProjector.Entry]
+				SET	[Shared] = 1
+				WHERE [Id] = @EntryId;";
+				tx.Connection.Execute(sql, (object)sqlParams, tx);
+			}
 		}
 	}
 }

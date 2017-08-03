@@ -18,10 +18,12 @@
 */
 import { Component, OnInit, OnDestroy, ViewContainerRef }       from "@angular/core";
 import { ActivatedRoute, Router, NavigationEnd } from "@angular/router";
+import { MatDialog, MatDialogRef } from "@angular/material";
 import { Subscription } from "rxjs/subscription";
 
 import { SecurityService } from "./common/security.service";
 import { UserService } from "./user/user.service";
+import { DialogUserEditorComponent } from "./user/dialog-user-editor.component";
 
 @Component({
   selector: "my-app",
@@ -33,8 +35,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private viewContainerRef: ViewContainerRef;
   private onSignInComplete$: Subscription;
+  private onUserEditViewChange$: Subscription;
+  private dialogRef: MatDialogRef<DialogUserEditorComponent>
 
-  constructor(private router: Router, viewContainerRef: ViewContainerRef, private securityService: SecurityService, private userService: UserService) {
+  constructor(
+    private router: Router, 
+    viewContainerRef: ViewContainerRef, 
+    private securityService: SecurityService, 
+    private userService: UserService,
+    private dialog: MatDialog) {
     // You need this small hack in order to catch application root view container ref
     // https://valor-software.com/ngx-bootstrap/index-bs4.html#/modals
     this.viewContainerRef = viewContainerRef;
@@ -49,17 +58,25 @@ export class AppComponent implements OnInit, OnDestroy {
         const element = document.querySelector(elementId);
         if (element) { element.scrollIntoView(); }
       }
+    });    
+    this.onUserEditViewChange$ = this.userService.onShowUserEditView.subscribe(show => {
+      if (show) {
+        this.dialogRef = this.dialog.open(DialogUserEditorComponent, { disableClose: true });
+      } else {
+        this.dialogRef.close();
+      }
     });
   }
 
   ngOnInit() {
     // Regsiter a sign in with the user service when the security service is happy a user has signed in.
     this.onSignInComplete$ = this.securityService.onSignInComplete.subscribe(url => {
-		this.userService.registerSignIn();
+		  this.userService.registerSignIn().subscribe(_ => _);
     });
   }
 
   ngOnDestroy() {
     this.onSignInComplete$.unsubscribe();
+    this.onUserEditViewChange$.unsubscribe();
   }
 }

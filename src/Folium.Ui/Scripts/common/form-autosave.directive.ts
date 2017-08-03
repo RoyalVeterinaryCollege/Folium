@@ -36,7 +36,7 @@ export class FormAutoSaveDirective implements AfterViewInit, OnDestroy {
     @Input()
     set formGroup(formGroup: FormGroup) {
         formGroup.valueChanges.subscribe(changes => {
-            this.change$.next(changes)
+	        this.change$.next(changes);
         });
     }
 

@@ -27,25 +27,44 @@ using System;
 using Folium.Api.Extensions;
 using Microsoft.AspNetCore.Http;
 using System.IO;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Folium.Api.Controllers {
     [Route("[controller]")]
     public class UsersController : Controller {
+        private readonly ILogger<UsersController> _logger;
         private readonly IUserService _userService;
+        private readonly ISkillService _skillService;
 			
-        public UsersController(IUserService userService) {
+        public UsersController(
+            ILogger<UsersController> logger,
+            IUserService userService,
+            ISkillService skillService) {
+            _logger = logger;
             _userService = userService;
+            _skillService = skillService;
         }                   
 
-        [NoCache, HttpGet("current")]
-        // GET users/current
-        // Gets the currently signed in user.
-        public async Task<ActionResult> Current() {
-            if(User == null || !User.Identity.IsAuthenticated) return Json(null);
-            return Json(await GetCurrentUser());
+        [NoCache, Authorize, HttpGet]
+        // GET users
+        // Gets upto 10 users that match the supplied query string, the users are returned as collaborator options.
+        public async Task<ActionResult> Index(string q) {
+			var currentUser = await _userService.GetUserAsync(User);
+			return string.IsNullOrWhiteSpace(q) 
+				? null 
+				: Json(_userService.GetCollaboratorOptions(currentUser, q).Take(10));
         }
 
-        [NoCache, Authorize, HttpGet("sign-in")]
+	    [NoCache, HttpGet("current")]
+		// GET users/current
+		// Gets the currently signed in user.
+		public async Task<ActionResult> Current() {
+			if (User == null || !User.Identity.IsAuthenticated) return Json(null);
+			return Json(await GetCurrentUser());
+		}
+
+		[NoCache, Authorize, HttpGet("sign-in")]
         // GET users/sign-in
         // Registers that a user has signed in.
         public async Task<ActionResult> RegisterSignIn() {
@@ -118,8 +137,66 @@ namespace Folium.Api.Controllers {
 			return Json(tutors);
 		}
 
-		// Gets the currently signed in user.
-		private async Task<UserDto> GetCurrentUser() {
+        [NoCache, Authorize, HttpGet("{userId}/skill-sets")]
+        // GET users/{userId}/skill-sets
+        public async Task<ActionResult> SkillSets(int userId) {
+            var sets = (await _skillService.GetSkillSetsAsync(userId))
+                .Select(s => new SkillSetDto(s)).ToList();
+            return Json(sets);
+        }
+
+        [NoCache, Authorize, HttpPost("current/skill-sets/add/{skillSetId}")]
+        // POST users/current/skill-sets/add/{skillSetId}
+        // Adds the skill set to the users list.
+        public async Task<ActionResult> AddSkillSet(int skillSetId) {
+            var currentUser = await _userService.GetUserAsync(User);
+
+            // Validation.
+            var skillSet = await _skillService.GetSkillSetAsync(skillSetId);
+            if (skillSet == null) {
+                _logger.LogInformation($"AddSkillSet called with invalid SkillSetId of {skillSetId}");
+                return new BadRequestResult();
+            }
+
+            var userSkillSets = await _skillService.GetSkillSetsAsync(currentUser.Id);
+            if (userSkillSets.Any(set => set.Id == skillSetId)) {
+                // User already has this skillset.
+                return new OkResult();
+            }
+
+            // Add the user skillset.
+            await _skillService.AddUserSkillSetAsync(currentUser.Id, skillSetId);
+
+            return new OkResult();
+        }
+
+        [NoCache, Authorize, HttpPost("current/skill-sets/remove/{skillSetId}")]
+        // POST users/current/skill-sets/remove/{skillSetId}
+        // Remove the skill set from the users list.
+        public async Task<ActionResult> RemoveSkillSet(int skillSetId) {
+            var currentUser = await _userService.GetUserAsync(User);
+
+            // Validation.
+            var skillSet = await _skillService.GetSkillSetAsync(skillSetId);
+            if (skillSet == null) {
+                _logger.LogInformation($"RemoveSkillSet called with invalid SkillSetId of {skillSetId}");
+                return new BadRequestResult();
+            }
+
+            var userSkillSets = await _skillService.GetSkillSetsAsync(currentUser.Id);
+            if (userSkillSets.All(set => set.Id != skillSetId)) {
+                // User doesn't have this skillset.
+                return new OkResult();
+            }
+
+            // Remove the user skillset.
+            await _skillService.RemoveUserSkillSetAsync(currentUser.Id, skillSetId);
+
+            return new OkResult();
+        }
+
+        // Gets the currently signed in user.
+        private async Task<UserDto> GetCurrentUser() {
             var user = await _userService.GetUserAsync(User);
             
             return user == null ? null : new UserDto(user);

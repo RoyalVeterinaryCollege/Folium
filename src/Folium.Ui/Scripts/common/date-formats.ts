@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { MdDateFormats } from '@angular/material';
+import { MatDateFormats } from '@angular/material';
 
-export const FOLIUM_DATE_FORMATS: MdDateFormats = {
+export const FOLIUM_DATE_FORMATS: MatDateFormats = {
   parse: {
     dateInput: null,
   },

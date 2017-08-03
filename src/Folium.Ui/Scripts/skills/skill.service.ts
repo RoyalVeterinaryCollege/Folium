@@ -17,13 +17,12 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Injectable } from "@angular/core";
-import { Http } from "@angular/http";
+import { Response, Http } from "@angular/http";
 import { Observable } from 'rxjs/Observable';
 
-import 'rxjs/observable/of';
 import 'rxjs/add/operator/publishReplay';
 import 'rxjs/add/operator/map';
-
+import 'rxjs/add/observable/of';
 
 import { Skill, SkillSet, SkillGroup, SelfAssessment, SelfAssessmentScale, SkillFilter } from "../dtos";
 import { HttpService } from "../common/http.service";
@@ -32,7 +31,7 @@ import { Utils } from "../common/utils";
 
 @Injectable()
 export class SkillService {
-    private skillSetUrl = "skill-set";
+    private skillSetUrl = "skill-sets";
 
     // Local cache.
     private skillSets: Observable<SkillSet[]>;

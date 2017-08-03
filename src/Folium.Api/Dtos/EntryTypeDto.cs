@@ -25,6 +25,7 @@ namespace Folium.Api.Dtos {
     public class EntryTypeDto {
         public int Id { get; set; } 
         public string Name { get; set; } 
+        public int SkillSetId { get; set; }
         public bool Retired { get; set; }
 	    private string _template;
 	    public dynamic Template {

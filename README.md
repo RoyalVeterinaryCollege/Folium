@@ -2,7 +2,7 @@
 Plan Record Reflect Learn
 ---
 
-This repository contains the source code for Folium, you can can find more about Folium at [coming soon].
+This repository contains the source code for Folium, you can can find more about Folium at [http://folium.education/](http://folium.education/).
 
 ### Architecture
 
@@ -12,7 +12,7 @@ Folium.Ui is a [Single Page Application (SPA)](https://en.wikipedia.org/wiki/Sin
 
 To create a build of the Folium app you will need to follow the following steps:
 
-> Currently the Folium.Api must be run on a Windows OS (min Windows 7 SP1), as there is it a dependency on the full .NET Framework stack (via EventSaucing), however Folium.Ui is cross platform.
+> Currently the Folium.Api must be run on a Windows OS (min Windows 7 SP1), as there is it a dependency on the full .NET Framework stack (via [EventSaucing](https://github.com/RoyalVeterinaryCollege/EventSaucing)), however Folium.Ui is cross platform.
 
 1. Ensure you have .NET Core SDK installed [https://www.microsoft.com/net/core](https://www.microsoft.com/net/core)
 2. Have Node.js installed [https://nodejs.org/en/download/](https://nodejs.org/en/download/)
@@ -29,7 +29,7 @@ To deploy the app, first complete the build steps above and then complete the fo
 
 1. Follow this [guide](https://docs.microsoft.com/en-us/aspnet/core/publishing/iis) to install ASP.NET Core on Windows with IIS.
 2. You will need a SQL Server instance (min SQL Server 2012), [SQL Server Express](https://www.microsoft.com/en-us/sql-server/sql-server-editions-express) will do fine
-3. Run all the scripts in the SQL Scripts folder
+3. Run all the scripts in the [SQL-Scripts](SQL-Scripts) folder
 4. Install and configure [IdentityServer](https://github.com/IdentityServer/IdentityServer4)
 	> We found identityserver app pool must have 'Load User Profile' in Advanced Settings and the identity needs permissions to read its private key via mmc snap in -> All Tasks -> Manage Private Keys.
 5. Copy the Folium.Api and Folium.Ui build outputs (publish folders) into two seperate web applications
@@ -38,7 +38,7 @@ To deploy the app, first complete the build steps above and then complete the fo
 
 ### Skill set install
 
-You will need to install at least one Skill Set to use the app, details of how to do this can be found at (https://github.com/RoyalVeterinaryCollege/Folium/tree/master/Skills Import)[https://github.com/RoyalVeterinaryCollege/Folium/tree/master/Skills%20Import]
+You will need to install at least one Skill Set to use the app, [here's how](Skills-Import/readme.md)
 
 ### Slim Image Cropper
 
@@ -63,4 +63,30 @@ Some points to help you get setup and running, please shout if we have forgot an
 * In the Folium.Ui project there are a number of predefined Visual Studio tasks which in run the various gulp tasks, or you can run them directly from the command line.
 * There is a gulp watch task which will automatically transpile the typescript, sass files and sync the files to the wwwroot folder. You should run this task in the background whilst developing Folium.Ui, there is also a watch.bat and watch.command which can be run directly from the relevant OS.
 
+### Dependencies
+
+Folium has been built with the help of these superb librarys
+
+- [ASP.NET Core MVC](https://github.com/aspnet/Mvc)
+- [Dapper](https://github.com/StackExchange/Dapper)
+- [ImageSharp](https://github.com/SixLabors/ImageSharp)
+- [Autofac](https://github.com/autofac/Autofac)
+- [Serilog](https://github.com/serilog/serilog)
+- [EventSaucing](https://github.com/RoyalVeterinaryCollege/EventSaucing)
+- [TypeScript](https://github.com/Microsoft/TypeScript)
+- [Angular](https://github.com/angular/angular)
+- [Material2](https://github.com/angular/material2)
+- [Bootstrap](https://github.com/twbs/bootstrap)
+- [ngx-bootstrap](https://github.com/valor-software/ngx-bootstrap)
+- [TinyMce](https://github.com/tinymce/tinymce)
+- [RxJS](https://github.com/ReactiveX/rxjs)
+- [oidc-client](https://github.com/IdentityModel/oidc-client-js)
+- [hammer.js](https://github.com/hammerjs/hammer.js)
+- [node.js](https://github.com/nodejs/node)
+- [npm](https://github.com/npm/npm)
+- [gulp](https://github.com/gulpjs/gulp)
+- [sass](https://github.com/sass/sass)
+- [systemjs](https://github.com/systemjs/systemjs)
+- [IdentityServer](https://github.com/IdentityServer/IdentityServer4)
+- [Hangfire](https://github.com/HangfireIO/Hangfire)
 

@@ -21,7 +21,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 <div *ngFor="let skill of skills;trackBy: trackSkill">
 	<div class="pt-3 pb-4 ml-sm-4" *ngIf="!skill.assessment.hidden">
 		<div class="d-flex flex-row">
-			<span *ngIf="!autoSave && !readOnly"><md-checkbox [checked]="skillBundleService.isInBundle(skill.id)" (change)="onBundleClick(skill)" title="Add skill to bundle"><span class="sr-only">Add skill to bundle</span></md-checkbox></span>
+			<span *ngIf="!autoSave && !readOnly"><mat-checkbox [checked]="skillBundleService.isInBundle(skill.id)" (change)="onBundleClick(skill)" title="Add skill to bundle"><span class="sr-only">Add skill to bundle</span></mat-checkbox></span>
 			<div>
 				{{skill.name}}
 			</div>
@@ -43,7 +43,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				</div>
 				<div class="col-1 pl-0">			
 					<button type="button" class="btn btn-slider" (click)="skill.hideDescriptor = !skill.hideDescriptor">
-						<i class="pdd-slider" aria-hidden="true" title="Toggle descriptors"> <span class="sr-only">Toggle self assessment descriptors</span></i>
+						<i class="folium-slider" aria-hidden="true" title="Toggle descriptors"> <span class="sr-only">Toggle self assessment descriptors</span></i>
 					</button>
 				</div>
 			</div>

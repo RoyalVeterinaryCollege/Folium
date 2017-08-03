@@ -467,7 +467,7 @@ function BooleanFieldValue() {
 
 /* Adjusts configuration of our gesture library, Hammer. */
 @Injectable()
-export class MdGestureConfig extends HammerGestureConfig {
+export class MatGestureConfig extends HammerGestureConfig {
 
   /* List of new event names to add to the gesture support list */
   events: string[] = [
@@ -534,7 +534,7 @@ export class MdGestureConfig extends HammerGestureConfig {
   exports: [AssessmentSliderComponent],
   declarations: [AssessmentSliderComponent],
   providers: [
-    {provide: HAMMER_GESTURE_CONFIG, useClass: MdGestureConfig},
+    {provide: HAMMER_GESTURE_CONFIG, useClass: MatGestureConfig},
   ],
 })
 export class AssessmentSliderModule { }

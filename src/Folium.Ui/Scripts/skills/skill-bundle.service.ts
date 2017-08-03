@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Injectable, EventEmitter } from "@angular/core";
-import { SelfAssessmentBundle } from "../dtos";
+import { SelfAssessments } from "../dtos";
 
 @Injectable()
 export class SkillBundleService {
@@ -61,8 +61,8 @@ export class SkillBundleService {
 		this.skillIds = [];
 	}
 
-	setBundleItems(skillIds: number[]);
-	setBundleItems(assessmentBundle: SelfAssessmentBundle);
+	setBundleItems(items: number[]);
+	setBundleItems(items: SelfAssessments);
 	setBundleItems(items: any) {
 		this.skillIds = [];
 		if(!items) return;

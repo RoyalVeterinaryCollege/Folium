@@ -17,6 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Folium.Api.Services;
@@ -79,6 +80,37 @@ namespace Folium.Api.Controllers {
 			return Json(newEntry);
 		}
 
+		[HttpPost("{entryId}/comment")]
+		// POST entries/{entryId}/comment
+		// Comment on an entry.
+		public async Task<ActionResult> Comment([FromBody]EntryCommentDto entryCommentDto) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryCommentDto.EntryId);
+			if(entry == null) {
+				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+			// Validate the dto.
+			if (entryCommentDto.Author == null) {
+				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty author");
+				return new BadRequestResult();
+			}
+			if (entryCommentDto.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with a different author id of {entryCommentDto.Author.Id}");
+				return new BadRequestResult();
+			}
+			if (string.IsNullOrWhiteSpace(entryCommentDto.Comment)) {
+				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty comment");
+				return new BadRequestResult();
+			}
+			entryCommentDto.CreatedAt = DateTime.UtcNow;
+			var newId = _entryService.CreateComment(entryCommentDto);
+
+			return Json(newId);
+		}
+
 		[HttpPost("{entryId}/update")]
 		// POST entries/{entryId}/update
 		// Update the entry for the user.
@@ -116,15 +148,101 @@ namespace Folium.Api.Controllers {
 		// Remove the entry for the user.
 		public async Task<ActionResult> RemoveEntry(Guid entryId) {
 			var currentUser = await _userService.GetUserAsync(User);
-			
-			// Remove any self assessments.
+
 			var entryDto = await _entryService.GetEntryAsync(currentUser, entryId);
+
+			if (!(await IsValidEntry("RemoveEntry", currentUser, entryDto))) {
+				return new BadRequestResult();
+			}
+
+			// Remove any self assessments.
 			var latestSelfAssessments = _selfAssessmentService.RemoveSelfAssessments(currentUser, entryDto.SkillSetId, entryDto.AssessmentBundle, entryDto);
 
 			// Remove the entry.
-			_entryService.RemoveEntry(currentUser, entryId);
+			_entryService.RemoveEntry(entryId);
 
 			return Json(latestSelfAssessments);
+		}
+
+		[HttpPost("{entryId}/share")]
+		// POST entries/{entryId}/share
+		// Share the entry for the user.
+		public async Task<ActionResult> ShareEntry([FromBody]ShareEntryDto shareEntryDto) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, shareEntryDto.EntryId);
+			if (entry == null) {
+				_logger.LogInformation($"ShareEntry action called with entry id of {shareEntryDto.EntryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			if (entry.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"ShareEntry action called with entry id of {shareEntryDto.EntryId} by user id of {currentUser.Id}, which was not the creator of the entry, which is user id {entry.Author.Id}");
+				return new BadRequestResult();
+			}
+
+			var existingCollaborators = await _entryService.GetCollaboratorsAsync(shareEntryDto.EntryId);
+
+			// Just in case the list container the current user or any existing collaborators, remove them.
+			shareEntryDto.CollaboratorIds.Remove(currentUser.Id);
+			foreach (var collaborator in existingCollaborators) {
+				shareEntryDto.CollaboratorIds.Remove(collaborator.Id);
+			}
+			
+			// Remove the entry.
+			_entryService.ShareEntry(currentUser, shareEntryDto);
+
+			return new OkResult();
+		}
+
+		[HttpPost("{entryId}/collaborators/{userId}/remove")]
+		// POST entries/{entryId}/collaborators/{userId}/remove
+		// Removes a collaborator.
+		public async Task<ActionResult> RemoveCollaborator(Guid entryId, int userId) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
+			if (entry == null) {
+				_logger.LogInformation($"RemoveCollaborator action called with entry id of {entryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			if (entry.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"RemoveCollaborator action called with entry id of {entryId} by user id of {currentUser.Id}, which was not the creator of the entry, which is user id {entry.Author.Id}");
+				return new BadRequestResult();
+			}
+
+			var existingCollaborators = (await _entryService.GetCollaboratorsAsync(entryId)).ToList();
+
+			if (existingCollaborators.All(u => u.Id != userId)) {
+				_logger.LogInformation($"RemoveCollaborator action called with entry id of {entryId} by user id of {currentUser.Id}, wishing to remove user id {userId}, which doesn't exist in the list of collaborators");
+				return new BadRequestResult();
+			}
+
+			// Remove the collaborator.
+			_entryService.RemoveCollaborator(currentUser, entryId, userId);
+
+			return new OkResult();
+		}
+
+		[HttpGet("{entryId}/collaborators")]
+		// POST entries/{entryId}/collaborators
+		// Gets the collaborators.
+		public async Task<ActionResult> Collaborators(Guid entryId) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
+			if (entry == null) {
+				_logger.LogInformation($"Collaborators action called with entry id of {entryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+			
+			var existingCollaborators = await _entryService.GetCollaboratorsAsync(entryId);
+
+			return Json(existingCollaborators);
 		}
 
 		private async Task<bool> IsValidEntry(string caller, User currentUser, EntryDto entryDto) {
@@ -137,13 +255,22 @@ namespace Folium.Api.Controllers {
 				_logger.LogInformation($"{caller} called with invalid SkillSetId of {entryDto.SkillSetId}");
 				return false;
 			}
-			if (entryDto.Id != Guid.Empty && (await _entryService.GetEntryAsync(currentUser, entryDto.Id) == null)) {
+			var existingEntry = entryDto.Id != Guid.Empty ? await _entryService.GetEntryAsync(currentUser, entryDto.Id) : null;
+			if (entryDto.Id != Guid.Empty && existingEntry == null) {
 				_logger.LogInformation($"{caller} called with EntryId of {entryDto.Id}");
+				return false;
+			}
+			if (entryDto.Id != Guid.Empty && existingEntry.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"{caller} called with EntryId of {entryDto.Id} that was created by user {entryDto.Author.Id} but being edited by {currentUser.Id}");
 				return false;
 			}
 
 			if (entryDto.EntryType != null) {
-				var entryTypes = await _entryService.GetEntryTypesAsync(skillSet.Id);
+				var entryTypes = await _entryService.GetEntryTypesAsync(new[] { skillSet.Id });
+				if (entryDto.Id == Guid.Empty) {
+					// this is a new entry, don't allow retired entry types.
+					entryTypes = entryTypes.Where(t => t.Retired == false);
+				}
 				if (entryTypes.All(t => t.Id != entryDto.EntryType.Id)) {
 					_logger.LogInformation($"{caller} called with invalid entry type of {entryDto.EntryType.Id}");
 					return false;
@@ -165,7 +292,7 @@ namespace Folium.Api.Controllers {
 		[HttpGet]
 		// GET entries
 		// Gets all the entries for the current user.
-		public async Task<ActionResult> Entries(int skillSetId, int skip = 0, int take = 20) {
+		public async Task<ActionResult> Entries(int skip = 0, int take = 20) {
 			var currentUser = await _userService.GetUserAsync(User);
 			if (currentUser == null) {
 				_logger.LogInformation($"Entries called with invalid user {User.Email()}");
@@ -173,7 +300,7 @@ namespace Folium.Api.Controllers {
 			}
 
 			// Get the entries.
-			var entries = await _entryService.GetEntriesAsync(currentUser, skillSetId, skip, take);
+			var entries = await _entryService.GetEntriesAsync(currentUser, skip, take);
 
 			return Json(entries);
 		}
@@ -192,16 +319,32 @@ namespace Folium.Api.Controllers {
 			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
 
 			return Json(entry);
-		}
+        }
 
-		[HttpGet("types")]
+        [HttpGet("{entryId}/summary")]
+        // GET entries/{entryId}/summary
+        // Gets the requested entry summary.
+        public async Task<ActionResult> EntrySummary(Guid entryId) {
+            var currentUser = await _userService.GetUserAsync(User);
+            if (currentUser == null) {
+                _logger.LogInformation($"EntrySummary called with invalid user {User.Email()}");
+                return new BadRequestResult();
+            }
+
+            // Get the entry summary.
+            var entry = await _entryService.GetEntrySummaryAsync(currentUser, entryId);
+
+            return Json(entry);
+        }
+
+        [HttpGet("types")]
 		// GET types
 		// Gets all the entry types for the specified skillset.
-		public async Task<ActionResult> EntryTypes(int skillSetId) {
+		public async Task<ActionResult> EntryTypes(List<int> skillSetIds) {
 			// Get the entry types.
-			var types = await _entryService.GetEntryTypesAsync(skillSetId);
+			var types = await _entryService.GetEntryTypesAsync(skillSetIds);
 
-			return Json(types);
+			return Json(types.Where(t => t.Retired == false).ToList());
 		}
 
 		[HttpGet("where")]

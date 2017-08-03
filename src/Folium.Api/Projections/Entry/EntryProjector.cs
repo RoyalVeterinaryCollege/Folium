@@ -28,14 +28,17 @@ using Dapper;
 using Folium.Api.Models.Entry.Events;
 using Folium.Api.Models.Placement.Events;
 using Folium.Api.Models.SelfAssessing.Events;
+using Microsoft.Extensions.Logging;
 
 namespace Folium.Api.Projections.Entry {
 	[Projector(1)]
 	public class EntryProjector: ProjectorBase {
 		readonly ConventionBasedCommitProjecter _conventionProjector;
 
-		public EntryProjector(IDbService dbService, IPersistStreams persistStreams):base(persistStreams, dbService) {
-			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome())
+		public EntryProjector(IDbService dbService, IPersistStreams persistStreams, ILogger<EntryProjector> logger) :base(persistStreams, dbService) {
+			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
+				logger.LogWarning($"Commit contains null events. CommitId:{commit.CommitId}, CommitSequence:{commit.CommitSequence}, StreamId:{commit.StreamId}, StreamRevision:{commit.StreamRevision}, EventCount:{commit.Events.Count}, AggregateId {commit.AggregateId()}");
+			})
 			   .FirstProject<EntryCreated>(OnEntryCreated)
 			   .ThenProject<EntryCreatedWithType>(OnEntryCreatedWithType)
 			   .ThenProject<EntryUpdated>(OnEntryUpdated)
@@ -44,7 +47,10 @@ namespace Folium.Api.Projections.Entry {
 			   .ThenProject<EntrySelfAssessmentAdded>(OnEntrySelfAssessmentAdded)
 			   .ThenProject<EntrySelfAssessmentUpdated>(OnEntrySelfAssessmentUpdated)
 			   .ThenProject<EntrySelfAssessmentRemoved>(OnEntrySelfAssessmentRemoved)
-			   .ThenProject<PlacementNameUpdated>(OnPlacementNameUpdated);
+			   .ThenProject<PlacementNameUpdated>(OnPlacementNameUpdated)
+			   .ThenProject<EntryShared>(OnEntryShared)
+			   .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
+			   .ThenProject<EntryCommentCreated>(OnEntryCommentCreated);
 
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
 		}
@@ -67,7 +73,8 @@ namespace Folium.Api.Projections.Entry {
 					   ,[Where]
 					   ,[When]
 					   ,[CreatedAt]
-					   ,[LastUpdatedAt])
+					   ,[LastUpdatedAt]
+					   ,[Shared])
 				 SELECT
 					   @Id
 					   ,@SkillSetId
@@ -78,6 +85,7 @@ namespace Folium.Api.Projections.Entry {
 					   ,@When
 					   ,@CreatedAt
 					   ,@LastUpdatedAt
+					   ,0 -- Not shared
 				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.Entry] WHERE Id = @Id);";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
 		}
@@ -192,6 +200,65 @@ namespace Folium.Api.Projections.Entry {
 				WHERE [UserId] = @UserId
 				AND [Where] = @OriginalFullyQualifiedTitle;";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+		private void OnEntryCommentCreated(IDbTransaction tx, ICommit commit, EntryCommentCreated @event) {
+			var sqlParams = @event.ToDynamic();
+			sqlParams.EntryId = commit.AggregateId();
+
+			const string sql = @"
+				INSERT INTO [dbo].[EntryProjector.EntryComment]
+					   ([Id]
+					  ,[EntryId]
+					  ,[Comment]
+					  ,[CreatedBy]
+					  ,[CreatedAt])
+				 SELECT
+					   @Id
+					  ,@EntryId
+					  ,@Comment
+					  ,@CreatedBy
+					  ,@CreatedAt
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.EntryComment] WHERE [EntryId] = @EntryId AND [Id] = @Id);";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntryCollaboratorRemoved(IDbTransaction tx, ICommit commit, EntryCollaboratorRemoved @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				@event.UserId
+			};
+
+			const string sql = @"
+				DELETE FROM [dbo].[EntryProjector.SharedWith]
+				WHERE [EntryId] = @EntryId
+					  AND [UserId] = @UserId;
+
+				UPDATE [EntryProjector.Entry]
+				SET	[Shared] = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[EntryProjector.SharedWith] WHERE [EntryId] = @EntryId) THEN 1 ELSE 0 END
+				WHERE [Id] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntryShared(IDbTransaction tx, ICommit commit, EntryShared @event) {
+			foreach (var collaboratorId in @event.CollaboratorIds) {
+				var sqlParams = new {
+					EntryId = commit.AggregateId(),
+					UserId = collaboratorId
+				};
+				const string sql = @"
+				INSERT INTO [dbo].[EntryProjector.SharedWith]
+					   ([EntryId]
+					   ,[UserId])
+				 SELECT
+					   @EntryId
+					   ,@UserId
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.SharedWith] WHERE EntryId = @EntryId AND UserId = @UserId);
+				
+				UPDATE [EntryProjector.Entry]
+				SET	[Shared] = 1
+				WHERE [Id] = @EntryId;";
+				tx.Connection.Execute(sql, (object)sqlParams, tx);
+			}
 		}
 	}
 }

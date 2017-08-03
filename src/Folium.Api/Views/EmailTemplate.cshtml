@@ -1,0 +1,83 @@
+﻿@*
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+*@
+@model Folium.Api.Models.EmailNotification
+@{
+    Layout = "";
+}
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>@Html.Raw(Model.Subject)</title>
+</head>
+<body yahoo style="font-family:sans-serif; font-size: 16px; font-weight: 300; margin:0; padding:0; min-width:100%!important;">
+    <!--[if (gte mso 9)|(IE)]>
+        <table width="600" align="center" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td>
+                    <![endif]-->
+    <table class="content" align="center" cellpadding="10" cellspacing="0" bgcolor="white" style="margin-top: 50px; border: 1px solid #ccc; width:100%; max-width: 600px; line-height: 200%">
+        <tr bgcolor="#455b65">
+            <td border="1">
+                <p style="color: white; font-size:20px;">
+                    @Html.Raw(Model.Subject)
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <p style="padding-top: 30px;">
+                    @Html.Raw(Model.HtmlBody)
+                </p>
+                <br>
+                @if (!string.IsNullOrEmpty(Model.ActionLink)) {
+                    <table style="width:100px" ;>
+                        <tr bgcolor="#e04713">
+                            <td style="text-align: center;">
+                                <a href="@Model.ActionLink" style="color:white; text-decoration: none;">@Model.ActionTitle</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <br>
+                }
+                <p style="line-height:2.5:">
+                    Thanks <br>The Folium Team
+                </p>
+                <img border="0" alt="Folium Logo" src="https://folium.rvc.ac.uk/images/logo-email.png">
+                <p style="font-size: 10px;">
+                    This email can't recieve replies. For futher informaton please email: <a href="mailto:folium-help@rvc.ac.uk">folium-help@rvc.ac.uk</a>
+                </p>
+                <!--
+                <p style="font-size: 10px;">
+                    You have recieved this email because you .... If you wish to change your notification setting please visit <a href="https://folium.rvc.ac.uk">Folium</a>
+                </p>
+                -->
+            </td>
+        </tr>
+    </table>
+    <!--[if (gte mso 9)|(IE)]>
+                </td>
+            </tr>
+        </table>
+    <![endif]-->
+</body>
+</html>

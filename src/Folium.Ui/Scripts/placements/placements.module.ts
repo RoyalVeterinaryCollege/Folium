@@ -20,18 +20,18 @@ import { NgModule }       from "@angular/core";
 import { CommonModule }       from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { 
-    MdInputModule, 
-    MdDatepickerModule, 
-    MdNativeDateModule, 
+    MatInputModule, 
+    MatDatepickerModule, 
+    MatNativeDateModule, 
     DateAdapter,  
-    MdButtonModule,
-    MdMenuModule,
-    MdChipsModule } from "@angular/material";
+    MatButtonModule,
+    MatMenuModule,
+    MatChipsModule } from "@angular/material";
 
 import { placementsRouting } from "./placements.routing";
-import { ListPlacementsComponent, OrderByPlacementDatePipe } from "./list-placements.component";
+import { PlacementsViewerComponent, OrderByPlacementDatePipe } from "./placements-viewer.component";
 import { ViewPlacementComponent } from "./view-placement.component";
-import { EditPlacementComponent } from "./edit-placement.component";
+import { PlacementEditorComponent } from "./placement-editor.component";
 import { EntriesCoreModule } from "../entries/entries.module";
 import { FmCommonModule } from "../common/common.module";
 
@@ -41,20 +41,20 @@ import { FmCommonModule } from "../common/common.module";
 		FormsModule,
         ReactiveFormsModule,
         
-        MdButtonModule,
-        MdChipsModule,
-        MdDatepickerModule,
-		MdInputModule,
-        MdMenuModule,
-        MdNativeDateModule,
+        MatButtonModule,
+        MatChipsModule,
+        MatDatepickerModule,
+		MatInputModule,
+        MatMenuModule,
+        MatNativeDateModule,
         
         EntriesCoreModule, 
         FmCommonModule,       
         placementsRouting,
     ],
     declarations: [
-        EditPlacementComponent,
-		ListPlacementsComponent,
+        PlacementEditorComponent,
+        PlacementsViewerComponent,
         OrderByPlacementDatePipe,
 		ViewPlacementComponent
     ]

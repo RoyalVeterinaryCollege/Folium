@@ -53,20 +53,18 @@ namespace Folium.Api.Controllers {
 
         [NoCache]
         // GET skill-set
-        [HttpGet("skill-set")]
+        [HttpGet("skill-sets")]
         public async Task<ActionResult> SkillSets() {
-			var currentUser = await _userService.GetUserAsync(User);
-			var sets = (await _skillService.GetSkillSetsAsync(currentUser.Id))
-                .Where(s => s.SelfAssignable == true)
+            var sets = (await _skillService.GetSkillSetsAsync())
+                .Where(s => s.SelfAssignable)
                 .Select(s => new SkillSetDto(s)).ToList();
             return Json(sets);
         }
-
+        
         [NoCache]
-        // GET skill-set/{skillSetId}
-        [HttpGet("skill-set/{skillSetId}")]
-        public async Task<ActionResult> SkillSet(int skillSetId, int userId = -1) {
-			/* TODO: Check for default userId and use current user. */
+        // GET skill-sets/{skillSetId}
+        [HttpGet("skill-sets/{skillSetId}")]
+        public async Task<ActionResult> SkillSet(int skillSetId) {
 			var skills = (await _skillService.GetSkillsAsync(skillSetId)).Where(s => s.Removed == false).ToList();
             var hierarchyTerms = (await _taxonomyService.GetHierarchyTermsAsync(skillSetId));
             var skillTerms = await _taxonomyService.GetHierarchySkillTermsAsync(skillSetId);
@@ -80,8 +78,8 @@ namespace Folium.Api.Controllers {
         }
 
         [NoCache]
-        // GET skill-set/{skillSetId}/groups
-        [HttpGet("skill-set/{skillSetId}/filters")]
+        // GET skill-sets/{skillSetId}/filters
+        [HttpGet("skill-sets/{skillSetId}/filters")]
         public async Task<ActionResult> SkillFilters(int skillSetId) {
             var filters = await _taxonomyService.GetSkillFilterTaxonomysAsync(skillSetId);
             var filterTerms = await _taxonomyService.GetSkillFilterTermsAsync(skillSetId);
@@ -96,7 +94,7 @@ namespace Folium.Api.Controllers {
 
         [NoCache]
         // GET skill-set/{skillSetId}/self-assessment-scales
-        [HttpGet("skill-set/{skillSetId}/self-assessment-scales")]
+        [HttpGet("skill-sets/{skillSetId}/self-assessment-scales")]
         public async Task<ActionResult> SelfAssessmentScales(int skillSetId) {
             var scales = (await _selfAssessmentService.GetSelfAssessmentScalesAsync(skillSetId))
                 .SelectMany(s => s.Levels.Select(l => new SelfAssessmentScaleDto(s, l)))
@@ -106,7 +104,7 @@ namespace Folium.Api.Controllers {
 
 		[NoCache]
 		// GET skill-set/{skillSetId}
-		[HttpGet("skill-set/{skillSetId}/self-assessments")]
+		[HttpGet("skill-sets/{skillSetId}/self-assessments")]
 		public async Task<ActionResult> SkillSelfAssessments(int skillSetId, int userId = -1) {
 			/* TODO: Check for default userId and use current user. */
 			var currentUser = await _userService.GetUserAsync(User);
@@ -118,39 +116,39 @@ namespace Folium.Api.Controllers {
 		}
 
 		[NoCache] 
-		[HttpPost("skill-set/{skillSetId}/self-assessments/create")]
+		[HttpPost("skill-sets/{skillSetId}/self-assessments/create")]
 		// POST skill-set/{skillSetId}/self-assessments/create
 		// Creates a new self assessment for the user.
 		public async Task<ActionResult> CreateSelfAssessment(int skillSetId, [FromBody]SelfAssessmentDto selfAssessmentDto) {
 			var currentUser = await _userService.GetUserAsync(User);
 			if (currentUser == null) {
-				_logger.LogInformation($"CreateSelfAssessment called with invalid user {User.Email()}");
+				_logger.LogWarning($"CreateSelfAssessment called with invalid user {User.Email()}");
 				return new BadRequestResult();
 			}
 
 			// Validation.
 			if (selfAssessmentDto.SkillId == 0) {
-				_logger.LogInformation($"CreateSelfAssessment called with invalid SkillId of {selfAssessmentDto.SkillId}");
+				_logger.LogWarning($"CreateSelfAssessment called with invalid SkillId of {selfAssessmentDto.SkillId}");
 				return new BadRequestResult();
 			}
 			var skill = await _skillService.GetSkillAsync(skillSetId, selfAssessmentDto.SkillId);
 			if (skill == null) {
-				_logger.LogInformation($"CreateSelfAssessment called with invalid SkillId of {selfAssessmentDto.SkillId} with SkillSetId of {skillSetId}");
+				_logger.LogWarning($"CreateSelfAssessment called with invalid SkillId of {selfAssessmentDto.SkillId} with SkillSetId of {skillSetId}");
 				return new BadRequestResult();
 			}
 			if (!skill.CanSelfAssess || !skill.SelfAssessmentScaleId.HasValue) {
-				_logger.LogInformation($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} which cannot be self assessed.");
+				_logger.LogWarning($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} which cannot be self assessed.");
 				return new BadRequestResult();
 			}
 			var selfAssessmentScales = await _selfAssessmentService.GetSelfAssessmentScalesAsync(skillSetId);
 			var selfAssessment = selfAssessmentScales.FirstOrDefault(s => s.Id == skill.SelfAssessmentScaleId.Value);
 			var selfAssessmentLevel = selfAssessment.Levels.FirstOrDefault(l => l.Id == selfAssessmentDto.LevelId);
 			if (selfAssessmentLevel == null) {
-				_logger.LogInformation($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} with an invalid LevelId of {selfAssessmentDto.LevelId}");
+				_logger.LogWarning($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} with an invalid LevelId of {selfAssessmentDto.LevelId}");
 				return new BadRequestResult();
 			}
 			if (selfAssessmentLevel.Score != selfAssessmentDto.Score) {
-				_logger.LogInformation($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} with LevelId of {selfAssessmentDto.LevelId} with an invalid score of {selfAssessmentDto.Score}");
+				_logger.LogWarning($"CreateSelfAssessment called with SkillId of {selfAssessmentDto.SkillId} with LevelId of {selfAssessmentDto.LevelId} with an invalid score of {selfAssessmentDto.Score}");
 				return new BadRequestResult();
 			}
 

@@ -66,6 +66,18 @@
         }
     }
 }
+.btn-link-icon {
+    @extend .btn-link;
+    border:none;
+    font-size:1.3rem;
+    &:active {
+        border:none;
+    }
+    &:focus {
+        border:none;
+        box-shadow: none;
+    }
+}
 .btn-link-white {
     @extend .btn-link;
     color:white;

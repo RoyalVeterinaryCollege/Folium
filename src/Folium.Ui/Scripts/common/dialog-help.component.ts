@@ -17,12 +17,12 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, Inject } from "@angular/core"
-import { MD_DIALOG_DATA } from '@angular/material';
+import { MAT_DIALOG_DATA } from '@angular/material';
 
 @Component({
     selector: "dialog-help",
     templateUrl: "html/dialog-help.html"
 })
 export class DialogHelpComponent {
-  constructor(@Inject(MD_DIALOG_DATA) public data: any) { }
+  constructor(@Inject(MAT_DIALOG_DATA) public data: any) { }
  }

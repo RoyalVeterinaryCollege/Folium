@@ -17,23 +17,20 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Routes, RouterModule } from "@angular/router";
-import { ListPlacementsComponent } from "./list-placements.component";
+import { PlacementsViewerComponent } from "./placements-viewer.component";
 import { ViewPlacementComponent } from "./view-placement.component";
-import { SkillSetResolve } from "../skill-set/resolve.service";
+import { CurrentUserResolve } from "../user/user-resolve.service";
 
 const placementsRoutes: Routes = [
     {
         path: "",
-        component: ListPlacementsComponent,
-        resolve: {
-            skillSet: SkillSetResolve
-        }
+        component: PlacementsViewerComponent
     },
 	{
         path: ":id",
 		component: ViewPlacementComponent,
         resolve: {
-            skillSet: SkillSetResolve
+            currentUser: CurrentUserResolve
         }
     }
 ];

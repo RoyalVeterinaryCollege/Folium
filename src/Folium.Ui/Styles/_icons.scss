@@ -51,6 +51,18 @@
         margin-top:75%;
     }
 }
+.share-icon {
+    color: $light-blue;
+    font-size:1.6rem;
+}
+.link-icon {
+    color: $link-color;
+    cursor: pointer;
+    &:hover {
+        color: $link-hover-color;
+    }      
+}
+
 @include media-breakpoint-up(sm) {
     .icon-links {
         background-size: 60% auto;

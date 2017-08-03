@@ -28,14 +28,17 @@ using NEventStore;
 using NEventStore.Persistence;
 using Scalesque;
 using IDbService = EventSaucing.Storage.IDbService;
+using Microsoft.Extensions.Logging;
 
 namespace Folium.Api.Projections.Where {
 	[Projector(3)]
 	public class WhereProjector: ProjectorBase {
 		readonly ConventionBasedCommitProjecter _conventionProjector;
 
-		public WhereProjector(IDbService dbService, IPersistStreams persistStreams):base(persistStreams, dbService) {
-			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome())
+		public WhereProjector(IDbService dbService, IPersistStreams persistStreams, ILogger<WhereProjector> logger) :base(persistStreams, dbService) {
+			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
+				logger.LogWarning($"Commit contains null events. CommitId:{commit.CommitId}, CommitSequence:{commit.CommitSequence}, StreamId:{commit.StreamId}, StreamRevision:{commit.StreamRevision}, EventCount:{commit.Events.Count}, AggregateId {commit.AggregateId()}");
+			})
 			    .FirstProject<EntryCreated>(OnEntryCreated)
 			    .ThenProject<EntryUpdated>(OnEntryUpdated)
 				.ThenProject<EntryRemoved>(OnEntryRemoved)

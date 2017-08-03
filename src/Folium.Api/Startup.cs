@@ -32,6 +32,8 @@ using Folium.Api.Services;
 using Autofac.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
+using Hangfire;
+using Hangfire.Common;
 
 namespace Folium.Api {
     public class Startup {
@@ -42,7 +44,7 @@ namespace Folium.Api {
 
             if (env.IsDevelopment()) {
                 // For more details on using the user secret store see https://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                builder.AddUserSecrets<Startup>();
 			}
 			builder.AddEnvironmentVariables();
             Configuration = builder.Build();
@@ -55,7 +57,7 @@ namespace Folium.Api {
         public IConfigurationRoot Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public IServiceProvider ConfigureServices(IServiceCollection services) {
+        public IServiceProvider ConfigureServices(IServiceCollection services) {            
             // Add framework services.
             services.AddMvc().AddJsonOptions(options => {
 	            options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc; // Use UTC datetimes.
@@ -77,16 +79,26 @@ namespace Folium.Api {
             services.AddSingleton<IUserService, UserService>();
 			services.AddSingleton<IEntryService, EntryService>();
 			services.AddSingleton<IPlacementService, PlacementService>();
-			services.AddSingleton<IConfigurationRoot>(Configuration);
-			
-			var builder = new ContainerBuilder();
+            services.AddSingleton<IEmailService, EmailService>();
+            services.AddSingleton<IViewRenderService, ViewRenderService>();
+            services.AddSingleton<IConfigurationRoot>(Configuration);
+
+            var connectionString = Configuration.GetConnectionString("SqlConnectionString");
+            
+            // Add hangfire.
+            services.AddHangfire(x => x.UseSqlServerStorage(connectionString));
+
+            var builder = new ContainerBuilder();
 	        builder.RegisterEventSaucingModules(new EventSaucingConfiguration {
-		        ConnectionString = Configuration.GetConnectionString("SqlConnectionString")
-	        });
+		        ConnectionString = connectionString
+            });
 			builder.Populate(services);
 			var container = builder.Build();
 
 			container.StartEventSaucing();
+
+			// Initialise the collaborator options.
+	        container.Resolve<IUserService>().RefreshCollaboratorOptionsAsync();
 
 			return container.Resolve<IServiceProvider>();
 		}
@@ -118,12 +130,18 @@ namespace Folium.Api {
                     ApiName = "folium_app_api"
                 });
 
-            app.UseMvc(routes =>
-            {
+            app.UseMvc(routes => {
                 routes.MapRoute(
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
+
+            var options = new BackgroundJobServerOptions {
+                Queues = new[] { "email" }
+            };
+
+            app.UseHangfireServer(options);
+            app.UseHangfireDashboard();
         }
     }
 }

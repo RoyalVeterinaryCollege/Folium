@@ -18,15 +18,12 @@ You should have received a copy of the GNU General Public License
 along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div class="dialog-heading">
-  <h1 md-dialog-title>Help</h1>
-  <div class="diaglog-heading-close">
-    <button class="btn btn-link-white" md-dialog-close="true"><i class="fa fa-times" aria-hidden="true"></i></button>
-  </div>
+<div mat-dialog-title>
+  <h1>Help</h1>
 </div>
-<div class="dialog-body">
-  <div md-dialog-content  [innerHtml]="data"></div>
+<div mat-dialog-content>
+  <div [innerHtml]="data"></div>
 </div>
-<div md-dialog-actions class="justify-content-between">
-  <button class="btn btn-link" md-dialog-close="true">Close</button>
+<div mat-dialog-actions class="justify-content-between">
+  <button class="btn btn-link" mat-dialog-close="true">Close</button>
 </div>

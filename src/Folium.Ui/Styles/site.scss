@@ -20,7 +20,7 @@
 @import "../node_modules/@angular/material/theming";
 @import "variables";
 @import "mixins";
-@import "md-theme";
+@import "mat-theme";
 @import "../node_modules/bootstrap/scss/bootstrap";
 @import "alert";
 @import "assessment-descriptors";
@@ -28,7 +28,6 @@
 @import "buttons";
 @import "cards";
 @import "chips";
-@import "diaglog";
 @import "dropdown";
 @import "entry";
 @import "fades";
@@ -37,9 +36,10 @@
 @import "icons";
 @import "layout";
 @import "loaders";
-@import "md-chips";
-@import "md-datepicker";
-@import "md-input-container";
+@import "mat-chips";
+@import "mat-datepicker";
+@import "mat-dialog";
+@import "mat-form-field";
 @import "modals";
 @import "notifications";
 @import "placement";

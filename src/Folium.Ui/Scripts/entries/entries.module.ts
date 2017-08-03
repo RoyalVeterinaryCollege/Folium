@@ -19,53 +19,67 @@
 
 import { NgModule }       from "@angular/core";
 import { CommonModule }       from "@angular/common";
+import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { 
-    MdInputModule, 
-    MdAutocompleteModule,
-    MdButtonModule,
-    MdMenuModule,
-    MdChipsModule  } from "@angular/material";
+    MatInputModule, 
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatMenuModule,
+    MatChipsModule,
+    MatDialogModule  } from "@angular/material";
 
 import { ButtonsModule, ModalModule } from "ngx-bootstrap";
 
 import { entriesRouting } from "./entries.routing";
 import { SkillsCoreModule }     from "./../skills/skills.module";
-import { ListEntriesComponent } from "./list-entries.component";
-import { ViewEntryComponent } from "./view-entry.component";
-import { EditEntryComponent } from "./edit-entry.component";
-import { EntriesComponent } from "./entries.component";
+import { EntriesViewerComponent } from "./entries-viewer.component";
+import { EntryViewerComponent } from "./entry-viewer.component";
+import { EntryEditorComponent } from "./entry-editor.component";
+import { ViewEntriesComponent } from "./view-entries.component";
+import { DialogShareEntryComponent } from "./dialog-share-entry.component";
 import { FmCommonModule } from "../common/common.module";
+import { FmUserModule } from "../user/user.module";
+import { CommentsComponent, OrderByCommentDatePipe } from "./comments.component";
+import { ViewEntryComponent } from "./view-entry.component";
 
 @NgModule({
     imports: [
         CommonModule,
 		FormsModule,
         ReactiveFormsModule,
+        RouterModule,
         
-		MdAutocompleteModule,
-        MdButtonModule,
-        MdChipsModule,
-		MdInputModule,
-        MdMenuModule,
+		MatAutocompleteModule,
+        MatButtonModule,
+        MatChipsModule,
+        MatDialogModule,
+		MatInputModule,
+        MatMenuModule,
         
         ButtonsModule.forRoot(),
         ModalModule.forRoot(),
 
         FmCommonModule,
+        FmUserModule,
         SkillsCoreModule
     ],
     declarations: [
-        EditEntryComponent,
-        EntriesComponent,
-        ListEntriesComponent,
-		ViewEntryComponent
+        CommentsComponent,
+		DialogShareEntryComponent,
+        EntriesViewerComponent,
+        EntryEditorComponent,
+        EntryViewerComponent,
+        OrderByCommentDatePipe,
+        ViewEntriesComponent,
+        ViewEntryComponent
     ],
     providers: [
     ],
     exports: [
-        ListEntriesComponent
-    ]
+        EntriesViewerComponent
+	],
+	entryComponents: [DialogShareEntryComponent]
 })
 export class EntriesCoreModule { }
 

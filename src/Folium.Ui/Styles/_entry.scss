@@ -21,36 +21,62 @@
     a {
         font-size:1.2rem; 
     }
-    md-chip-list {
+    mat-chip-list {
         display: inline-block;
     }
-  
+    .col-entry-share-status {
+        text-align: center;
+        .profile-pic-thumb {
+            width: 1.875rem;
+        } 
+        .fa-share-alt {
+            color: $light-blue;
+            font-size:1.6rem;
+            &:hover {
+                color: $link-hover-color;
+            }
+        }  
+    }
+    .col-entry-date {
+        line-height: 2.2em;
+    }
+    .col-entry-actions {
+        .fa-ellipsis-v {
+            color: $link-color;
+            font-size:1.6rem;
+            &:hover {
+                color: $link-hover-color;
+            }
+        }         
+    }  
+}
+.entry-view-card {
+    .col-entry-share-status .fa-share-alt {
+        line-height: 1.3em;
+    }
 }
 .has-active-element .entry-summary-card {
     @extend .mx-md-2;
     @extend .hidden-xs-down;
 }
-.entry-type-container {
+.entry-chip-list-container {
     display:inline-block;
     position:relative;
     line-height: normal;
     text-align: left;
     width:100%;
-    margin-top:0;
-    margin-bottom:0;
-    .entry-type-wrapper {
-        margin-top:1.1rem;
-        margin-bottom:.5rem;
-        padding-bottom: 6px;
-        font-size: 1.5rem;
+    margin-top: 1.25em;
+    padding-bottom: 1.25em;
+    font-size: 1.5rem;
+    .entry-chip-list-underline {
+        height: 1px;
+        width: 100%;        
+        background-color: rgba(#000, 0.42);
     }
-    .entry-type-input-header {
-        position: absolute;
-        left:0;
-        top:-1rem;
-        width:100%;
-        overflow:hidden;
-        color:rgba(0,0,0,.38);
-        font-size:75%;
-    }
+}
+.entry-header {
+    border-bottom: 1px solid $light-grey-fade;
+    margin-left:-1.25rem;
+    margin-right:-1.25rem;
+    margin-bottom: 0.625rem;
 }

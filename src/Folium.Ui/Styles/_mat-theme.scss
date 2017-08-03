@@ -1,0 +1,105 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+// Include the common styles for Angular Material.
+@include mat-core();
+
+$mat-folium-orange: (
+    50 : #fbe9e3,
+    100 : #f6c8b8,
+    200 : #f0a389,
+    300 : #e97e5a,
+    400 : #e56336,
+    500 : #e04713,
+    600 : #dc4011,
+    700 : #d8370e,
+    800 : #d32f0b,
+    900 : #cb2006,
+    A100 : #fff5f4,
+    A200 : #ffc7c1,
+    A400 : #ff988e,
+    A700 : #ff8175,
+    contrast: (
+        50 : #000000,
+        100 : #000000,
+        200 : #000000,
+        300 : #000000,
+        400 : #000000,
+        500 : #ffffff,
+        600 : #ffffff,
+        700 : #ffffff,
+        800 : #ffffff,
+        900 : #ffffff,
+        A100 : #000000,
+        A200 : #000000,
+        A400 : #000000,
+        A700 : #000000,
+    )
+);
+
+$mat-folium-blue: (
+    50 : #eceff1,
+    100 : #cfd8dc,
+    200 : #b0bec5,
+    300 : #90a4ae,
+    400 : #78919c,
+    500 : #607d8b,
+    600 : #587583,
+    700 : #4e6a78,
+    800 : #44606e,
+    900 : #334d5b,
+    A100 : #abe1ff,
+    A200 : #78ceff,
+    A400 : #45bcff,
+    A700 : #2bb3ff,
+    contrast: (
+        50 : #000000,
+        100 : #000000,
+        200 : #000000,
+        300 : #000000,
+        400 : #000000,
+        500 : #ffffff,
+        600 : #ffffff,
+        700 : #ffffff,
+        800 : #ffffff,
+        900 : #ffffff,
+        A100 : #000000,
+        A200 : #000000,
+        A400 : #000000,
+        A700 : #000000,
+    )
+);
+
+// Define the palettes for your theme using the Material Design palettes available in palette.scss
+// (imported above). For each palette, you can optionally specify a default, lighter, and darker
+// hue.
+$mat-folium-primary: mat-palette($mat-folium-blue);
+$mat-folium-accent:  mat-palette($mat-folium-orange);
+
+$mat-folium-theme: mat-light-theme($mat-folium-primary, $mat-folium-accent);
+
+@include mat-form-field-theme($mat-folium-theme);
+@include mat-checkbox-theme($mat-folium-theme);
+@include mat-radio-theme($mat-folium-theme);
+@include mat-autocomplete-theme($mat-folium-theme);
+@include mat-option-theme($mat-folium-theme);
+@include mat-datepicker-theme($mat-folium-theme);
+@include mat-menu-theme($mat-folium-theme);
+@include mat-button-theme($mat-folium-theme);
+@include mat-dialog-theme($mat-folium-theme);
+@include mat-chips-theme($mat-folium-theme);

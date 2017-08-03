@@ -25,7 +25,6 @@ import { Component,
 import { SkillFilter, SkillSet, SkillFilterFacet } from "../dtos";
 import { SkillService } from "./skill.service";
 import { SkillFiltersService } from "./skill-filters.service";
-import { SkillSetSelectionService } from "../skill-set/selection.service";
 
 import { Subscription } from "rxjs/subscription";
 
@@ -33,21 +32,15 @@ import { Subscription } from "rxjs/subscription";
   selector: "skill-search",
   templateUrl: "html/skills/skill-search.component.html"
 })
-export class SkillSearchComponent implements OnInit, OnDestroy {
+export class SkillSearchComponent {
   searchTerm = "";
 
-  private skillSet: SkillSet;
-  private onSkillSetChanged$: Subscription;
+	@Input()
+  skillSet: SkillSet;
 
   constructor(
-    private skillSetSelectionService: SkillSetSelectionService,
     private skillService: SkillService,
     private skillFiltersService: SkillFiltersService) { }
-
-  ngOnInit() {
-    this.skillSet = this.skillSetSelectionService.skillSet;
-    this.onSkillSetChanged$ = this.skillSetSelectionService.onSkillSetChanged.subscribe(s => this.onSkillSetChanged(s));
-  }
 
   addSearch() {
     this.skillFiltersService.addSearch(this.searchTerm);
@@ -56,15 +49,5 @@ export class SkillSearchComponent implements OnInit, OnDestroy {
   clearSearch() {
     this.searchTerm = "";
     this.skillFiltersService.clearSearch();
-  }
-
-  ngOnDestroy() {
-    this.onSkillSetChanged$.unsubscribe();
-  }
-
-  private onSkillSetChanged(s: SkillSet) {
-    // Clear any current filters and search terms.
-    this.skillFiltersService.clearSearch();
-    this.skillSet = s;
   }
 }

@@ -17,10 +17,8 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Routes, RouterModule } from "@angular/router";
-import { SkillSetSelectorComponent } from "./skill-set/selector.component";
 import { HomeComponent } from "./home/home.component";
 import { AuthGuard } from "./common/auth-guard.service";
-import { SkillSetResolve } from "./skill-set/resolve.service";
 
 const routes: Routes = [
     {
@@ -31,10 +29,7 @@ const routes: Routes = [
     {
         path: "home",
         component: HomeComponent,
-        canActivate: [AuthGuard],
-        resolve: {
-            skillSet: SkillSetResolve
-        },
+        canActivate: [AuthGuard]
     },
     {
         path: "placements",

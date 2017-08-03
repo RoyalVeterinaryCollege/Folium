@@ -20,48 +20,53 @@ import { Injectable, EventEmitter } from "@angular/core";
 import { Response, Http } from "@angular/http";
 import { ResponseService } from "../common/response.service";
 
-import 'rxjs/add/operator/publishReplay';
-
-import { User } from "../dtos";
-import { HttpService } from "../common/http.service";
 import { Observable } from "rxjs/Observable";
 import { ReplaySubject } from "rxjs/ReplaySubject";
+import 'rxjs/add/operator/publishReplay';
+
+import { User, CollaboratorOption, SkillSet } from "../dtos";
 
 @Injectable()
 export class UserService {
-    private userUrl = "users/";
-	private _signedInUser$: ReplaySubject<User> = new ReplaySubject<User>(1);
-	private _signedInUser:User;
-    private showUserEditView$: EventEmitter<boolean> = new EventEmitter<boolean>();
+    private userUrl = "users";
+	private user: ReplaySubject<User> = new ReplaySubject<User>(1);
+    private _showUserEditView: EventEmitter<boolean> = new EventEmitter<boolean>();
+    private _signedInUser$: Observable<User>
+    private userSkillSets: { [id: number]: Observable<SkillSet[]>; } = {};
 
     constructor(private http: Http, private responseService: ResponseService) { }
 
 	get signedInUser(): Observable<User> {
-        if (!this._signedInUser) {
-            // Refresh the current user if we don"t have one.
+        if (!this._signedInUser$) {
+            this._signedInUser$ = this.user.asObservable();
+            // Refresh the current user.
             this.refreshUser();
         }
-		return this._signedInUser$.asObservable();
+		return this.user.asObservable();
     }
 	
     get onShowUserEditView(): EventEmitter<boolean> {
-        return this.showUserEditView$;
+        return this._showUserEditView;
     }
 
+	getUsers(query: string): Observable<CollaboratorOption[]> {
+		return this.http.get(`${this.userUrl}?q=${query}`)
+			.map((res: Response) => this.responseService.parseJson(res));
+	}
+
     getUsersTutors(users: User, courseId: number): Observable<User[]> {
-		return this.http.get(`${this.userUrl}current/courses/${courseId}/tutors`)
+		return this.http.get(`${this.userUrl}/current/courses/${courseId}/tutors`)
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
     
-    registerSignIn() {
+    registerSignIn(): Observable<User> {
         // Register that a profile has logged in.
-        return this.http.get(this.userUrl + "sign-in")
+        return this.http.get(this.userUrl + "/sign-in")
             .map(response => {
 				let user = this.responseService.parseJson(response) as User;
-                this._signedInUser$.next(user);
+                this.user.next(user);
                 return user;
-			})
-			.subscribe(_ => _);
+			});
     }
 
 	updateProfileImage(user: User, originalUserPic: any, editedUserPic: any): Observable<User> {
@@ -74,37 +79,67 @@ export class UserService {
         }
 
 	    return this.http
-		    .post(`${this.userUrl}${user.id}/profile-image`, formData)
+		    .post(`${this.userUrl}/${user.id}/profile-image`, formData)
 		    .map(response => {
 				let updatedUser = this.responseService.parseJson(response).result as User;
-				this._signedInUser$.next(updatedUser);
+				this.user.next(updatedUser);
 			    return user;
 		    });
     }
 
 	removeProfileImage(user: User): Observable<User> {
 	    return this.http
-		    .post(`${this.userUrl}${user.id}/profile-image`, "")
+		    .post(`${this.userUrl}/${user.id}/profile-image`, "")
 		    .map(response => {
 				let updatedUser = this.responseService.parseJson(response).result as User;
-				this._signedInUser$.next(updatedUser);
+				this.user.next(updatedUser);
 			    return user;
 		    });
     }
+    
+    getSkillSets(user: User): Observable<SkillSet[]> {
+        // Return the cached value if available.
+        if (!this.userSkillSets[user.id]) {
+            this.userSkillSets[user.id] = this.http.get(`${this.userUrl}/${user.id}/skill-sets`)
+                .map(response => {
+                    let skillSets = this.responseService.parseJson(response) as SkillSet[];
+                    if(skillSets.length == 1) {
+                        // Set the skill set as selected, if there is only 1.
+                        skillSets[0].selected = true;						
+                    }
+                    return skillSets;
+                })
+                .publishReplay(1)
+                .refCount();
+        }
+        return this.userSkillSets[user.id];
+    }
+	
+	addUserSkillSet(user: User, skillSetId: number): Observable<Response> {
+		return this.http.post(`${this.userUrl}/current/skill-sets/add/${skillSetId}`, { })
+			.do(_ => this.userSkillSets[user.id] = undefined); // invalidate the cache.
+	}
 
+	removeUserSkillSet(user: User, skillSetId: number): Observable<Response> {
+		return this.http.post(`${this.userUrl}/current/skill-sets/remove/${skillSetId}`, { })
+			.do(_ => this.userSkillSets[user.id] = undefined); // invalidate the cache.
+    }
+    
     showUserEditView() {
-        this.showUserEditView$.emit(true);
+        this._showUserEditView.emit(true);
     }
 
     hideUserEditView() {
-        this.showUserEditView$.emit(false);
+        this._showUserEditView.emit(false);
     }
 
 	private refreshUser() {
-        this.http.get(this.userUrl + "current")
-            .map(response => {
-				let user = response.json() as User;
-				this._signedInUser$.next(user);
+        this.http.get(this.userUrl + "/current")
+            .do(response => {
+                let user = response.json() as User;
+                if(user) {
+                    this.user.next(user);
+                }
 			})
 			.subscribe(_ => _);
     }

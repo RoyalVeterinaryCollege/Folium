@@ -1,0 +1,79 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div class="dialog-share-entry">
+	<div mat-dialog-title>
+		<h1>Sharing</h1> 
+	</div>	
+	<div mat-dialog-content>
+		<div *ngIf="collaborators.length > 0">
+			<span class="d-block py-3">Shared with:</span>
+			<mat-chip-list>
+				<mat-chip *ngFor="let collaborator of collaborators" [removable]="true" [selectable]="false" (remove)="onRemoveCollaboratorClick(collaborator)">
+					<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
+					{{getCollaboratorLabel(collaborator)}}
+					<mat-icon matChipRemove>
+						<i class="fa fa-times" aria-hidden="true"></i>
+						<span class="sr-only">Remove</span></mat-icon>
+				</mat-chip>
+			</mat-chip-list>
+		</div>
+		<form>
+			<div class="row">
+				<div class="col">
+					<mat-form-field>
+						<mat-chip-list #collaboratorsToInviteChipList>
+							<mat-chip *ngFor="let collaborator of collaboratorsToInvite" [removable]="true" [selectable]="false" (remove)="onRemoveCollaboratorToInviteClick(collaborator)">
+								<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
+								{{getCollaboratorLabel(collaborator)}}
+								<mat-icon matChipRemove>
+									<i class="fa fa-times" aria-hidden="true"></i>
+									<span class="sr-only">Remove</span>
+								</mat-icon>
+							</mat-chip>
+						</mat-chip-list>
+						<input matInput #collaboratorToInviteInput placeholder="Invite people..." [(ngModel)]="collaboratorToInviteQuery" [matChipInputFor]="collaboratorsToInviteChipList" (input)="onCollaboratorInput()" [matAutocomplete]="auto" name="newCollaborator" autocomplete="off" >
+						<mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCollaboratorSelected($event)">
+							<mat-option *ngFor="let option of collaboratorOptions" [value]="option">
+								<span [innerHTML]='highlightMatch(option.name)'></span>
+							</mat-option>
+						</mat-autocomplete>
+					</mat-form-field>
+				</div>
+			</div>
+			<div class="row" *ngIf="collaboratorsToInvite.length > 0">
+				<div class="col">
+					<div class="form-group">
+						<mat-form-field>
+							<textarea matInput placeholder="Optional message" [(ngModel)]="message" name="message"></textarea>
+						</mat-form-field>
+					</div>
+				</div>
+			</div>	
+		</form>
+	</div>
+	<div mat-dialog-actions class="d-flex justify-content-between"  *ngIf="collaboratorsToInvite.length > 0">
+		<button class="btn btn-primary btn-shadow" (click)="onSendInvites()">Submit</button>
+		<button class="btn btn-link" (click)="onCancelInvite()">Cancel</button>
+	</div>	
+	<div mat-dialog-actions *ngIf="collaboratorsToInvite.length == 0">
+		<button cdk-focus-initial class="btn btn-primary btn-shadow" [mat-dialog-close]="collaborators.length > 0">Done</button>
+	</div>
+</div>

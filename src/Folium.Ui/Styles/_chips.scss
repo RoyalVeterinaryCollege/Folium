@@ -37,9 +37,20 @@
         &:not([selected]):hover {
             text-decoration: underline;
         }
+        &.mat-chip-selected.selected-entry-type {
+            background-color: #fff;
+            color: inherit;
+        }
     }
     & + .mat-chip {
         margin: 0 0 4px 3px !important;
+    }
+    & > img.profile-pic {
+        border-width: 1px;
+        height: 1.8em;
+        width: 1.8em;
+        margin-top: 0;
+        margin-right: 3px;
     }
 }
 
@@ -48,13 +59,14 @@
     padding: 4px 6px 4px 6px !important;
     margin-bottom: 0;
 }
-.mat-chip-list-wrapper {
-    margin-top:4px;
-}
 .modal-body {
     .mat-chip {
         &.mat-basic-chip {
             color:white;
         }
     }
+}
+.mat-chip-input.mat-form-field-autofill-control {
+    width: 100%;
+    margin: 0;
 }

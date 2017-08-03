@@ -23,21 +23,21 @@ import {  Component,
           OnInit,
           OnDestroy,
           Output,
-          EventEmitter
+          EventEmitter,
+          OnChanges,
+          SimpleChanges,
+          SimpleChange
         } from "@angular/core";
 
 import { Subscription } from "rxjs/subscription";
 
-import {  SkillSet,
-          SkillGroup,
+import {  SkillGroup,
           SelfAssessmentScale,
           SkillFilterFacet,
           Skill,
-          SelfAssessmentBundle,
           SelfAssessment
         } from "../dtos";
 import { SkillService } from "./skill.service";
-import { SkillSetSelectionService } from "../skill-set/selection.service";
 import { SkillFiltersService } from "../skills/skill-filters.service";
 import { NotificationService } from "../common/notification.service"
 import { SkillBundleService } from "./skill-bundle.service";
@@ -47,7 +47,7 @@ import { SkillBundleService } from "./skill-bundle.service";
   selector: "skill-group-list",
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class SkillGroupListComponent implements OnInit, OnDestroy {
+export class SkillGroupListComponent implements OnInit, OnDestroy, OnChanges {
 
   filters: SkillFilterFacet[] = [];
   searchTerms: string[] = [];
@@ -56,11 +56,9 @@ export class SkillGroupListComponent implements OnInit, OnDestroy {
   private filterFacetUpdated$: Subscription;
   private searchTermsChanged$: Subscription;
   private bundleFilterUpdated$: Subscription;
-  private skillSet: SkillSet;
 
   constructor(
     private skillService: SkillService,
-    private skillSetSelectionService: SkillSetSelectionService,
     private skillFiltersService: SkillFiltersService,
 	  private changeDetectorRef: ChangeDetectorRef,
 	  private notificationService: NotificationService,
@@ -76,13 +74,15 @@ export class SkillGroupListComponent implements OnInit, OnDestroy {
   bundleView: boolean = false;
 
   @Input()
+  skillSetId: number;
+  
+  @Input()
   skillGroups: SkillGroup[];
   
   @Output()
   selfAssessmentChange = new EventEmitter<SelfAssessment>();
 
   ngOnInit() {
-    this.skillSet = this.skillSetSelectionService.skillSet;
     this.filterFacetUpdated$ = this.skillFiltersService.onFilterFacetUpdated.subscribe(f => this.onFilterFacetUpdated());
     this.searchTermsChanged$ = this.skillFiltersService.onSearchTermsChanged.subscribe(s => this.onSearchTermsChanged(s));
     this.bundleFilterUpdated$ = this.skillBundleService.onBundleChange.subscribe(c => {
@@ -93,20 +93,21 @@ export class SkillGroupListComponent implements OnInit, OnDestroy {
 
     this.filters = this.skillFiltersService.filterFacets;
     this.searchTerms = this.skillFiltersService.searchTerms;
-
-    this.skillService.getSelfAssessmentScales(this.skillSet.id)
-      .subscribe(selfAssessmentScales => {
-        this.selfAssessmentScales = selfAssessmentScales;
-        this.changeDetectorRef.markForCheck();
-      },
-      (error: any) => this.notificationService.addDanger(`There was an error trying to load the self assessment skills, please try again.
-        ${error}`)); 
+    this.loadSelfAssessmentScales();
 
     if (this.readOnly || this.bundleView) {
       this.applyAssessmentBundleFilter();
       this.expandAllSkillGroups();
     } else {
       this.collapseAllSkillGroups();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // The skillset id can change, update the self assessment scales when it does.
+    const skillSetId: SimpleChange = changes.skillSetId;
+    if (skillSetId && (skillSetId.previousValue !== skillSetId.currentValue)) {
+      this.loadSelfAssessmentScales();
     }
   }
 
@@ -128,7 +129,6 @@ export class SkillGroupListComponent implements OnInit, OnDestroy {
 
   onToggleSkillGroup(event: Event, skillGroup: SkillGroup) {
     this.toggleSkillGroup(skillGroup, !skillGroup.expanded);
-	  event.preventDefault();
 	  event.stopPropagation();
   }
 
@@ -140,6 +140,16 @@ export class SkillGroupListComponent implements OnInit, OnDestroy {
     this.filterFacetUpdated$.unsubscribe();
     this.searchTermsChanged$.unsubscribe();
     this.bundleFilterUpdated$.unsubscribe();
+  }
+
+  private loadSelfAssessmentScales() {
+    this.skillService.getSelfAssessmentScales(this.skillSetId)
+    .subscribe(selfAssessmentScales => {
+      this.selfAssessmentScales = selfAssessmentScales;
+      this.changeDetectorRef.markForCheck();
+    },
+    (error: any) => this.notificationService.addDanger(`There was an error trying to load the self assessment skills, please try again.
+      ${error}`)); 
   }
 
   private collapseAllSkillGroups() {

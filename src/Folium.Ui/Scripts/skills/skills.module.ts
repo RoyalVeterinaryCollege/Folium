@@ -19,6 +19,7 @@
 import { NgModule }       from "@angular/core";
 import { CommonModule }       from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 
 import { AccordionModule,
         ButtonsModule,
@@ -26,7 +27,7 @@ import { AccordionModule,
 		BsDropdownModule,
 		ModalModule } from "ngx-bootstrap";
 
-import { MdCheckboxModule, MdChipsModule } from "@angular/material";
+import { MatCheckboxModule, MatChipsModule, MatDialogModule, MatRadioModule } from "@angular/material";
 
 import { skillsRouting } from "./skills.routing";
 import { SkillsComponent } from "./skills.component";
@@ -38,16 +39,19 @@ import { SkillGroupComponent } from "./skill-group.component";
 import { SkillFiltersComponent } from "./skill-filters.component";
 import { SkillSearchComponent } from "./skill-search.component";
 import { AssessmentSliderModule } from "./assessment-slider.component";
-import { SkillSetSelectorComponent } from "../skill-set/selector.component";
 import { SkillFiltersService }     from "./skill-filters.service";
+import { DialogChangeSkillSetComponent } from "./dialog-change-skill-set.component";
 
 @NgModule({
     imports:      [
         CommonModule,
         FormsModule,
+        RouterModule,
         
-        MdCheckboxModule,
-        MdChipsModule,
+        MatCheckboxModule,
+        MatRadioModule,
+        MatChipsModule,
+        MatDialogModule,
 
         AccordionModule.forRoot(),        
         BsDropdownModule.forRoot(),
@@ -58,12 +62,12 @@ import { SkillFiltersService }     from "./skill-filters.service";
         AssessmentSliderModule
     ],
     declarations: [
+        DialogChangeSkillSetComponent,
         SkillFiltersComponent,
         SkillFiltersPipe,
         SkillGroupComponent,
-        SkillGroupListComponent,  
-        SkillSearchComponent,      
-        SkillSetSelectorComponent,
+        SkillGroupListComponent,
+        SkillSearchComponent,
         SkillsBrowserComponent,
         SkillsListComponent
     ],
@@ -73,7 +77,8 @@ import { SkillFiltersService }     from "./skill-filters.service";
     exports: [
         SkillGroupListComponent,
         SkillsBrowserComponent
-    ]
+    ],
+	entryComponents: [DialogChangeSkillSetComponent]
 })
 export class SkillsCoreModule {}
 

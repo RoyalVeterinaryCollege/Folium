@@ -22,14 +22,14 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
   <div class="container">
     <div class="d-flex justify-content-start">
       <div class="mr-auto">
-        <h1 class="text-uppercase p-1 m-0"><span class="pdd-skill small"></span> Skills</h1> 
+        <h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1> 
       </div>
         <div *ngIf="skillGroups" class="p-1">
-          <skill-search></skill-search>
+          <skill-search [skillSet]="skillset"></skill-search>
         </div>
         <div *ngIf="skillGroups" class="p-1">
           <button class="btn btn-secondary float-right" (click)="filterModal.show()"><span class="hidden-sm-down">Filter</span><span class="hidden-md-up"><i class="fa fa-filter" aria-hidden="true"></i></span><span *ngIf="filterCount > 0">({{filterCount}})</span></button>
-        </div>
+        </div>      
     </div>
   </div>
 </section>
@@ -37,23 +37,40 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
   <div class="container">
     <div class="row">
       <div class="col">        
+        <!-- Loading... --> 
+        <div *ngIf="!skillSets" class="loader-container">
+            <div class="loader primary">Loading...</div>
+          </div>
+        <div *ngIf="skillSet">
+          <h2>{{skillSet.name}} <small *ngIf="skillSets && skillSets.length > 1"><i class="folium-skills-choice" aria-hidden="true" role="button" (click)="onChangeSkillSetClick()" aria-label="Change Skill Set" title="Change Skill Set"></i></small></h2>
+        </div>
+        <!-- No Skill Sets... -->
+        <div *ngIf="skillSets && skillSets.length === 0" class="row">
+          <div class="col">
+            <div class="app-card">
+              <div class="card-block">
+                Looks like you don't have any skill sets, please <a [routerLink]="" (click)="onSelectUserSkillSetClick()">select one</a>.
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row" *ngIf="filters.length > 0" class="mb-2">
           <div class="d-flex justify-content-start flex-wrap">
-            <md-chip-list>
-              <md-chip [attr.aria-label]='"remove " + filter.name + " filter"' *ngFor="let filter of filters" (click)="onRemoveFilterFacetClick(filter)">
+            <mat-chip-list>
+              <mat-chip [attr.aria-label]='"remove " + filter.name + " filter"' *ngFor="let filter of filters" (click)="onRemoveFilterFacetClick(filter)">
                 {{filter.name}} <i class="fa fa-times-circle" aria-hidden="true"></i>
-              </md-chip>
-            </md-chip-list>
-            <md-chip-list class="ml-auto">
-              <md-basic-chip [attr.aria-label]='"clear all filters"' (click)="onRemoveAllFilterFacetsClick()">
+              </mat-chip>
+            </mat-chip-list>
+            <mat-chip-list class="ml-auto">
+              <mat-basic-chip [attr.aria-label]='"clear all filters"' (click)="onRemoveAllFilterFacetsClick()">
                 <i class="fa fa-times-circle" aria-hidden="true"></i> Clear Filters
-              </md-basic-chip>
-            </md-chip-list>
+              </mat-basic-chip>
+            </mat-chip-list>
           </div>
         </div>	
-        <skill-group-list *ngIf="skillGroups" [skillGroups]="skillGroups" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group-list>
-        <!-- Loading... -->
-        <div *ngIf="!skillGroups" class="loader-container">
+        <skill-group-list *ngIf="skillGroups" [skillSetId]="skillSet.id" [skillGroups]="skillGroups" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group-list>
+        <!-- Loading Skills... -->
+        <div *ngIf="skillSet && !skillGroups" class="loader-container">
           <div class="loader primary">Loading...</div>
         </div>
       </div>
@@ -73,8 +90,8 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
           </div>
           <div class="modal-body">
             <div class="filter-box row">
-              <div class="filter-container col">
-                <skill-filters></skill-filters>
+              <div *ngIf="skillSet" class="filter-container col">
+                <skill-filters [skillSetId]="skillSet.id"></skill-filters>
               </div>
             </div>
           </div>
