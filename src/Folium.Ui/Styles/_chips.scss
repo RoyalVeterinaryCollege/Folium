@@ -1,0 +1,60 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+.mat-chip {
+    margin-bottom: 4px;
+    &:not(.mat-basic-chip) {
+        &:hover {
+            background-color: $light-blue;
+            color: white;
+        }
+    }
+    &:not([selected]):hover {
+        cursor: pointer;
+    }
+    &.mat-basic-chip {
+        padding: 7px 11px 7px 11px;
+        font-size: 13px;    
+        line-height: 16px;
+        border-radius: 24px;
+        display: inline-block;
+        border: solid 1px #e0e0e0;
+        &:not([selected]):hover {
+            text-decoration: underline;
+        }
+    }
+    & + .mat-chip {
+        margin: 0 0 4px 3px !important;
+    }
+}
+
+.mat-chip-small {
+    @extend .mat-chip;
+    padding: 4px 6px 4px 6px !important;
+    margin-bottom: 0;
+}
+.mat-chip-list-wrapper {
+    margin-top:4px;
+}
+.modal-body {
+    .mat-chip {
+        &.mat-basic-chip {
+            color:white;
+        }
+    }
+}

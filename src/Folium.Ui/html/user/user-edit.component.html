@@ -1,0 +1,60 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div bsModal 
+  (onHidden)="modalVisible=false" 
+  (onShow)="modalVisible=true"
+  [config]="{ignoreBackdropClick: true, keyboard: false}" 
+  #editUserModal="bs-modal" 
+  class="container-fluid modal modal-user-edit" 
+  tabindex="-1" 
+  role="dialog" 
+  aria-describedby="Edit profile" 
+  aria-labelledby="editProfileTitle" 
+  aria-hidden="true">
+  <div class="modal-dialog modal-edit-user">
+    <div class="modal-content">
+      <div class="modal-header sr-only">
+        <h4 class="modal-title" id="editProfileTitle">Edit Profile</h4>
+      </div>
+      <div class="modal-body">   
+        <form (ngSubmit)="onSave()">
+          <div class="card profile-card profile shadow-level-1">
+            <div class="dark-background profile-head">
+            </div>          
+            <slim [options]="slimOptions" *ngIf="modalVisible">
+                <input type="file" name="originalUserPic" #originalUserPic>
+                <input type="hidden" name="editedUserPic" #editedUserPic>
+            </slim>
+            <div *ngIf="user?.pic" class="mt-2 d-flex justify-content-center">
+                <button class="btn btn-secondary" type="button" (click)="setNoPhoto()">No photo</button>
+            </div>
+            <div class="card-block">
+              <h3 class="card-title">{{user?.firstName}} {{user?.lastName}}</h3>            
+              <hr>
+              <button class="btn btn-primary" type="submit">Save</button>
+              <button class="btn btn-link" type="button" (click)="closeModal()">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

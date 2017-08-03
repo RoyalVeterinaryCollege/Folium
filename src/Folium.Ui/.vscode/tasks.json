@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "linux": { "command": "sh", "args": ["-c"] },
+    "osx": { "command": "sh", "args": ["-c"] },
+    "windows": { "command": "powershell", "args": ["-Command"] },
+    "tasks": [
+        {
+            "taskName": "dotnet: restore",
+            "type": "shell",
+            "command": "dotnet restore",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "taskName": "dotnet: build",
+            "type": "shell",
+            "command": "gulp build; dotnet build",
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "type": "gulp",
+            "task": "styles"
+        },
+        {
+            "type": "gulp",
+            "task": "scripts",
+            "problemMatcher": "$jshint"
+        },
+        {
+            "type": "gulp",
+            "task": "watch",
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "taskName": "dotnet: test",
+            "type": "shell",
+            "command": "dotnet test",
+            "group": "test"
+        },
+        {
+            "taskName": "dotnet: version",
+            "type": "shell",
+            "command": "dotnet --version"
+        },
+        {
+            "taskName": "dotnet: publish",
+            "type": "shell",
+            "command": "gulp publish; dotnet publish -c Release",
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}

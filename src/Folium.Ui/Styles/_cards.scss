@@ -1,0 +1,85 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+//cards
+.app-card {
+    @extend .card;
+    border-radius: 0.125rem;
+    border:none;
+    -webkit-transition: all 250ms;
+    -moz-transition: all 250ms;
+    transition: all 250ms;
+    @include material_box_shadow(1);
+    margin-left:-15px;
+    margin-right:-15px;
+	&.hover {
+		cursor: pointer;
+		&:hover {
+			@include material_box_shadow(4);
+		}
+	}
+}
+.icon-card {
+    border-radius: 0.125rem;
+    -webkit-transition: all 250ms; 
+    -moz-transition: all 250ms;
+    transition: all 250ms;
+    margin-bottom:0.625rem;
+    display:block;
+    @include material_box_shadow(1);
+    &:hover {
+        @include material_box_shadow(4);
+    }
+}
+.profile-card {
+    width: 100%;
+    margin: auto;
+    position: relative;
+    top: 0px;
+    left: 0px;
+    border:none;
+    & > .profile-head {
+        height:100px;
+    }
+    .slim {
+        @extend .profile-pic;
+        img {
+            @extend .rounded-circle;
+        }
+    }
+    & > .card-block {
+        & > ul {
+            padding-left:0;
+            margin-bottom: 0;
+            .list-group-item {
+                border:none;
+                padding-bottom: 0.5rem;
+                padding-top:0;
+            }
+        }
+    }    
+}
+//Media Queries
+@include media-breakpoint-up(sm) {
+    .app-card {
+        margin-left:0;
+        margin-right:0;
+    }
+ 
+ }
+

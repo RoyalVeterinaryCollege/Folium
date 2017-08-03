@@ -1,0 +1,50 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div *ngIf="skillFilters && skillFilters.length > 0">
+	<div class="hidden-sm-down row">
+		<div *ngFor="let filter of skillFilters" class="col">
+			<h4 class="pb-2">
+				{{ filter.name }} <span *ngIf="getSelectedFacetCount(filter) > 0" class="float-right mr-1">{{getSelectedFacetCount(filter)}}</span>
+			</h4>
+			<div class="filter-column">
+				<div *ngFor="let facet of filter.facets">
+					<label btnCheckbox class="btn btn-tag" [attr.aria-pressed]="facet.selected" [(ngModel)]="facet.selected" (ngModelChange)="onCheckboxChange(facet, $event)" role="button" tabindex="0" >{{facet.name}}<span class="close-filter float-right"></span></label>
+				</div>	
+			</div>		
+		</div>				
+	</div>
+	<!-- repeat filters on small device - collapse -->
+	<div class="row hidden-md-up">
+		<div #group [attr.isOpen] *ngFor="let filter of skillFilters" class="col-sm-12 mb-3">
+			<h4>
+				<a href="" (click)="group.isOpen = !group.isOpen; false;" >{{ filter.name }}<i class="fa float-right" [ngClass]="group?.isOpen ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i></a> <span *ngIf="getSelectedFacetCount(filter) > 0" class="float-right mr-1">{{getSelectedFacetCount(filter)}}</span>
+			</h4>
+			<div [collapse]="!group.isOpen">	
+				<div *ngFor="let facet of filter.facets">
+					<label btnCheckbox class="btn btn-tag" [attr.aria-pressed]="facet.selected" [(ngModel)]="facet.selected" (ngModelChange)="onCheckboxChange(facet, $event)" role="button" tabindex="0" >{{facet.name}}<span class="close-filter float-right"></span></label>
+				</div>
+			</div>								
+		</div>				
+	</div>
+</div>
+
+
+

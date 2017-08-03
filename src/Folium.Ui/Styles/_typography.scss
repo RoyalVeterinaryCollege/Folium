@@ -1,0 +1,125 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+//typography
+html {
+    font-size: .85rem;
+}
+button, input, optgroup, select, textarea {
+    font-family: $font-family-sans-serif; //font reset by normalize.css - overwrite
+}
+.title h1 {
+    color: white;
+}
+h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5  {
+    font-weight: 300;
+}
+h1, .h1 {
+    font-size: 1.8rem;
+}
+h2, .h2 {
+    font-size: 1.5rem;
+}
+h3, .h3 {
+    font-size: 1.35rem;
+}
+h4, .h4 {
+    font-size: 1.25rem;
+}
+@font-face {
+    font-family: 'PDD';
+    src: url("../fonts/PDD.eot?wanmdk");
+    src: url("../fonts/PDD.eot?wanmdk#iefix") format("embedded-opentype"), url("../fonts/PDD.woff2?wanmdk") format("woff2"), url("../fonts/PDD.ttf?wanmdk") format("truetype"), url("../fonts/PDD.woff?wanmdk") format("woff"), url("../fonts/PDD.svg?wanmdk#PDD") format("svg");
+    font-weight: normal;
+    font-style: normal;
+}
+[class^="pdd-"], [class*=" pdd-"] {
+    /* use !important to prevent issues with browser extensions that change fonts */
+    font-family: 'PDD' !important;
+    speak: none;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal; 
+    text-transform: none;
+    /* Better Font Rendering =========== */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+.white-text {
+    color: white;
+}
+.pdd-bundle-empty:before {
+    content: "\e909";
+}
+.pdd-bundle-full:before {
+    content: "\e90a";
+}
+.pdd-post:before {
+    content: "\e904";
+}
+.pdd-pre:before {
+    content: "\e905";
+}
+.pdd-slider:before {
+	content: "\e90f";
+}
+.pdd-tutor:before {
+    content: "\e906";
+}
+.pdd-placement:before {
+    content: "\e900";
+}
+.pdd-entry:before {
+    content: "\e901";
+}
+.pdd-report:before {
+    content: "\e902";
+}
+.pdd-skill:before {
+    content: "\e903";
+}
+.pdd-check:before {
+	content: "\e90d";
+}
+.pdd-check {
+     content: "\e90d";
+}
+.fs-search {
+    font-size: 1.45rem !important;
+}
+.fs-2 {
+    font-size: 2rem !important;
+}
+.fs-3{
+    font-size: 3rem !important;
+}
+.fs-small{
+    font-size: .5rem !important;
+}
+.email:before {
+    content: "\&#xf0e0;";
+}
+
+@include media-breakpoint-up(sm) {
+    html {
+        font-size:1rem;
+    }
+    h1, .h1 {
+        font-size: 2.1rem;
+    }
+ }

@@ -1,0 +1,68 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+//icons
+.icon-links {
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-size: 55%;
+    color: $orange;
+    position:relative;
+    width:100%;
+    &:after {
+        content:"";
+        display:block;
+        padding-bottom:100%;
+    }
+    &.placements {
+        background-image: url(../images/icon-placement.png);
+    }
+    &.entries {
+        background-image: url(../images/icon-entries.png);
+    }
+    &.skills {
+        background-image: url(../images/icon-skills.png);
+    }
+    &.reports {
+        background-image: url(../images/icon-reports-inactive.png);
+    }
+}
+.icon-content {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    p {
+        margin-top:75%;
+    }
+}
+@include media-breakpoint-up(sm) {
+    .icon-links {
+        background-size: 60% auto;
+    }
+}
+@include media-breakpoint-up(md) {
+    .icon-inks {
+        background-size: 40% auto;
+    }
+}
+@include media-breakpoint-up(lg) {
+    .icon-links {
+        background-size: 90% auto;
+    }
+} 

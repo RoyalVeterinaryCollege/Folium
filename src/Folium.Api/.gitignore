@@ -1,0 +1,5 @@
+
+# Allow template image.
+!wwwroot/
+wwwroot/images/profiles/150x150/*
+!wwwroot/images/profiles/150x150/_ghost.png

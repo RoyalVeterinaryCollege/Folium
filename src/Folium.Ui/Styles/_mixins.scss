@@ -1,0 +1,36 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+//Material Shadows
+@mixin material_box_shadow($level) {
+    @if $level == 1 {
+        box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.2), 0 0.0625rem 0.0625rem 0 rgba(0, 0, 0, 0.14), 0  0.125rem .0625rem -.0625rem rgba(0, 0, 0, 0.12);
+    }
+    @else if $level == 2 {
+        box-shadow: 0 0.0625rem 0.3125rem 0 rgba(0, 0, 0, 0.2), 0 0.125rem 0.125rem 0 rgba(0, 0, 0, 0.14), 0  0.1875rem  0.0625rem  -0.125rem rgba(0, 0, 0, 0.12);
+    }
+    @else if $level == 3 {
+        box-shadow: 0 0.0625rem 0.5rem 0 rgba(0, 0, 0, 0.2), 0 0.1875rem 0.25rem 0 rgba(0, 0, 0, 0.14), 0  0.1875rem  0.1875rem  -0.125rem rgba(0, 0, 0, 0.12);
+    }
+    @else if $level == 4 {
+         box-shadow: 0 0.125rem 0.25rem -0.0625rem rgba(0, 0, 0, 0.2), 0 0.25rem 0.3125rem 0 rgba(0, 0, 0, 0.14), 0  0.0625rem 0.625rem  0 rgba(0, 0, 0, 0.12);
+    }
+    @else if $level == 5 {
+         box-shadow: 0 0.1875rem 0.3125rem -0.0625rem rgba(0, 0, 0, 0.2), 0 0.3125rem 0.5rem 0 rgba(0, 0, 0, 0.14), 0  0.0625rem 0.875rem  0 rgba(0, 0, 0, 0.12);
+    }
+}

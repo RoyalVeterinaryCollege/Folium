@@ -1,0 +1,95 @@
+﻿@*
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+*@
+@using Microsoft.Extensions.Options;
+
+@inject IOptions<Folium.Ui.Configuration> configuration
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Folium</title>
+    <base href="/">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css"/>
+    <link rel="shortcut icon" href="~/images/favicon.ico" type="image/x-icon">
+    <environment names="Development">      
+        <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+        <script src="~/lib/oidc-client/dist/oidc-client.min.js"></script>
+    </environment>
+
+    <environment names="Production">
+        <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+    </environment>
+    <link href='https://fonts.googleapis.com/css?family=Lato:400,100,700,300italic,400italic,300' rel='stylesheet' type='text/css'>
+
+</head>
+<body>
+    @RenderBody()
+    @RenderSection("scripts", required: false)
+    <!-- begin usabilla live embed code -->
+    <script type="text/javascript">/*{literal}<![CDATA[*/window.lightningjs||function(c){function g(b,d){d&&(d+=(/\?/.test(d)?"&":"?")+"lv=1");c[b]||function(){var i=window,h=document,j=b,g=h.location.protocol,l="load",k=0;(function(){function b(){a.P(l);a.w=1;c[j]("_load")}c[j]=function(){function m(){m.id=e;return c[j].apply(m,arguments)}var b,e=++k;b=this&&this!=i?this.id||0:0;(a.s=a.s||[]).push([e,b,arguments]);m.then=function(b,c,h){var d=a.fh[e]=a.fh[e]||[],j=a.eh[e]=a.eh[e]||[],f=a.ph[e]=a.ph[e]||[];b&&d.push(b);c&&j.push(c);h&&f.push(h);return m};return m};var a=c[j]._={};a.fh={};a.eh={};a.ph={};a.l=d?d.replace(/^\/\//,(g=="https:"?g:"http:")+"//"):d;a.p={0:+new Date};a.P=function(b){a.p[b]=new Date-a.p[0]};a.w&&b();i.addEventListener?i.addEventListener(l,b,!1):i.attachEvent("on"+l,b);var q=function(){function b(){return["<head></head><",c,' onload="var d=',n,";d.getElementsByTagName('head')[0].",d,"(d.",g,"('script')).",i,"='",a.l,"'\"></",c,">"].join("")}var c="body",e=h[c];if(!e)return setTimeout(q,100);a.P(1);var d="appendChild",g="createElement",i="src",k=h[g]("div"),l=k[d](h[g]("div")),f=h[g]("iframe"),n="document",p;k.style.display="none";e.insertBefore(k,e.firstChild).id=o+"-"+j;f.frameBorder="0";f.id=o+"-frame-"+j;/MSIE[ ]+6/.test(navigator.userAgent)&&(f[i]="javascript:false");f.allowTransparency="true";l[d](f);try{f.contentWindow[n].open()}catch(s){a.domain=h.domain,p="javascript:var d="+n+".open();d.domain='"+h.domain+"';",f[i]=p+"void(0);"}try{var r=f.contentWindow[n];r.write(b());r.close()}catch(t){f[i]=p+'d.write("'+b().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};a.l&&setTimeout(q,0)})()}();c[b].lv="1";return c[b]}var o="lightningjs",k=window[o]=g(o);k.require=g;k.modules=c}({});
+    window.usabilla_live = lightningjs.require("usabilla_live", "//w.usabilla.com/a7fbb2179250.js");
+    /*]]>{/literal}*/</script>
+    <!-- end usabilla live embed code -->
+</body>
+
+    <!-- Enable bootstrap 4 theme for ngx bootstrap -->
+    <script>window.__theme = 'bs4';</script>
+    
+    <environment names="Development">      
+        <!-- Polyfill(s) for older browsers -->
+        <script src="~/lib/core-js/client/shim.min.js"></script>
+        <script src="~/lib/zone.js/dist/zone.js"></script>
+        <script src="~/lib/reflect-metadata/Reflect.js"></script>
+        <script src="~/lib/systemjs/dist/system.src.js"></script>
+        <script src="~/lib/hammerjs/hammer.min.js"></script>
+        <script src="~/lib/intl/dist/Intl.min.js"></script>
+        <!-- Configure SystemJS -->
+        <script src="~/systemjs.config.js"></script>
+        <!-- TinyMce -->
+        <script src="~/lib/tinymce/tinymce.min.js"></script>
+    </environment>
+
+    <environment names="Production">
+        <script src="~/lib/vendors.min.js" asp-append-version="true"></script> <!--bundled dependencies-->
+        <script src="~/js/app.min.js" asp-append-version="true"></script> <!--bundled source-->
+
+    </environment>
+<script>
+	var appSettings = {
+		production: "@configuration.Value.Production" == "True",
+		apiRootUri: "@configuration.Value.ApiRootUri",
+		oidcConfig: {
+			authority: "@configuration.Value.OidcAuthority",
+			client_id: "@configuration.Value.OidcClientId",
+			redirect_uri: "@configuration.Value.OidcRedirectUri",
+			post_logout_redirect_uri: "@configuration.Value.OidcPostLogoutRedirectUri",
+			response_type: "@configuration.Value.OidcResponseType",
+			scope: "@configuration.Value.OidcScope",
+			silent_redirect_uri: "@configuration.Value.OidcSilentRedirectUri",
+			automaticSilentRenew: true
+		}
+	};
+
+	System.import('app').catch(function(err){ console.error(err); });
+</script>
+</html>

@@ -1,0 +1,45 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+.mce-btn {
+    background-color:white !important;
+}
+.mce-panel {
+    background-color:white !important;
+    border:none !important;
+    font-family: 'Lato', sans-serif !important;
+    font-size: 1.1rem;
+}
+.mce-tinymce  {
+    border-radius: 0.125rem;
+    @include material_box_shadow(1);
+}
+.mce-toolbar-grp {
+    border-bottom: solid .05rem $light-grey !important;
+}
+.mce-content-body  {
+    background-color: white;
+    padding:.5rem !important;
+    font-size: 1.176rem;
+}
+
+@include media-breakpoint-up(sm) {
+    .mce-content-body {
+        font-size: 1rem;
+    }
+}

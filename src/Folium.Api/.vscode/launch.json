@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Dev Launch",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/Folium.Api.dll",
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false,
+            "env":{
+                "ASPNETCORE_ENVIRONMENT":"Development"
+            }
+        },
+        {
+            "name": ".NET Core Release Launch",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "publish",
+            "program": "${workspaceRoot}/bin/Debug/netcoreapp1.0/Folium.Api.dll",
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false
+        }
+    ]
+}

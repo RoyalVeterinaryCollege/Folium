@@ -1,0 +1,84 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+.modal-full-screen{
+  max-width: 100%;
+  height:100%;
+  background-color:$dark-blue;
+  margin: 0;
+  padding: 0;
+    .modal-content {
+        background-color: $dark-blue;
+        border: none;
+        height:100%;
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }  
+        section.title {
+           @extend .fixed-top;
+           h1 {
+               position:absolute;
+           }
+        }
+        .content-main {
+            margin-top: 3.5rem;
+       }
+    }
+    .modal-body {
+        overflow:hidden;
+        padding:0;
+        /* Allow vertical scrolling on touch devices */
+        -webkit-overflow-scrolling: touch;
+        overflow-y: auto;
+    }
+    .container {
+        height:100%;
+    }
+    .modal-footer {
+        color:white;
+        min-height:4.4rem;
+    }
+    .modal-header {
+        color:white;
+        margin-bottom:0.5556rem;
+    }
+    .close {
+        color:white;
+        font-weight: 100;
+        font-size:3.5rem;
+        opacity:1;
+        text-shadow: none;
+    }
+}
+.modal-user-edit {
+    .modal-body {
+        padding:0;
+    }
+}
+.modal-open {
+    background-color: $dark-blue;
+}
+//Media Queries
+@include media-breakpoint-up(sm) {
+    .modal-full-screen .modal-content section.title .container {
+    padding-left:30px;
+    padding-right:30px;
+    }
+}
