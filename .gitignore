@@ -240,3 +240,6 @@ _Pvt_Extensions
 
 # Ignore appsettings, these are install specific.
 appsettings.json
+
+# Ignore RVC folder.
+RVC-private/
