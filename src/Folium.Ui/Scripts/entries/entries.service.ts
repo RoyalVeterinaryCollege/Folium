@@ -67,8 +67,8 @@ export class EntriesService {
 		return this.entryTypes[index];
     }
 
-	getEntries(page: number, pageSize: number): Observable<EntrySummary[]> {
-		return this.http.get(`${this.entriesUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}`)
+	getEntries(userId: number, page: number, pageSize: number): Observable<EntrySummary[]> {
+		return this.http.get(`${this.entriesUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}&userId=${userId}`)
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
 
@@ -83,9 +83,9 @@ export class EntriesService {
 				// If any self assessments were removed we will receive back the latest ones.
 				let latestSelfAssessments: SelfAssessments;
 				latestSelfAssessments = this.responseService.parseJson(response);
-				this.skillAssessmentService.updateSelfAssessments(entry.skillSetId, latestSelfAssessments);
+				this.skillAssessmentService.updateSelfAssessments(entry.author.id, entry.skillSetId, latestSelfAssessments);
 				// Update the self assessments with the updated bundle.
-				this.skillAssessmentService.updateSelfAssessments(entry.skillSetId, entry.assessmentBundle);
+				this.skillAssessmentService.updateSelfAssessments(entry.author.id, entry.skillSetId, entry.assessmentBundle);
 			})
 			.map((res: Response) => entry);
 	}
@@ -99,9 +99,9 @@ export class EntriesService {
 				Object.keys(latestSelfAssessments).forEach(skillId => {
 					selfAssessmentsToRemove[skillId] = null;
 				});
-				this.skillAssessmentService.updateSelfAssessments(entry.skillSetId, selfAssessmentsToRemove);
+				this.skillAssessmentService.updateSelfAssessments(entry.author.id, entry.skillSetId, selfAssessmentsToRemove);
 				// If any self assessments were removed we will receive back the latest ones.
-				this.skillAssessmentService.updateSelfAssessments(entry.skillSetId, latestSelfAssessments);
+				this.skillAssessmentService.updateSelfAssessments(entry.author.id, entry.skillSetId, latestSelfAssessments);
 			});
 	}
 

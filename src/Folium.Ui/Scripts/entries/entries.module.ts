@@ -32,7 +32,7 @@ import {
 import { ButtonsModule, ModalModule } from "ngx-bootstrap";
 
 import { entriesRouting } from "./entries.routing";
-import { SkillsCoreModule }     from "./../skills/skills.module";
+import { FmSkillsCoreModule }     from "./../skills/skills.module";
 import { EntriesViewerComponent } from "./entries-viewer.component";
 import { EntryViewerComponent } from "./entry-viewer.component";
 import { EntryEditorComponent } from "./entry-editor.component";
@@ -62,7 +62,7 @@ import { ViewEntryComponent } from "./view-entry.component";
 
         FmCommonModule,
         FmUserModule,
-        SkillsCoreModule
+        FmSkillsCoreModule
     ],
     declarations: [
         CommentsComponent,
@@ -81,7 +81,7 @@ import { ViewEntryComponent } from "./view-entry.component";
 	],
 	entryComponents: [DialogShareEntryComponent]
 })
-export class EntriesCoreModule { }
+export class FmEntriesCoreModule { }
 
 /* I have split these modules as we do not want the routing included
 * in other modules that include this as it causes issues with the "" path
@@ -91,7 +91,7 @@ export class EntriesCoreModule { }
 @NgModule({
     imports:      [
         entriesRouting,
-        EntriesCoreModule
+        FmEntriesCoreModule
     ]
 })
-export class EntriesModule {}
+export class FmEntriesModule {}

@@ -33,6 +33,12 @@ namespace Folium.Api.Models {
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public DateTime LastSignIn { get; set; }
-		public List<int> Courses { get; set; }
-	}
+		public List<CourseEnrolment> Courses { get; set; }
+        public bool HasTutees { get; set; }
+        public bool HasTutor { get; set; }
+        public bool IsSystemUser {
+            get { return Id == -1; }
+        }
+        public ActivitySummary ActivitySummary { get; set; }
+    }
 }      

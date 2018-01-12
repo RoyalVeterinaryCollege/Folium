@@ -98,4 +98,4 @@ export function onInitApp(securityService: SecurityService) {
     bootstrap:    [ AppComponent ]
 })
 
-export class AppModule {}
+export class FmAppModule {}

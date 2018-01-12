@@ -24,7 +24,7 @@ import { Observable } from "rxjs/Observable";
 import { ReplaySubject } from "rxjs/ReplaySubject";
 import 'rxjs/add/operator/publishReplay';
 
-import { User, CollaboratorOption, SkillSet } from "../dtos";
+import { User, CollaboratorOption, SkillSet, TuteeGroup } from "../dtos";
 
 @Injectable()
 export class UserService {
@@ -48,14 +48,24 @@ export class UserService {
     get onShowUserEditView(): EventEmitter<boolean> {
         return this._showUserEditView;
     }
+    
+    getUser(id: number): Observable<User> {
+        return this.http.get(`${this.userUrl}/${id}`)
+            .map((res: Response) => this.responseService.parseJson(res));
+    }
 
 	getUsers(query: string): Observable<CollaboratorOption[]> {
 		return this.http.get(`${this.userUrl}?q=${query}`)
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
 
-    getUsersTutors(users: User, courseId: number): Observable<User[]> {
-		return this.http.get(`${this.userUrl}/current/courses/${courseId}/tutors`)
+    getUsersTutors(userId: number, courseId: number): Observable<User[]> {
+		return this.http.get(`${this.userUrl}/${userId}/courses/${courseId}/tutors`)
+			.map((res: Response) => this.responseService.parseJson(res));
+	}
+
+    getUsersTuteeGroups(): Observable<TuteeGroup[]> {
+		return this.http.get(`${this.userUrl}/current/tutees`)
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
     

@@ -1,0 +1,64 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<section class="title">
+  <div class="container">
+    <div class="d-flex justify-content-start">
+      <div class="mr-auto">
+        <h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1> 
+      </div>
+      <div *ngIf="skillSet" class="p-1">
+        <skill-search></skill-search>
+      </div>
+      <div *ngIf="skillSet" class="p-1">
+        <filter-skills [skillSetId]="skillSet.id"></filter-skills>
+      </div>      
+    </div>
+  </div>
+</section>
+<section class="content-main">
+  <div class="container">
+    <div class="row">
+      <div class="col">        
+        <!-- Loading skill sets... --> 
+        <div *ngIf="!skillSets" class="loader-container">
+          <div class="loader primary">Loading...</div>
+        </div>
+        <!-- No Skill Sets... -->
+        <div *ngIf="skillSets && skillSets.length === 0">
+          <div class="app-card">
+            <div class="card-block">
+              Looks like you don't have any skill sets, please <a [routerLink]="" (click)="onSelectUserSkillSetClick()">select one</a>.
+            </div>
+          </div>
+        </div>
+        <div *ngIf="skillSet">
+          <h2>{{skillSet.name}} <small *ngIf="skillSets && skillSets.length > 1"><i class="folium-skills-choice" aria-hidden="true" role="button" (click)="onChangeSkillSetClick()" aria-label="Change Skill Set" title="Change Skill Set"></i></small></h2>
+        </div>        
+        <!-- Loading Skills... -->
+        <div *ngIf="skillSet && !skillGroups" class="loader-container">
+            <div class="loader primary">Loading...</div>
+        </div>
+        <active-skill-filters></active-skill-filters>
+      </div>
+    </div>
+    <skill-group-list *ngIf="skillGroups" [skillSetId]="skillSet.id" [skillGroups]="skillGroups" [autoSave]="true" [user]="user" [readOnly]="false"></skill-group-list>
+  </div>
+</section>

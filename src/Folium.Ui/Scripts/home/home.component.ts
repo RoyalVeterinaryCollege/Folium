@@ -16,15 +16,37 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Component } from "@angular/core";
+import { Component, OnInit, OnDestroy } from "@angular/core";
+import { ActivatedRoute } from "@angular/router";
+
+import { Subscription } from "rxjs/Subscription";
+
+import { User } from "../dtos";
+import { UserService } from "../user/user.service";
 
 @Component({
   templateUrl: "html/home/home.component.html",
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit, OnDestroy {
   profileCardFlipped: boolean;
+  user: User;
+
+  private signedInUser$: Subscription;
+  
+  constructor(
+    private userService: UserService) { }
+
+  ngOnInit() {
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => {
+      this.user = user;
+    });
+  }
 
   flipProfileCard() {
     this.profileCardFlipped = !this.profileCardFlipped;
+  }
+
+  ngOnDestroy() {
+	  this.signedInUser$.unsubscribe();
   }
 }

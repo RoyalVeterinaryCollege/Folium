@@ -32,8 +32,9 @@ using System.Data;
 namespace Folium.Api.Services {
     public interface IEntryService {
 		EntryDto CreateEntry(User user, EntryDto entryDto);
-	    Task<IEnumerable<EntrySummaryDto>> GetEntriesAsync(User user, int skip, int take);
-	    Task<EntryDto> GetEntryAsync(User user, Guid entryId);
+	    Task<IEnumerable<EntrySummaryDto>> GetEntriesAsync(User user, int skip, int take, User sharedWith = null);
+        Task<int> GetSharedEntryCountAsync(User user, User sharedWith);
+        Task<EntryDto> GetEntryAsync(User user, Guid entryId);
 	    Task<EntryDto> GetEntryAsync(Guid entryId, bool includeAssessmentBundle = false);
         Task<EntrySummaryDto> GetEntrySummaryAsync(User user, Guid entryId);
 
@@ -123,10 +124,10 @@ namespace Folium.Api.Services {
 			return newId;
 		}
 
-		public async Task<IEnumerable<EntrySummaryDto>> GetEntriesAsync(User user, int skip, int take) {
-			using (var connection = _dbService.GetConnection()) {
-				await connection.OpenAsync();
-				var entries = await connection.QueryAsync<EntrySummaryDto, UserDto, EntrySummaryDto>(@" 
+        public async Task<IEnumerable<EntrySummaryDto>> GetEntriesAsync(User user, int skip, int take, User sharedWith = null) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                var sql = @" 
                     SELECT [Entry].[Id]
 						,[Entry].[Title]
 						,[Entry].[Where]
@@ -137,23 +138,56 @@ namespace Folium.Api.Services {
 						,[User].*
                     FROM [dbo].[EntryProjector.Entry] [Entry]
                     INNER JOIN [dbo].[User]
-					ON [Entry].[UserId] = [User].[Id]
-					LEFT JOIN [dbo].[EntryProjector.SharedWith] [Sharing]
+					ON [Entry].[UserId] = [User].[Id]";
+                sql = sharedWith == null
+                    ? sql + @"
+                    LEFT JOIN [dbo].[EntryProjector.SharedWith] [Sharing]
 					ON [Entry].[Id] = [Sharing].[EntryId]
 					AND [Sharing].[UserId] = @UserId
-                    WHERE ([Entry].[UserId] = @UserId OR [Sharing].[UserId] IS NOT NULL)
+                    WHERE ([Entry].[UserId] = @UserId OR [Sharing].[UserId] IS NOT NULL)"
+                    : sql + @"
+                    INNER JOIN [dbo].[EntryProjector.SharedWith] [Sharing]
+					ON [Entry].[Id] = [Sharing].[EntryId]
+					AND [Sharing].[UserId] = @UserId
+                    WHERE [Entry].[UserId] = @SharedWithUserId";
+                sql = sql + @"
 					ORDER BY [When] DESC
-					OFFSET (@Skip) ROWS FETCH NEXT (@Take) ROWS ONLY",
-					(entrySummaryDto, userDto) => {
-						entrySummaryDto.Author = userDto;
-						return entrySummaryDto;
-					},
+					OFFSET (@Skip) ROWS FETCH NEXT (@Take) ROWS ONLY";
+
+                var entries = await connection.QueryAsync<EntrySummaryDto, UserDto, EntrySummaryDto>(
+                    sql,
+                    (entrySummaryDto, userDto) => {
+                        entrySummaryDto.Author = userDto;
+                        return entrySummaryDto;
+                    },
+                    new {
+                        UserId = user.Id,
+                        SharedWithUserId = sharedWith == null ? -1 : sharedWith.Id,
+                        Skip = skip,
+                        Take = take
+                    });
+                return entries.ToList();
+            }
+        }
+
+        public async Task<int> GetSharedEntryCountAsync(User user, User sharedWith) {
+			using (var connection = _dbService.GetConnection()) {
+				await connection.OpenAsync();
+                var sql = @" 
+                    SELECT COUNT(*)
+                    FROM [dbo].[EntryProjector.Entry] [Entry]
+                    INNER JOIN [dbo].[EntryProjector.SharedWith] [Sharing]
+					ON [Entry].[Id] = [Sharing].[EntryId]
+					AND [Sharing].[UserId] = @UserId
+                    WHERE [Entry].[UserId] = @SharedWithUserId";
+                
+                var entrieCount = await connection.QuerySingleAsync<int>(
+                    sql,
 					new {
 						UserId = user.Id,
-						Skip = skip,
-						Take = take
+                        SharedWithUserId = sharedWith.Id
 					});
-				return entries.ToList();
+				return entrieCount;
 			}
 		}
 

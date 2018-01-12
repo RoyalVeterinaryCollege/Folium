@@ -37,6 +37,7 @@ section.title {
     @extend .dark-background;
     box-shadow: none;
 }
+
 //Inactive links - delete when active
 .inactive-link {
     color:$light-grey-fade;
@@ -77,6 +78,14 @@ section.title {
 .light-background {
     background-color: $light-blue;
 }
+.background-row {
+    .profile-border {
+        border:solid 0.625rem $light-blue;
+    }
+    &:nth-child(even){
+            background-color:$light-grey;
+    }
+}
 //footer
 .footer-main {
     background-color: $dark-blue;
@@ -99,6 +108,10 @@ section.title {
         font-size: .3em;
         padding-left:.2rem;
         padding-right:.2rem;
+    }
+    .col {
+        padding-left:10px;
+        padding-right:10px;
     }
 }
 //header 

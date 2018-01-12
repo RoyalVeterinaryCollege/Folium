@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Component, OnInit, Input } from "@angular/core";
+import { Component, OnInit, Input, OnDestroy } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { MatDialog } from '@angular/material';
 
@@ -29,12 +29,13 @@ import { DialogDeleteConfirmComponent } from "./../common/dialog-delete-confirm.
 import { Observable } from "rxjs/Observable";
 import { PlacementsService } from "../placements/placements.service";
 import { DialogShareEntryComponent } from "./dialog-share-entry.component";
+import { UserService } from "../user/user.service";
 
 @Component({
   selector: "entries-viewer",
   templateUrl: "html/entries/entries-viewer.component.html"
 })
-export class EntriesViewerComponent implements OnInit {
+export class EntriesViewerComponent implements OnInit, OnDestroy {
   // Used to hang the dummy filters off.
   filters = {};
   entries: EntrySummary[];
@@ -49,8 +50,11 @@ export class EntriesViewerComponent implements OnInit {
 
   private pageSize: number = 20;
   private page: number = 0;
+  private signedInUser$: Subscription;
+  private signedInUser: User;
   
   constructor(
+    private userService: UserService,
     private route: ActivatedRoute,
     private router: Router,
     private entriesService: EntriesService,
@@ -60,10 +64,7 @@ export class EntriesViewerComponent implements OnInit {
 
   ngOnInit() {
     this.loadEntries();
-  }
-
-  canModifyEntry(entry: Entry): boolean {
-    return entry.author.id === this.user.id
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.signedInUser = user);
   }
 
   onNewEntryClick() {
@@ -100,7 +101,7 @@ export class EntriesViewerComponent implements OnInit {
 
   onShareEntryClick(entry: EntrySummary) {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-  		data: entry.id,
+  		data: { entryId: entry.id, user: this.user },
 		});
 		dialogRef.afterClosed().subscribe((result: boolean) => {
 			entry.shared = result;
@@ -130,8 +131,20 @@ export class EntriesViewerComponent implements OnInit {
   }
 
   // Determines if there is a active-element currently open.
-  hasActiveElement() {
+  get hasActiveElement(): boolean {
     return this.isNewEntryOpen || (this.entries && this.entries.find(e => e.editing || e.viewing) != undefined)
+  }
+  
+  canModifyEntry(entry: Entry): boolean {
+    return entry.author.id === this.signedInUser.id
+  }
+  
+  get viewingOwnEntries(): boolean {
+    return this.signedInUser.id === this.user.id;
+  }
+
+  ngOnDestroy() {
+	  this.signedInUser$.unsubscribe();
   }
 
   private upsertEntry(entry: EntrySummary) {
@@ -169,7 +182,7 @@ export class EntriesViewerComponent implements OnInit {
     if(this.placement) {
       entrie$ = this.placementsService.getEntries(this.placement, this.page, this.pageSize);
     } else {
-      entrie$ = this.entriesService.getEntries(this.page, this.pageSize);
+      entrie$ = this.entriesService.getEntries(this.user.id, this.page, this.pageSize);
     }
 	  entrie$
       .subscribe((entries: EntrySummary[]) => {

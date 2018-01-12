@@ -17,6 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Collections.Generic;
 
 namespace Folium.Api.Models {
     /// <summary>
@@ -32,6 +33,11 @@ namespace Folium.Api.Models {
         public DateTime CreatedAt { get; set; } 
         public int LastUpdatedBy { get; set; }
         public DateTime LastUpdatedAt { get; set; } 
-        public bool SelfAssignable { get; set; } 
+        public bool SelfAssignable { get; set; }
+        public List<Course> Courses { get; set; }
+
+        public SkillSet() {
+            Courses = new List<Course>();
+        }
     }
 }      

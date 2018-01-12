@@ -17,16 +17,13 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, OnDestroy } from "@angular/core";
-import { Router, ActivatedRoute } from "@angular/router";
-import { MatDialog } from '@angular/material';
+import { ActivatedRoute } from "@angular/router";
 
 import { Subscription } from "rxjs/subscription";
 
-import { Placement, Entry, SkillSet, User } from "./../dtos";
+import { Placement, User } from "./../dtos";
 import { PlacementsService } from "./placements.service";
-import { EntriesService } from "./../entries/entries.service";
 import { NotificationService } from "../common/notification.service"
-import { DialogDeleteConfirmComponent } from "./../common/dialog-delete-confirm.component";
 
 @Component({
   templateUrl: "html/placements/view-placement.component.html",
@@ -35,21 +32,19 @@ export class ViewPlacementComponent implements OnInit, OnDestroy {
   placement: Placement;
   user: User;
 
-  private paramsSubscription: any;
+  private paramsSubscription$: Subscription;
 
   constructor(
-		private router: Router,
 		private route: ActivatedRoute,
 		private placementsService: PlacementsService,
-		private notificationService: NotificationService,
-    private dialog: MatDialog) { }
+		private notificationService: NotificationService) { }
 
   ngOnInit() {
-	  this.paramsSubscription = this.route.params.subscribe(params => {
+	  this.paramsSubscription$ = this.route.paramMap.subscribe(params => {
 			// Load the placement.
-			this.loadPlacement(params['id']);
+			this.loadPlacement(params.get('id'));
 		});
-    this.route.data.forEach((data: { skillSet: SkillSet, currentUser: User }) => {
+    this.route.data.forEach((data: { currentUser: User }) => {
       this.user = data.currentUser;
     });
   }
@@ -64,6 +59,6 @@ export class ViewPlacementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-		this.paramsSubscription.unsubscribe();
+		this.paramsSubscription$.unsubscribe();
   }
 }

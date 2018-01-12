@@ -18,7 +18,8 @@
 */
 import { Component, Input, ChangeDetectionStrategy, Output, EventEmitter } from "@angular/core";
 
-import { Skill, SkillGroup, SelfAssessmentScale, SelfAssessment } from "../dtos";
+import { Skill, SkillGroup, SelfAssessmentScale, SelfAssessment, User } from "../dtos";
+import { SkillAssessmentService } from "./skill-assessment.service";
 
 @Component({
   selector: "skill-group",
@@ -27,6 +28,9 @@ import { Skill, SkillGroup, SelfAssessmentScale, SelfAssessment } from "../dtos"
 export class SkillGroupComponent {
   @Input()
   skillGroup: SkillGroup;
+
+  @Input()
+  user: User;
 
   @Input()
   selfAssessmentScales: SelfAssessmentScale[];
@@ -43,7 +47,8 @@ export class SkillGroupComponent {
   @Output()
   selfAssessmentChange = new EventEmitter<SelfAssessment>();
 
-  constructor() { }
+  constructor(
+    private skillAssessmentService: SkillAssessmentService) { }
 
   hasSkillsToDisplay(skills: Skill[]) {
     return skills.some(s => s.assessment.hidden === false);
@@ -51,5 +56,9 @@ export class SkillGroupComponent {
 
   trackSkillGroup(index, skillGroup: SkillGroup) {
     return skillGroup.id;
+  }
+  
+  getAverageSelfAssessmentFromGroup(skillGroup: SkillGroup) {
+    return this.skillAssessmentService.getAverageSelfAssessmentFromGroup(skillGroup);
   }
 }

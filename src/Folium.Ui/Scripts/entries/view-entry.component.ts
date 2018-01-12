@@ -20,6 +20,8 @@ import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from "@angu
 import { Router, ActivatedRoute } from "@angular/router";
 import { MatDialog } from '@angular/material';
 
+import { Subscription } from "rxjs/Subscription";
+
 import { Entry, SkillGroup, SelfAssessmentScale, EntrySummary, User } from "./../dtos";
 import { EntriesService } from "./entries.service";
 import { SkillService } from "../skills/skill.service";
@@ -36,7 +38,7 @@ export class ViewEntryComponent implements OnInit, OnDestroy {
 	user: User;
 	loaded = false;
 	
-	private paramsSubscription: any;
+	private paramsSubscription$: Subscription;
 	
   constructor(
 		private router: Router,
@@ -52,9 +54,9 @@ export class ViewEntryComponent implements OnInit, OnDestroy {
     this.route.data.forEach((data: { currentUser: User }) => {
       this.user = data.currentUser;
 		});
-		this.paramsSubscription = this.route.params.subscribe(params => {
+		this.paramsSubscription$ = this.route.paramMap.subscribe(params => {
 			// Load the entry.
-			this.loadEntry(params['id']);
+			this.loadEntry(params.get('id'));
 		});
 	}
 
@@ -82,6 +84,6 @@ export class ViewEntryComponent implements OnInit, OnDestroy {
 	}
 	
   ngOnDestroy() {
-		this.paramsSubscription.unsubscribe();
+		this.paramsSubscription$.unsubscribe();
 	}
 }

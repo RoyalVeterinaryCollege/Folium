@@ -44,31 +44,42 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 	searchRequest$ = new Subject<string>();
 	message: string;	
 	collaboratorToInviteQuery: string = "";
-
+	
 	@ViewChild("collaboratorToInviteInput")
 	collaboratorToInviteInput: ElementRef;
 	
 	private cachedQuery: string;
+	private entryId: string;
+	private user: User;
+	private allTutors: User[] = [];
 
 	constructor(
 		private userService: UserService,
 		private entriesService: EntriesService,
 		private sanitizer: DomSanitizer,
 		private notificationService: NotificationService,
-		@Inject(MAT_DIALOG_DATA) private entryId: any,
+		@Inject(MAT_DIALOG_DATA) private data: any,
 		private dialogRef: MatDialogRef<DialogShareEntryComponent>) { 
-		this.search(this.searchRequest$.asObservable())
-			.subscribe(results => {
-				this.previousCollaboratorOptions = [...results];
-				if(this.collaboratorToInviteQuery.trim().length > 0) {
-					this.collaboratorOptions = results;
-				} else {
-					this.collaboratorOptions = [];
-				}
-			});
+			this.user = data.user;
+			this.entryId = data.entryId;
+			this.search(this.searchRequest$.asObservable())
+				.subscribe(results => {
+					this.previousCollaboratorOptions = [...results];
+					if(this.collaboratorToInviteQuery.trim().length > 0) {
+						this.collaboratorOptions = results;
+					} else {
+						this.collaboratorOptions = [];
+					}
+				});
 	}
 
 	ngOnInit(): void {
+		this.user.courses.forEach(course => {
+			this.userService.getUsersTutors(this.user.id, course.courseId)
+				.subscribe(tutors => {
+					this.allTutors.push(... tutors);
+				});
+		});
 		this.loadCollaborators();
 	}	
 
@@ -81,17 +92,17 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		let selectedCollaborator = event.option.value as CollaboratorOption;
 		if(selectedCollaborator.isGroup) {
 			selectedCollaborator.group.forEach(user => {				
-				if(!this.collaboratorsToInvite.find(u => u.email === user.email)) {
+				if(this.canAddUserToInviteList(user)) {
 					this.collaboratorsToInvite.push(user);
 				}
 			});
-			this.collaboratorsToInvite = this.collaboratorsToInvite.concat(selectedCollaborator.group);
 		} else {
-			if(!this.collaboratorsToInvite.find(u => u.email === selectedCollaborator.user.email)) {
+			if(this.canAddUserToInviteList(selectedCollaborator.user)) {
 				this.collaboratorsToInvite.push(selectedCollaborator.user);
 			}
 		}
 		this.collaboratorOptions = [];
+		this.collaboratorToInviteQuery = "";
 		// The above didn't seem to work, so having to do this.
 		this.collaboratorToInviteInput.nativeElement.value = "";
 	}
@@ -121,6 +132,12 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 				${error}`));
 	}
 	
+	onTutorClick(tutor: User) {
+		if(this.canAddUserToInviteList(tutor)) {
+			this.collaboratorsToInvite.push(tutor);
+		}
+	}
+	
 	onRemoveCollaboratorToInviteClick(collaborator: User) {
 		if(this.collaboratorsToInvite.includes(collaborator)){
 			this.collaboratorsToInvite.splice(this.collaboratorsToInvite.indexOf(collaborator), 1);
@@ -148,6 +165,10 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		this.message = "";		
 	}
 
+	get tutors(): User[] {
+		return this.allTutors.filter(user => this.canAddUserToInviteList(user) ? user : null);
+	}
+
 	ngOnDestroy(): void {
 		this.dialogRef.close(this.collaborators.length > 0 /* entry is shared */);
 	}
@@ -168,6 +189,12 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 				this.collaborators = collaborators;
 			},
 			(error: any) => this.notificationService.addDanger(`There was an error trying to load the collaborators, please try again.
-				${error}`));  
-		}
+			0	${error}`));  
+	}
+
+	private canAddUserToInviteList(user: User): boolean {
+		return !this.collaboratorsToInvite.find(u => u.email === user.email)
+			&& !this.collaborators.find(u => u.email === user.email)
+			&& user.email !== this.user.email
+	}
 }

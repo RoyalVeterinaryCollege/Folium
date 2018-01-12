@@ -36,10 +36,10 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		</div>
 		<div class="row visible-print-block">
 			<div class="col">
-				<hr>
+				<hr class="hidden-print" >
 			</div>
 		</div>
-		<div class="row entry-header">
+		<div class="row entry-header hidden-print">
 			<div class="col">
 				<div class="d-flex justify-content-end pb-2">
 					<span class="col-2 col-sm-1 pr-0 mr-auto col-entry-share-status" [ngSwitch]="entry.shared">
@@ -131,14 +131,14 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<div *ngIf="!skillGroups" class="loader-container">
 			<div class="loader primary">Loading...</div>
 		</div>
-		<skill-group-list *ngIf="skillGroups && bundleSize > 0" [readOnly]="true" [skillSetId]="entry.skillSetId" [skillGroups]="skillGroups"></skill-group-list>
+		<skill-group-list *ngIf="skillGroups && bundleSize > 0" [readOnly]="true" [bundleView]="true" [skillSetId]="entry.skillSetId" [skillGroups]="skillGroups" [user]="user"></skill-group-list>
 		<div class="row" *ngIf="skillGroups && bundleSize == 0">
 			<div class="col">
 				<p>There are no skills associated with this entry.</p>
 			</div>
 		</div>
 		<!-- Comments -->
-		<comments [entry]="entry" [user]="user"></comments>
+		<comments [entry]="entry"></comments>
 		<div class="row text-right" *ngIf="!hideClose">
 			<div class="col">
 				<a href (click)="onCloseClick($event)" class="btn">Close</a>

@@ -103,3 +103,4 @@ $mat-folium-theme: mat-light-theme($mat-folium-primary, $mat-folium-accent);
 @include mat-button-theme($mat-folium-theme);
 @include mat-dialog-theme($mat-folium-theme);
 @include mat-chips-theme($mat-folium-theme);
+@include mat-expansion-panel-theme($mat-folium-theme);

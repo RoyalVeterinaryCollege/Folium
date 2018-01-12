@@ -101,17 +101,46 @@ namespace Folium.Api.Projections.Activity {
                        ,@When
                        ,@UserId
 				WHERE NOT EXISTS(SELECT * FROM [dbo].[ActivityProjector.EmailNotification] WHERE [UserId] = @UserId AND [When] = @When AND [To] = @To);";
-            tx.Connection.Execute(sql, (object)sqlParams, tx);
-
-            // Schedule the email to be sent on a background thread in 5 seconds, to allow for transaction to complete.
-            BackgroundJob.Enqueue<IEmailService>(service => service.SendEmail(emailNotification.Id));
+            var insertedRowCount = tx.Connection.Execute(sql, (object)sqlParams, tx);
+                        
+            if (insertedRowCount == 1) {
+                // Schedule the email to be sent on a background thread.
+                BackgroundJob.Enqueue<IEmailService>(service => service.SendEmail(emailNotification.Id));
+            }
         }
 
-
         private void RecordActivity(IDbTransaction tx, Models.Activity activity) {
-			var sqlParams = activity.ToDynamic();
+            var sqlParams = new {
+                activity.When,
+                activity.Type,
+                activity.UserId,
+                activity.Title,
+                activity.Link,
+                EntryIncrement = activity.Type == (int)ActivityType.EntryCreated ? 1 : (activity.Type == (int)ActivityType.EntryRemoved ? -1 : 0),
+                SelfAssessmentIncrement = (activity.Type == (int)ActivityType.SelfAssessmentCreated || activity.Type == (int)ActivityType.SelfAssessmentUpdated) ? 1 : (activity.Type == (int)ActivityType.SelfAssessmentRemoved ? -1 : 0),
+                PlacementIncrement = activity.Type == (int)ActivityType.PlacementCreated ? 1 : (activity.Type == (int)ActivityType.PlacementRemoved ? -1 : 0)
+            };
 
 			const string sql = @"
+                INSERT INTO [dbo].[ActivityProjector.ActivitySummary]
+					   ([UserId]
+					   ,[TotalEntries]
+					   ,[TotalSelfAssessments]
+					   ,[TotalPlacements])
+				 SELECT
+					   @UserId
+					   ,0
+                       ,0
+                       ,0
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[ActivityProjector.ActivitySummary] WHERE [UserId] = @UserId);
+
+				UPDATE [dbo].[ActivityProjector.ActivitySummary]
+                SET [TotalEntries] = [TotalEntries] + @EntryIncrement
+                    ,[TotalSelfAssessments] = [TotalSelfAssessments] + @SelfAssessmentIncrement
+                    ,[TotalPlacements] = [TotalPlacements] + @PlacementIncrement
+				WHERE [UserId] = @UserId
+                AND NOT EXISTS(SELECT * FROM [dbo].[ActivityProjector.Activity] WHERE [UserId] = @UserId AND [Type] = @Type AND [When] = @When AND [Link] = @Link);
+
 				INSERT INTO [dbo].[ActivityProjector.Activity]
 					   ([UserId]
 					   ,[Type]
@@ -124,11 +153,11 @@ namespace Folium.Api.Projections.Activity {
 					   ,@When
 					   ,@Title
 					   ,@Link
-				WHERE NOT EXISTS(SELECT * FROM [dbo].[ActivityProjector.Activity] WHERE [UserId] = @UserId AND [Type] = @Type AND [When] = @When);";
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[ActivityProjector.Activity] WHERE [UserId] = @UserId AND [Type] = @Type AND [When] = @When AND [Link] = @Link);";
 			tx.Connection.Execute(sql, (object) sqlParams, tx);
-		}
+        }
 
-		private void OnEntryCreated(IDbTransaction tx, ICommit commit, EntryCreated @event) {
+        private void OnEntryCreated(IDbTransaction tx, ICommit commit, EntryCreated @event) {
 			var sqlParams = @event.ToDynamic();
 			sqlParams.Id = commit.AggregateId();
 
@@ -149,7 +178,7 @@ namespace Folium.Api.Projections.Activity {
 				When = @event.CreatedAt,
 				Link = commit.AggregateId().ToString()
 			});
-		}
+        }
 
 		private void OnEntryUpdated(IDbTransaction tx, ICommit commit, EntryUpdated @event) {
 			var sqlParams = @event.ToDynamic();
@@ -192,7 +221,7 @@ namespace Folium.Api.Projections.Activity {
 				When = commit.CommitStamp,
 				Link = commit.AggregateId().ToString()
 			});
-		}
+        }
 
 		private void OnPlacementCreated(IDbTransaction tx, ICommit commit, PlacementCreated @event) {
 			RecordActivity(tx, new Models.Activity {
@@ -201,7 +230,7 @@ namespace Folium.Api.Projections.Activity {
 				When = @event.CreatedAt,
 				Link = commit.AggregateId().ToString()
 			});
-		}
+        }
 
 		private void OnPlacementUpdated(IDbTransaction tx, ICommit commit, PlacementUpdated @event) {
 			RecordActivity(tx, new Models.Activity {
@@ -219,33 +248,33 @@ namespace Folium.Api.Projections.Activity {
 				When = commit.CommitStamp,
 				Link = commit.AggregateId().ToString()
 			});
-		}
+        }
 		private void OnSelfAssessmentCreated(IDbTransaction tx, ICommit commit, SkillSelfAssessmentCreated @event) {
 			RecordActivity(tx, new Models.Activity {
 				UserId = @event.SelfAssessment.UserId,
 				Type = (int)ActivityType.SelfAssessmentCreated,
 				When = @event.SelfAssessment.CreatedAt,
-				Link = commit.AggregateId().ToString()
-			});
-		}
+                Link = @event.SelfAssessment.SkillId.ToString()
+            });
+        }
 
 		private void OnSelfAssessmentUpdated(IDbTransaction tx, ICommit commit, SkillSelfAssessmentUpdated @event) {
 			RecordActivity(tx, new Models.Activity {
 				UserId = @event.SelfAssessment.UserId,
 				Type = (int)ActivityType.SelfAssessmentUpdated,
 				When = @event.SelfAssessment.CreatedAt,
-				Link = commit.AggregateId().ToString()
+				Link = @event.SelfAssessment.SkillId.ToString()
 			});
-		}
+        }
 
 		private void OnSelfAssessmentRemoved(IDbTransaction tx, ICommit commit, SkillSelfAssessmentRemoved @event) {
 			RecordActivity(tx, new Models.Activity {
 				UserId = @event.SelfAssessment.UserId,
 				Type = (int)ActivityType.SelfAssessmentRemoved,
 				When = commit.CommitStamp,
-				Link = commit.AggregateId().ToString()
-			});
-		}
+                Link = @event.SelfAssessment.SkillId.ToString()
+            });
+        }
 
 		private void OnEntryCommentCreated(IDbTransaction tx, ICommit commit, EntryCommentCreated @event) {
             RecordActivity(tx, new Models.Activity {

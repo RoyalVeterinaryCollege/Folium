@@ -49,7 +49,7 @@ namespace Folium.Api.Controllers {
 		// Creates a new placement for the user.
 		public async Task<ActionResult> CreatePlacement([FromBody]PlacementDto placementDto) {
 			var currentUser = await _userService.GetUserAsync(User);
-			if (!(await IsValidPlacement("CreatePlacement", currentUser, placementDto))) {
+			if (!(IsValidPlacement("CreatePlacement", currentUser, placementDto))) {
 				return new BadRequestResult();
 			}
 
@@ -64,7 +64,7 @@ namespace Folium.Api.Controllers {
 		// Update the placement for the user.
 		public async Task<ActionResult> UpdatePlacement([FromBody]PlacementDto placementDto) {
 			var currentUser = await _userService.GetUserAsync(User);
-			if (!(await IsValidPlacement("UpdatePlacement", currentUser, placementDto))) {
+			if (!(IsValidPlacement("UpdatePlacement", currentUser, placementDto))) {
 				return new BadRequestResult();
 			}
 			// Update the placement.
@@ -80,7 +80,7 @@ namespace Folium.Api.Controllers {
 
 			var placementDto = await _placementService.GetPlacementAsync(placementId);
 			// validate to check the current user can modify the placement.
-			if (!(await IsValidPlacement("RemovePlacement", currentUser, placementDto))) {
+			if (!(IsValidPlacement("RemovePlacement", currentUser, placementDto))) {
 				return new BadRequestResult();
 			}
 			
@@ -94,21 +94,20 @@ namespace Folium.Api.Controllers {
 		// GET placements
 		// Gets all the placements for the user.
 		public async Task<ActionResult> Placements(int? userId = null, int skip = 0, int take = 20) {
-			var currentUser = await _userService.GetUserAsync(User);
-			var user = userId.HasValue ? await _userService.GetUserAsync(userId.Value) : currentUser;
-			if (user == null) {
-				_logger.LogInformation($"Placements called with invalid user {User.Email()}");
-				return new BadRequestResult();
-			}
-
-			if (currentUser.Id != user.Id) {
-				// If a different user is accessing the placement then check they are authorised.
-				if (!await IsAuthorisedAsync(currentUser)) {
-					_logger.LogInformation($"Placements called by user {currentUser.Id} attempting to view a placements for {userId} which is forbidden as they are not authorised.");
-					return new BadRequestResult();
-				}
-			}
-
+            var user = await _userService.GetUserAsync(User);
+            if (userId.HasValue && user.Id != userId.Value) {
+                var userToView = _userService.GetUser(userId.Value);
+                if (userToView == null) {
+                    return Json(null);
+                }
+                if (await _userService.CanViewUserDataAsync(user, userToView)) {
+                    user = userToView;
+                }
+                else {
+                    return Json(null);
+                }
+            }
+            
 			// Get the placements.
 			var placements = await _placementService.GetPlacementsAsync(user.Id, skip, take);
 
@@ -118,87 +117,73 @@ namespace Folium.Api.Controllers {
 		[HttpGet("{placementId}")]
 		// GET placements/{placementId}
 		// Gets the requested placement.
-		public async Task<ActionResult> Placement(Guid placementId) {
-			var currentUser = await _userService.GetUserAsync(User);
-			if (currentUser == null) {
-				_logger.LogInformation($"Placement called with invalid user {User.Email()}");
-				return new BadRequestResult();
-			}
+		public async Task<ActionResult> Placement(Guid placementId, int? userId = null) {
+            var user = await _userService.GetUserAsync(User);
+            if (userId.HasValue && user.Id != userId.Value) {
+                var userToView = _userService.GetUser(userId.Value);
+                if (userToView == null) return Json(null);
+                if (await _userService.CanViewUserDataAsync(user, userToView)) {
+                    user = userToView;
+                }
+                else {
+                    return Json(null);
+                }
+            }
 
 			var placement = await _placementService.GetPlacementAsync(placementId);
-
-			if (currentUser.Id != placement.UserId) {
-				// If a different user is accessing the placement then check they are authorised.
-				if (!await IsAuthorisedAsync(currentUser)) {
-					_logger.LogInformation($"Placement called by user {currentUser.Id} attempting to view a placements for {placement.UserId} which is forbidden as they are not authorised.");
-					return new BadRequestResult();
-				}
-			}
-			
+            			
 			return Json(placement);
 		}
 
 		[HttpGet("{placementId}/entries")]
 		// GET placements/{placementId}/entries
 		// Gets the requested placement entries.
-		public async Task<ActionResult> PlacementEntries(Guid placementId, int skip = 0, int take = 20) {
-			var currentUser = await _userService.GetUserAsync(User);
-			if (currentUser == null) {
-				_logger.LogInformation($"PlacementEntries called with invalid user {User.Email()}");
-				return new BadRequestResult();
-			}
+		public async Task<ActionResult> PlacementEntries(Guid placementId, int? userId = null, int skip = 0, int take = 20) {
+            var user = await _userService.GetUserAsync(User);
+            if (userId.HasValue && user.Id != userId.Value) {
+                var userToView = _userService.GetUser(userId.Value);
+                if (userToView == null) return Json(null);
+                if (await _userService.CanViewUserDataAsync(user, userToView)) {
+                    user = userToView;
+                }
+                else {
+                    return Json(null);
+                }
+            }
 
-			var placement = await _placementService.GetPlacementAsync(placementId);
-
-			if (currentUser.Id != placement.UserId) {
-				// If a different user is accessing the placement then check they are authorised.
-				if (!await IsAuthorisedAsync(currentUser)) {
-					_logger.LogInformation($"PlacementEntries called by user {currentUser.Id} attempting to view a placements for {placement.UserId} which is forbidden as they are not authorised.");
-					return new BadRequestResult();
-				}
-			}
-
+            var placement = await _placementService.GetPlacementAsync(placementId);
+            
 			var entries = await _placementService.GetPlacementEntriesAsync(placementId, skip, take);
 
 			return Json(entries);
 		}
 
-		private async Task<bool> IsValidPlacement(string caller, User currentUser, PlacementDto placementDto) {
-			if (await _userService.GetUserAsync(placementDto.UserId) == null) {
-				_logger.LogInformation($"{caller} called with invalid userId of {placementDto.UserId}.");
+		private bool IsValidPlacement(string caller, User currentUser, PlacementDto placementDto) {
+            if (placementDto == null) {
+                _logger.LogWarning($"{caller} called with empty PlacementDto.");
+                return false;
+            }
+            if (_userService.GetUser(placementDto.UserId) == null) {
+				_logger.LogWarning($"{caller} called with invalid userId of {placementDto.UserId}.");
 				return false;
 			}
-			if (currentUser.Id != placementDto.UserId) {
-				// If a different user is accessing the placement then check they are authorised.
-				if (!await IsAuthorisedAsync(currentUser)) {
-					_logger.LogInformation($"{caller} called by user {currentUser.Id} attempting to create/update a placement for {placementDto.UserId} which is forbidden as they are not authorised.");
-					return false;
-				}
+			if (currentUser.Id != placementDto.UserId && !currentUser.IsSystemUser) {	
+				_logger.LogWarning($"{caller} called by user {currentUser.Id} attempting to create/update a placement for {placementDto.UserId} which is forbidden as they are not authorised.");
+				return false;
 			}
 			if (string.IsNullOrWhiteSpace(placementDto.Title)) {
-				_logger.LogInformation($"{caller} called with invalid title.");
+				_logger.LogWarning($"{caller} called with invalid title.");
 				return false;
 			}
 			if (placementDto.Start == DateTime.MinValue) {
-				_logger.LogInformation($"{caller} called with invalid start date of {placementDto.Start}.");
+				_logger.LogWarning($"{caller} called with invalid start date of {placementDto.Start}.");
 				return false;
 			}
 			if (placementDto.End == DateTime.MinValue) {
-				_logger.LogInformation($"{caller} called with invalid end date of {placementDto.Start}.");
+				_logger.LogWarning($"{caller} called with invalid end date of {placementDto.Start}.");
 				return false;
 			}
 			return true;
-		}
-
-		/// <summary>
-		/// Validates that the provided user is authorised to access any placements.
-		/// </summary>
-		/// <param name="user"></param>
-		/// <returns></returns>
-		private async Task<bool> IsAuthorisedAsync(User user) {
-			// TODO: Allow other users with correct claims to also be authorised.
-			var systemUser = await _userService.GetOrCreateSystemUserAsync();
-			return user.Id == systemUser.Id;
 		}
 	}
 }

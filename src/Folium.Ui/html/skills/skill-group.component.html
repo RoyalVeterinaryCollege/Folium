@@ -18,11 +18,11 @@ You should have received a copy of the GNU General Public License
 along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<skills-list [readOnly]="readOnly" [skills]="skillGroup.skills" [selfAssessmentScales]="selfAssessmentScales" [expanded]="expanded" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skills-list>
+<skills-list [readOnly]="readOnly" [skills]="skillGroup.skills" [user]="user" [selfAssessmentScales]="selfAssessmentScales" [expanded]="expanded" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skills-list>
 <div *ngFor="let childSkillGroup of skillGroup.childGroups;trackBy: trackSkillGroup">	
 	<div *ngIf="hasSkillsToDisplay(childSkillGroup.skills)">
 		<h4>{{ childSkillGroup.name }}</h4>
 		<hr class="mt-1 mb-1">
-		<skill-group [readOnly]="readOnly" [skillGroup]="childSkillGroup" [selfAssessmentScales]="selfAssessmentScales" [expanded]="expanded" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group>
+		<skill-group [readOnly]="readOnly" [skillGroup]="childSkillGroup" [user]="user" [selfAssessmentScales]="selfAssessmentScales" [expanded]="expanded" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group>
 	</div>
 </div>

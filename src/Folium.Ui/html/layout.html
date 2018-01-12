@@ -31,17 +31,20 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
             </div>
             <nav class="navbar navbar-toggleable-sm">
                 <div class="collapse navbar-collapse">  
-                    <ul class="navbar-nav mr-auto mt-3">  
-                        <li class="nav-item">   
+                    <ul class="navbar-nav mr-auto mt-3">
+                        <li *ngIf="user && user.hasTutees" class="nav-item">   
+                            <a class="nav-link" [routerLink]="['/tutees']" routerLinkActive="active">Tutees</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" [routerLink]="['/skills']" routerLinkActive="active">Skills</a>
                         </li>
-                        <li class="nav-item">   
+                        <li class="nav-item">
                             <a class="nav-link" [routerLink]="['/entries']" routerLinkActive="active">Entries</a>
                         </li>
-                        <li class="nav-item">         
+                        <li class="nav-item">
                             <a class="nav-link" [routerLink]="['/placements']" routerLinkActive="active">Placements</a>
                         </li>
-                        <li class="nav-item">   
+                        <li class="nav-item">
                          <!--   <a class="nav-link" [routerLink]="['/reports']" routerLinkActive="active">Reports</a>-->
                            <span class="nav-link inactive-link"> Reports </span>
                         </li>
@@ -58,6 +61,12 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 <footer class="hidden-md-up footer-main">
     <div class="container">
         <div class="row">
+            <div *ngIf="user && user.hasTutees" class="col">
+                <a class="footer-link btn btn-link" [routerLink]="['/tutees']" routerLinkActive="active">
+                    <span class="folium-tutee fs-2"></span><br />
+                    <span class="text-uppercase d-inline-block pt-1">Tutees</span>
+                </a>
+            </div>
             <div class="col">
                 <a class="footer-link btn btn-link" [routerLink]="['/skills']" routerLinkActive="active">
                     <span class="folium-skills fs-2"></span><br />
@@ -66,7 +75,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
             </div>
             <div class="col">
                 <a class="footer-link btn btn-link" [routerLink]="['/entries']" routerLinkActive="active">
-                    <span class="folium-entires fs-2"></span><br />
+                    <span class="folium-entries fs-2"></span><br />
                     <span class="text-uppercase d-inline-block pt-1">Entries</span>
                 </a>
             </div>

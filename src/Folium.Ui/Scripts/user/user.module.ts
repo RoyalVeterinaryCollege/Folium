@@ -18,7 +18,7 @@
 */
 import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { MatCheckboxModule, MatDialogModule } from "@angular/material";
+import { MatCheckboxModule, MatDialogModule, MatExpansionModule } from "@angular/material";
 
 import { ModalModule, BsDropdownModule } from "ngx-bootstrap";
 
@@ -39,6 +39,7 @@ import { UserPhotoEditorComponent } from "./user-photo-editor.component";
 
         MatCheckboxModule,
         MatDialogModule,
+        MatExpansionModule,
         
         CommonModule,
         FormsModule
@@ -64,5 +65,4 @@ import { UserPhotoEditorComponent } from "./user-photo-editor.component";
     ],
 	entryComponents: [ DialogManageUserSkillSetsComponent, DialogUserEditorComponent ]
 })
-
 export class FmUserModule {}

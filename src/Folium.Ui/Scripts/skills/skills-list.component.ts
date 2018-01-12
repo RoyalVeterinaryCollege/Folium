@@ -29,7 +29,7 @@ import {
 
 import { Subscription } from "rxjs/subscription";
 
-import { Skill, SelfAssessment, SelfAssessmentScale } from "../dtos";
+import { Skill, SelfAssessment, SelfAssessmentScale, User } from "../dtos";
 import { SkillService } from "./skill.service";
 import { SkillBundleService } from "./skill-bundle.service";
 import { NotificationService } from "../common/notification.service";
@@ -47,6 +47,9 @@ import { SkillAssessmentService } from "./skill-assessment.service";
 export class SkillsListComponent implements OnInit, OnDestroy {
   @Input()
   skills: Skill[];
+
+  @Input()
+  user: User;
 
   @Input()
   selfAssessmentScales: SelfAssessmentScale[];
@@ -136,7 +139,7 @@ export class SkillsListComponent implements OnInit, OnDestroy {
   private saveSelfAssessment(skill: Skill, selfAssessment: SelfAssessment) {
     this.skillAssessmentService.createSelfAssessment(skill.skillSetId, selfAssessment)
       .subscribe(() => {
-        this.skillAssessmentService.updateSelfAssessment(skill.skillSetId, selfAssessment);
+        this.skillAssessmentService.updateSelfAssessment(this.user.id, skill.skillSetId, selfAssessment);
         this.notificationService.addSuccess("Self assessment saved");
       },
       (error: any) => {

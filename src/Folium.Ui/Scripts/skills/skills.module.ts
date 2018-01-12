@@ -30,9 +30,8 @@ import { AccordionModule,
 import { MatCheckboxModule, MatChipsModule, MatDialogModule, MatRadioModule } from "@angular/material";
 
 import { skillsRouting } from "./skills.routing";
-import { SkillsComponent } from "./skills.component";
+import { ViewSkillsComponent } from "./view-skills.component";
 import { SkillFiltersPipe } from "./skill-filters.pipe";
-import { SkillsBrowserComponent } from "./skills-browser.component";
 import { SkillsListComponent } from "./skills-list.component";
 import { SkillGroupListComponent } from "./skill-group-list.component";
 import { SkillGroupComponent } from "./skill-group.component";
@@ -41,6 +40,8 @@ import { SkillSearchComponent } from "./skill-search.component";
 import { AssessmentSliderModule } from "./assessment-slider.component";
 import { SkillFiltersService }     from "./skill-filters.service";
 import { DialogChangeSkillSetComponent } from "./dialog-change-skill-set.component";
+import { FilterSkillsComponent } from "./filter-skills.component";
+import { ActiveSkillFiltersComponent } from "./active-skill-filters.component";
 
 @NgModule({
     imports:      [
@@ -62,25 +63,29 @@ import { DialogChangeSkillSetComponent } from "./dialog-change-skill-set.compone
         AssessmentSliderModule
     ],
     declarations: [
+        ActiveSkillFiltersComponent,
         DialogChangeSkillSetComponent,
+        FilterSkillsComponent,
         SkillFiltersComponent,
         SkillFiltersPipe,
         SkillGroupComponent,
         SkillGroupListComponent,
         SkillSearchComponent,
-        SkillsBrowserComponent,
-        SkillsListComponent
+        SkillsListComponent,
+        ViewSkillsComponent
     ],
     providers: [
-        SkillFiltersService
+        SkillFiltersService,
     ],
     exports: [
+        ActiveSkillFiltersComponent,
+        FilterSkillsComponent,
         SkillGroupListComponent,
-        SkillsBrowserComponent
+        SkillSearchComponent,
     ],
 	entryComponents: [DialogChangeSkillSetComponent]
 })
-export class SkillsCoreModule {}
+export class FmSkillsCoreModule {}
 
 /* I have split these modules as we do not want the routing included
 * in other modules that include this as it causes issues with the "" path
@@ -89,13 +94,8 @@ export class SkillsCoreModule {}
 
 @NgModule({
     imports:      [
-        SkillsCoreModule,
+        FmSkillsCoreModule,
         skillsRouting
-    ],
-    declarations: [
-        SkillsComponent
-    ],
-    providers: [
     ]
 })
-export class SkillsModule {}
+export class FmSkillsModule {}

@@ -17,14 +17,17 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Routes, RouterModule } from "@angular/router";
-import { PlacementsViewerComponent } from "./placements-viewer.component";
+import { ViewPlacementsComponent } from "./view-placements.component";
 import { ViewPlacementComponent } from "./view-placement.component";
 import { CurrentUserResolve } from "../user/user-resolve.service";
 
 const placementsRoutes: Routes = [
     {
         path: "",
-        component: PlacementsViewerComponent
+        component: ViewPlacementsComponent,
+        resolve: {
+            currentUser: CurrentUserResolve
+        }
     },
 	{
         path: ":id",

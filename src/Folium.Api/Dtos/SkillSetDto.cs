@@ -17,16 +17,20 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Folium.Api.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Folium.Api.Dtos {
     public class SkillSetDto {
         public int Id { get; set; } 
         public string Name { get; set; } 
-        public string Description { get; set; } 
+        public string Description { get; set; }
+        public List<int> CourseIds { get; set; }
         public SkillSetDto(SkillSet skillSet){
             Id = skillSet.Id;
             Name = skillSet.Name;
             Description = skillSet.Description;
+            CourseIds = skillSet.Courses.Select(c => c.Id).ToList();
         }
     }
 }      

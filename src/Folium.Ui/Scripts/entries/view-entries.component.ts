@@ -30,7 +30,7 @@ export class ViewEntriesComponent implements OnInit {
     private route: ActivatedRoute) { }
   
   ngOnInit() {
-    this.route.data.forEach((data: { skillSet: SkillSet, currentUser: User }) => {
+    this.route.data.forEach((data: { currentUser: User }) => {
       this.user = data.currentUser;
     });
   }

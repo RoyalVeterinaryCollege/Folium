@@ -291,16 +291,23 @@ namespace Folium.Api.Controllers {
 
 		[HttpGet]
 		// GET entries
-		// Gets all the entries for the current user.
-		public async Task<ActionResult> Entries(int skip = 0, int take = 20) {
-			var currentUser = await _userService.GetUserAsync(User);
-			if (currentUser == null) {
-				_logger.LogInformation($"Entries called with invalid user {User.Email()}");
-				return new BadRequestResult();
-			}
+		// Gets all the entries for the current user or all entries by the specified user that are shared with the current user.
+		public async Task<ActionResult> Entries(int? userId = null, int skip = 0, int take = 20) {
+            var currentUser = await _userService.GetUserAsync(User);
+            var user = await _userService.GetUserAsync(User);
+            if (userId.HasValue && user.Id != userId.Value) {
+                var userToView = _userService.GetUser(userId.Value);
+                if (userToView == null) return Json(null);
+                if (await _userService.CanViewUserDataAsync(user, userToView)) {
+                    user = userToView;
+                }
+                else {
+                    return Json(null);
+                }
+            }
 
 			// Get the entries.
-			var entries = await _entryService.GetEntriesAsync(currentUser, skip, take);
+			var entries = await _entryService.GetEntriesAsync(currentUser, skip, take, (userId.HasValue && currentUser.Id != userId.Value) ? user : null);
 
 			return Json(entries);
 		}

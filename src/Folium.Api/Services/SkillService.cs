@@ -392,24 +392,52 @@ namespace Folium.Api.Services {
         public async Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync() {
             using(var connection = _dbService.GetConnection()){
                 await connection.OpenAsync();
-                var skillSets = await connection.QueryAsync<SkillSet>(@" 
-                    SELECT [SkillSet].*
+                var skillSets = new List<SkillSet>();
+                await connection.QueryAsync<SkillSet, Course, SkillSet>(@" 
+                    SELECT [SkillSet].*, [Course].*
                     FROM [dbo].[SkillSet]
-					ORDER BY [Name]");
-                return skillSets.ToList();
+					INNER JOIN [dbo].[CourseSkillSet]
+							ON [SkillSet].[Id] = [CourseSkillSet].[SkillSetId]
+					INNER JOIN [dbo].[Course]
+							ON [Course].[Id] = [CourseSkillSet].[CourseId]
+					ORDER BY [Name]",
+                    (s, c) => {
+                        var skillSet = skillSets.FirstOrDefault(_ => _.Id == s.Id);
+                        if(skillSet == null) {
+                            skillSet = s;
+                            skillSets.Add(skillSet);
+                        }
+                        skillSet.Courses.Add(c);
+                        return skillSet;
+                    });
+                return skillSets;
             }
 		}
 
         public async Task<IReadOnlyList<SkillSet>> GetSkillSetsAsync(int userId) {
             using(var connection = _dbService.GetConnection()){
                 await connection.OpenAsync();
-                var skillSets = await connection.QueryAsync<SkillSet>(@" 
-                    SELECT [SkillSet].*
+                var skillSets = new List<SkillSet>();
+                await connection.QueryAsync<SkillSet, Course, SkillSet>(@" 
+                    SELECT [SkillSet].*, [Course].*
                     FROM [dbo].[SkillSet]
 					INNER JOIN [dbo].[UserSkillSet]
 							ON [SkillSet].[Id] = [UserSkillSet].[SkillSetId]
 							AND [UserSkillSet].[UserId] = @UserId
-					ORDER BY [Name]", 
+					INNER JOIN [dbo].[CourseSkillSet]
+							ON [SkillSet].[Id] = [CourseSkillSet].[SkillSetId]
+					INNER JOIN [dbo].[Course]
+							ON [Course].[Id] = [CourseSkillSet].[CourseId]
+					ORDER BY [Name]",
+                    (s, c) => {
+                        var skillSet = skillSets.FirstOrDefault(_ => _.Id == s.Id);
+                        if (skillSet == null) {
+                            skillSet = s;
+                            skillSets.Add(skillSet);
+                        }
+                        skillSet.Courses.Add(c);
+                        return skillSet;
+                    },
                     new {UserId = userId});
                 return skillSets.ToList();
             }
@@ -418,12 +446,20 @@ namespace Folium.Api.Services {
 		public async Task<SkillSet> GetSkillSetAsync(int skillSetId) {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
-				var skillSet = await connection.QueryFirstOrDefaultAsync<SkillSet>(@"
-                    SELECT *
+                var skillSet = await connection.QueryAsync<SkillSet, Course, SkillSet>(@"
+                    SELECT [SkillSet].*, [Course].*
                     FROM [dbo].[SkillSet]
-                    WHERE (Id = @SkillSetId)",
-					new { SkillSetId = skillSetId });
-				return skillSet;
+					INNER JOIN [dbo].[CourseSkillSet]
+							ON [SkillSet].[Id] = [CourseSkillSet].[SkillSetId]
+					INNER JOIN [dbo].[Course]
+							ON [Course].[Id] = [CourseSkillSet].[CourseId]
+                    WHERE ([SkillSet].[Id] = @SkillSetId)",
+                    (s, c) => {
+                        s.Courses.Add(c);
+                        return s;
+                    },
+                    new { SkillSetId = skillSetId });
+				return skillSet.FirstOrDefault();
 			}
 		}
 

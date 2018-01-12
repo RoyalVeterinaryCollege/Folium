@@ -31,11 +31,11 @@ using Microsoft.AspNetCore.Hosting;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
 using System.Data;
+using System.Data.Common;
 
 namespace Folium.Api.Services {
     public interface IUserService {
         Task<User> GetUserAsync(ClaimsPrincipal claimsPrincipal);
-	    Task<User> GetUserAsync(int userId);
         User GetUser(int userId, IDbTransaction transaction = null);
 
         Task<User> CreateUserAsync(User user);
@@ -46,8 +46,12 @@ namespace Folium.Api.Services {
         Task UpdateUserAsync(User user, Stream imageStream);
         Task RemoveUserImage(User user);
 	    Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId);
-	    Task RefreshCollaboratorOptionsAsync();
+        Task<IEnumerable<TuteeGroupDto>> GetTuteesAsync(int userId);
+        Task<bool> IsUsersTutorAsync(int tutorId, int userId);
+
+        Task RefreshCollaboratorOptionsAsync();
 	    IEnumerable<CollaboratorOptionDto> GetCollaboratorOptions(User user, string matchMe);
+        Task<bool> CanViewUserDataAsync(User currentUser, User userToView);
     }
     public class UserService : IUserService {
         private readonly IDbService _dbService;
@@ -70,51 +74,42 @@ namespace Folium.Api.Services {
 	        }
             using (var connection = _dbService.GetConnection()){
                 await connection.OpenAsync();
-                var user = await connection.QueryFirstOrDefaultAsync<User>(@"
-                    SELECT *
+                var user = (await connection.QueryAsync<User, ActivitySummary, User>(@"
+                    SELECT  [User].*,
+                        CASE WHEN EXISTS(
+                            SELECT *
+					        FROM [dbo].[CourseEnrolment]
+					        INNER JOIN [dbo].[Tutee]
+						        ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
+					        INNER JOIN [dbo].[User]
+						        ON [CourseEnrolment].[UserId] = [User].[Id]
+					        WHERE [User].[Email] = @Email
+					        AND [CourseEnrolment].[Removed] = 0) THEN 1 ELSE 0
+                        END AS HasTutor,
+                        CASE WHEN EXISTS(
+                            SELECT *
+                            FROM [dbo].[TuteeGroup]
+					        INNER JOIN [dbo].[User]
+						        ON [TuteeGroup].[TutorId] = [User].[Id]
+                            WHERE [User].[Email] = @Email
+                            AND [Removed] = 0) THEN 1 ELSE 0
+                        END AS HasTutees,
+                        [ActivitySummary].*
                     FROM [dbo].[User]
+                    LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
+                            ON [User].[Id] = [ActivitySummary].[UserId]
                     WHERE [Email] = @Email",
+                    (u, a) => { u.ActivitySummary = a; return u; },
                     new {
                         Email = claimsPrincipal.Email()
-                    });
-				if(user != null) {
-					user.Courses = (await connection.QueryAsync<int>(@"
-					SELECT [CourseId]
-					FROM [dbo].[CourseEnrolment]
-					WHERE [UserId] = @UserId
-					AND [Removed] = 0
-					",
-						new {
-							UserId = user.Id
-						})).ToList();
-				}
-	            return user;
+                    }, splitOn: "UserId")).FirstOrDefault();
+				if(user != null)
+                {
+                    user.Courses = GetCourseEnrolments(connection, user);
+                }
+                return user;
             }
-		}
-		public async Task<User> GetUserAsync(int userId) {
-			using (var connection = _dbService.GetConnection()) {
-				await connection.OpenAsync();
-				var user = await connection.QueryFirstOrDefaultAsync<User>(@"
-                    SELECT *
-                    FROM [dbo].[User]
-                    WHERE [Id] = @UserId",
-					new {
-						UserId = userId
-					});
-				if (user != null) {
-					user.Courses = (await connection.QueryAsync<int>(@"
-					SELECT [CourseId]
-					FROM [dbo].[CourseEnrolment]
-					WHERE [UserId] = @UserId
-					AND [Removed] = 0
-					",
-						new {
-							UserId = userId
-						})).ToList();
-				}
-				return user;
-			}
-		}
+        }
 
         public User GetUser(int userId, IDbTransaction transaction = null) {
             IDbConnection connection = null;
@@ -128,23 +123,35 @@ namespace Folium.Api.Services {
                 connection.Open();
             }
             try { 
-				var user = connection.QueryFirstOrDefault<User>(@"
-                    SELECT *
+				var user = connection.Query<User, ActivitySummary, User>(@"
+                    SELECT  [User].*,
+                        CASE WHEN EXISTS(
+                            SELECT *
+					        FROM [dbo].[CourseEnrolment]
+					        INNER JOIN [dbo].[Tutee]
+						        ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
+					        INNER JOIN [dbo].[User]
+						        ON [CourseEnrolment].[UserId] = [User].[Id]
+					        WHERE [User].[Id] = @UserId
+					        AND [CourseEnrolment].[Removed] = 0) THEN 1 ELSE 0
+                        END AS HasTutor,
+                        CASE WHEN EXISTS(
+                            SELECT *
+                            FROM [dbo].[TuteeGroup]
+                            WHERE [TuteeGroup].[TutorId] = @UserId
+                            AND [Removed] = 0) THEN 1 ELSE 0
+                        END AS HasTutees,
+                        [ActivitySummary].*
                     FROM [dbo].[User]
+                    LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
+                            ON [User].[Id] = [ActivitySummary].[UserId]
                     WHERE [Id] = @UserId",
-					new {
+                    (u, a) => { u.ActivitySummary = a; return u; },
+                    new {
 						UserId = userId
-					}, transaction);
+					}, transaction, splitOn: "UserId").FirstOrDefault();
 				if (user != null) {
-					user.Courses = connection.Query<int>(@"
-					    SELECT [CourseId]
-					    FROM [dbo].[CourseEnrolment]
-					    WHERE [UserId] = @UserId
-					    AND [Removed] = 0
-					    ",
-						new {
-							UserId = userId
-						}, transaction).ToList();
+                    user.Courses = GetCourseEnrolments(connection, user, transaction);
 				}
 				return user;
 			}
@@ -154,6 +161,7 @@ namespace Folium.Api.Services {
                 }
             }
         }
+
         public async Task<User> CreateUserAsync(User user) {
             using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
@@ -184,6 +192,7 @@ namespace Folium.Api.Services {
 			await RefreshCollaboratorOptionsAsync();
 			return user;
 		}
+
 		public async Task<User> GetOrCreateSystemUserAsync() {
 			using (var connection = _dbService.GetConnection()) {
 				var user = await connection.QueryFirstAsync<User>(@"
@@ -211,25 +220,22 @@ namespace Folium.Api.Services {
 		public async Task<User> RegisterUserSignInAsync(UserDto user) {
             using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
-                var updatedUser = await connection.QueryFirstAsync<User>(@"
+                var updatedUser = await connection.ExecuteAsync(@"
 					INSERT INTO [dbo].[UserSignInActivity] ([UserId], [When])
 					VALUES (@UserId, @When);
 					
 					UPDATE [dbo].[User] 
                     SET [LastSignIn] = @When
-                    WHERE [Email] = @Email;
-
-                    SELECT *
-                    FROM [dbo].[User]
-                    WHERE [Email] = @Email;",
+                    WHERE [Id] = @UserId;",
                     new {
-                        Email = user.Email,
 						UserId = user.Id,
 						When =  DateTime.UtcNow
                     });
-                return updatedUser;
             }
+
+            return GetUser(user.Id);
         }
+
         public async Task UpdateUserAsync(User user) {
             using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
@@ -237,12 +243,13 @@ namespace Folium.Api.Services {
                 UPDATE [dbo].[User] 
                 SET [FirstName] = @FirstName
                     ,[LastName] = @LastName
-                WHERE [Email] = @email;",                
+                WHERE [Id] = @Id;",
                 user);
             }
 
 			await RefreshCollaboratorOptionsAsync();
 		}
+
         public async Task UpdateUserAsync(User user, Stream imageStream) {
             // Resize and save the new image.
             ResizeAndSaveUserImage(user, imageStream);
@@ -254,11 +261,11 @@ namespace Folium.Api.Services {
                     UPDATE [dbo].[User] 
                     SET [ProfilePicVersion] = @ProfilePicVersion
                         ,[HasProfilePic] = 1
-                    WHERE [Email] = @email
+                    WHERE [Id] = @UserId;
                     ",
                     new {
                         ProfilePicVersion = user.ProfilePicVersion + 1,
-                        user.Email
+                        UserId = user.Id
                     });
             }
 
@@ -270,6 +277,7 @@ namespace Folium.Api.Services {
             // Update the user.
             await UpdateUserAsync(user);
         }
+
         public async Task RemoveUserImage(User user) {            
             // Update the db.
             using (var connection = _dbService.GetConnection()) {
@@ -277,10 +285,10 @@ namespace Folium.Api.Services {
                 await connection.ExecuteAsync(@"                    
                     UPDATE [dbo].[User] 
                     SET [HasProfilePic] = 0
-                    WHERE [Email] = @email
+                    WHERE [Id] = @UserId;
                     ",
                     new {
-                        user.Email
+                        UserId = user.Id
                     });
             }
 
@@ -292,7 +300,48 @@ namespace Folium.Api.Services {
 	        await RefreshCollaboratorOptionsAsync();
         }
 
-	    public async Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId) {
+        public async Task<IEnumerable<TuteeGroupDto>> GetTuteesAsync(int userId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                var tutorGroups = new List<TuteeGroupDto>();
+                await connection.QueryAsync<TuteeGroup, User, ActivitySummary, TuteeGroupDto>(@"
+                    SELECT [TuteeGroup].*, [User].*, [ActivitySummary].[UserId] AS [Id], [ActivitySummary].*
+					FROM [dbo].[CourseEnrolment]
+					INNER JOIN [dbo].[Tutee]
+						ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
+					INNER JOIN [dbo].[TuteeGroup]
+						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
+					INNER JOIN [dbo].[User]
+						ON [CourseEnrolment].[UserId] = [User].[Id]
+                    LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
+                            ON [User].[Id] = [ActivitySummary].[UserId]
+					WHERE [CourseEnrolment].[Removed] = 0
+                        AND [TuteeGroup].[TutorId] = @UserId;",
+                    (tuteeGroup, user, activitySummary) => {
+                        var group = tutorGroups.FirstOrDefault(t => t.Id == tuteeGroup.Id);
+                        user.ActivitySummary = activitySummary;
+                        if (group == null) {
+                            group = new TuteeGroupDto {
+                                Id = tuteeGroup.Id,
+                                Title = tuteeGroup.Title,
+                                CourseId = tuteeGroup.CourseId,
+                                Tutees = new List<UserDto> { new UserDto(user) }
+                            };
+                            tutorGroups.Add(group);
+                        }
+                        else {
+                            group.Tutees.Add(new UserDto(user));
+                        }
+                        return group;
+                    },
+                    new {
+                        UserId = userId
+                    });
+                return tutorGroups;
+            }
+        }
+
+        public async Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId) {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
 				var tutors = await connection.QueryAsync<User>(@"
@@ -315,11 +364,32 @@ namespace Folium.Api.Services {
 			}
 		}
 
-		/// <summary>
-		/// Refresh the local collaborator options list which is used to autocomplete when sharing.
-		/// </summary>
-		/// <returns></returns>
-	    public async Task RefreshCollaboratorOptionsAsync() {
+        public async Task<bool> IsUsersTutorAsync(int tutorId, int userId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                var tutorMatchCount = await connection.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(*)
+					FROM [dbo].[CourseEnrolment]
+					INNER JOIN [dbo].[Tutee]
+						ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
+					INNER JOIN [dbo].[TuteeGroup]
+						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
+					WHERE  [TuteeGroup].[TutorId] = @tutorId
+                    AND [CourseEnrolment].[UserId] = @userId;",
+                    new
+                    {
+                        userId = userId,
+                        tutorId = tutorId
+                    });
+                return tutorMatchCount == 1;
+            }
+        }
+
+        /// <summary>
+        /// Refresh the local collaborator options list which is used to autocomplete when sharing.
+        /// </summary>
+        /// <returns></returns>
+        public async Task RefreshCollaboratorOptionsAsync() {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
 				var users = await connection.QueryAsync<CollaboratorOptionDto, UserDto, CollaboratorOptionDto>(@"
@@ -361,9 +431,34 @@ namespace Folium.Api.Services {
 		    return string.IsNullOrWhiteSpace(matchMe) 
 				? null 
 				: _collaboratorOptions.Where(c => c.Name.IndexOf(matchMe, StringComparison.OrdinalIgnoreCase) >= 0 && (!c.IsGroup || c.Group.Exists(u => u.Id == user.Id) /* the user exists within the group */));
-	    }
+        }
 
-	    private void DeleteUserImage(User user) {
+        public async Task<bool> CanViewUserDataAsync(User currentUser, User userToView) {
+            // The current user can view another users data if they are the same user, the system user or are a tutor for the user.
+            if (userToView == null) return false;
+            if (userToView.Id == currentUser.Id) return true;
+            var systemUser = await GetOrCreateSystemUserAsync();
+            if (currentUser.Id == systemUser.Id) return true;
+            if (!userToView.HasTutor) return false;
+            return await IsUsersTutorAsync(currentUser.Id, userToView.Id);
+        }
+
+        private List<CourseEnrolment> GetCourseEnrolments(IDbConnection connection, User user, IDbTransaction transaction = null) {
+            return (connection.Query<CourseEnrolment>(@"
+					    SELECT *, [Course].Title AS CourseTitle
+					    FROM [dbo].[CourseEnrolment]
+                        INNER JOIN [dbo].[Course]
+                            ON [CourseEnrolment].[CourseId] = [Course].[Id]
+					    WHERE [UserId] = @UserId
+					    AND [Removed] = 0
+					",
+                    new
+                    {
+                        UserId = user.Id
+                    }, transaction)).ToList();
+        }
+
+        private void DeleteUserImage(User user) {
 			var fileName = $"{user.Id}_{user.ProfilePicVersion}.jpg";
 			var filePath = _profilePicDirectory + fileName;
             File.Delete(filePath);

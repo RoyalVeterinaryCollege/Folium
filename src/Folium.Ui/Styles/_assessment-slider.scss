@@ -192,27 +192,39 @@ assessment-slider *::after {
   }
 }
 
-/* Used to gray out the slider when no value is set. */
-.no-assessment-value {
-  .assessment-slider-track,
-  .assessment-slider-tick,
-  .assessment-slider-thumb
-  {
-    background-color: $light-grey !important;
-  }
-}
-
 /* Disabled slider */
 .assessment-slider-disabled {
+  .assessment-slider-container {
+    z-index: 1;
+  }
+  .assessment-slider-wrapper {
+    padding-left: 0;
+    padding-right: 0;
+  }
 	.assessment-slider-track-fill {
 		border-width: 8px;
 		top:-7px;
 		min-width: 5px;
 	}
-	.assessment-slider-thumb-container,
-	.assessment-slider-ticks {
+	.assessment-slider-thumb-container {
 		display: none;	
 	}
+	.assessment-slider-tick {
+    width: 2px;
+    border-radius: 0;
+    background-color: $light-blue !important;
+  }
+}
+
+/* Used to grey out the slider when no value is set. */
+.no-assessment-value {
+  .assessment-slider-tick,
+  .assessment-slider-thumb {
+    background-color: $light-grey !important;
+  }
+  .assessment-slider-track {
+    border-color: $light-grey !important;
+  }
 }
 
 //Media Queries

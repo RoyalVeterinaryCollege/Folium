@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Component, Input, PipeTransform, Pipe } from "@angular/core";
+import { Component, Input, PipeTransform, Pipe, OnDestroy, OnInit } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 
 import { Subscription } from "rxjs/Subscription";
@@ -25,31 +25,37 @@ import { Observable } from "rxjs/Observable";
 import { Entry, User, EntryCommentDto } from "./../dtos";
 import { EntriesService } from "./entries.service";
 import { NotificationService } from "./../common/notification.service";
+import { UserService } from "../user/user.service";
 
 @Component({
   selector: "comments",
   templateUrl: "html/entries/comments.component.html"
 })
-export class CommentsComponent {
+export class CommentsComponent implements OnInit, OnDestroy {
   @Input()
   entry: Entry;
 
-  @Input()
-  user: User;
-
   newComment: string;
+  signedInUser: User;
+
+  private signedInUser$: Subscription;
   
   constructor(
+    private userService: UserService,
     private route: ActivatedRoute,
     private router: Router,
     private entriesService: EntriesService,
     private notificationService: NotificationService) { }
 
+  ngOnInit() {
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.signedInUser = user);
+  }
+
   onCommentClick() {
     let comment = new EntryCommentDto();
     comment.entryId = this.entry.id;
     comment.createdAt = new Date();
-    comment.author = this.user;
+    comment.author = this.signedInUser;
     comment.comment = this.newComment;
     this.entriesService.comment(comment)
       .subscribe((newComment: EntryCommentDto) => {
@@ -61,7 +67,11 @@ export class CommentsComponent {
   }
 
   isMyComment(comment: EntryCommentDto){
-    return comment.author.id == this.user.id;
+    return comment.author.id == this.signedInUser.id;
+  }
+
+  ngOnDestroy() {
+	  this.signedInUser$.unsubscribe();
   }
 }
 

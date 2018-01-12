@@ -26,15 +26,29 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				<div class="card-block">
 					<div class="panel panel-default">
 						<div class="h4 mb-0" role="tab">
-							<h3>
-								<a [routerLink]="" class="panel-title" (click)="onToggleSkillGroup($event, skillGroup)">
-									<span class="float-right text-center"> {{ getSkillTotalFromGroup(skillGroup) }} </span>
-									<i class="fa hidden-print" [ngClass]="skillGroup.expanded ? 'fa-angle-double-up' : ' fa-angle-double-down'" aria-hidden="true"></i> {{ skillGroup.name }}
-								</a>
-							</h3>
+							<div class="row">
+								<div class="col-lg-6">
+									<h3 class="mb-0">
+										<a [routerLink]="" class="panel-title" (click)="onToggleSkillGroup($event, skillGroup)">
+											<i class="fa hidden-print" [ngClass]="skillGroup.expanded ? 'fa-angle-double-up' : ' fa-angle-double-down'" aria-hidden="true"></i> {{ skillGroup.name }} - {{ getSkillTotalFromGroup(skillGroup) }} 							
+										</a>
+									</h3>
+								</div>
+								<div class="col-lg-6 mb-3 mt-1" *ngIf="!bundleView">
+									<!-- Use the assessment slider markup for a simple read only summary -->
+									<div class="assessment-slider-wrapper assessment-slider-disabled">
+										<div class="assessment-slider-container">
+											<div class="assessment-slider-track-container">
+												<div class="assessment-slider-track"></div>
+												<div class="assessment-slider-track assessment-slider-track-fill" [style.border-color]="'hsl(' + getAverageSelfAssessmentFromGroup(skillGroup) + ',100%,40%)'" [style.width]="getAverageSelfAssessmentFromGroup(skillGroup)+'%'"></div>
+											</div>
+										</div>                             
+									</div>
+								</div>
+							</div>
 						</div>
 						<div *ngIf="selfAssessmentScales && skillGroup.expanded" class="pt-3" [collapse]="!skillGroup.expanded">
-							<skill-group [readOnly]="readOnly" [skillGroup]="skillGroup" [selfAssessmentScales]="selfAssessmentScales" [expanded]="skillGroup.expanded" [autoSave]="autoSave" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group>
+							<skill-group [readOnly]="readOnly" [skillGroup]="skillGroup" [selfAssessmentScales]="selfAssessmentScales" [expanded]="skillGroup.expanded" [autoSave]="autoSave" [user]="user" (selfAssessmentChange)="selfAssessmentChange.emit($event)"></skill-group>
 						</div>
 					</div>
 				</div>

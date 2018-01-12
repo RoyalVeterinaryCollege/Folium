@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using Folium.Api.Models;
+using System.Linq;
 
 namespace Folium.Api.Dtos {
     public class UserDto {
@@ -28,11 +29,17 @@ namespace Folium.Api.Dtos {
         public string LastName { get; set; }
 	    public string Pic => HasProfilePic ? $"{Id}_{ProfilePicVersion}.jpg" : null;
 		public DateTime LastSignIn { get; set; }
-		public List<int> Courses { get; set; }
+		public List<CourseEnrolmentDto> Courses { get; set; }
 		public bool HasProfilePic { get; set; }
 		public int ProfilePicVersion { get; set; }
+        public bool HasTutees { get; set; }
+        public bool HasTutor { get; set; }
+        public int TotalEntries { get; set; }
+        public int TotalSelfAssessments { get; set; }
+        public int TotalPlacements { get; set; }
+        public int TotalEntriesSharedWithYou { get; set; }
 
-		public UserDto() { }
+        public UserDto() { }
 
         public UserDto(User user) {
             if(user == null) return;
@@ -42,9 +49,14 @@ namespace Folium.Api.Dtos {
             FirstName = user.FirstName;
             LastName = user.LastName;
             LastSignIn = user.LastSignIn;
-	        Courses = user.Courses;
+	        Courses = user.Courses == null ? new List<CourseEnrolmentDto>() : user.Courses.Select(c => new CourseEnrolmentDto(c)).ToList();
 	        HasProfilePic = user.HasProfilePic;
 	        ProfilePicVersion = user.ProfilePicVersion;
+            HasTutees = user.HasTutees;
+            HasTutor = user.HasTutor;
+            TotalEntries = user.ActivitySummary == null ? 0 : user.ActivitySummary.TotalEntries;
+            TotalSelfAssessments = user.ActivitySummary == null ? 0 : user.ActivitySummary.TotalSelfAssessments;
+            TotalPlacements = user.ActivitySummary == null ? 0 : user.ActivitySummary.TotalPlacements;
         }
     }
 }      

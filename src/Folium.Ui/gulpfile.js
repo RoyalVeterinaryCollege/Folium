@@ -126,6 +126,12 @@ gulp.task('bundle:js', function() {
     .catch(function(err) {
       console.error('>>> [systemjs-builder] Bundling placements module failed'.bold.green, err);
     });
+  builder.bundle('js/tutees/tutees.module - js/main.js', webroot + 'js/tutees/tutees.module.js', {
+    sourceMaps: production ? false : 'inline'
+    })
+    .catch(function(err) {
+      console.error('>>> [systemjs-builder] Bundling tutees module failed'.bold.green, err);
+    });
   return builder.bundle('js/skills/skills.module - js/main.js', webroot + 'js/skills/skills.module.js', {
     sourceMaps: production ? false : 'inline'
     })
@@ -135,7 +141,8 @@ gulp.task('bundle:js', function() {
         '!' + webroot + 'js/app.min.*', 
         '!' + webroot + 'js/entries{,/entries.module.js}', 
         '!' + webroot + 'js/skills{,/skills.module.js}', 
-        '!' + webroot + 'js/placements{,/placements.module.js}' ]);
+        '!' + webroot + 'js/placements{,/placements.module.js}',
+        '!' + webroot + 'js/tutees{,/tutees.module.js}'  ]);
     })
     .catch(function(err) {
       console.error('>>> [systemjs-builder] Bundling skills module failed'.bold.green, err);

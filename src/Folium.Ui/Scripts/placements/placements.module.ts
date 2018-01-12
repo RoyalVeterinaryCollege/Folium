@@ -19,6 +19,7 @@
 import { NgModule }       from "@angular/core";
 import { CommonModule }       from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 import { 
     MatInputModule, 
     MatDatepickerModule, 
@@ -30,9 +31,11 @@ import {
 
 import { placementsRouting } from "./placements.routing";
 import { PlacementsViewerComponent, OrderByPlacementDatePipe } from "./placements-viewer.component";
+import { PlacementViewerComponent } from "./placement-viewer.component";
 import { ViewPlacementComponent } from "./view-placement.component";
+import { ViewPlacementsComponent } from "./view-placements.component";
 import { PlacementEditorComponent } from "./placement-editor.component";
-import { EntriesCoreModule } from "../entries/entries.module";
+import { FmEntriesCoreModule } from "../entries/entries.module";
 import { FmCommonModule } from "../common/common.module";
 
 @NgModule({
@@ -40,6 +43,7 @@ import { FmCommonModule } from "../common/common.module";
         CommonModule,
 		FormsModule,
         ReactiveFormsModule,
+        RouterModule,
         
         MatButtonModule,
         MatChipsModule,
@@ -48,19 +52,37 @@ import { FmCommonModule } from "../common/common.module";
         MatMenuModule,
         MatNativeDateModule,
         
-        EntriesCoreModule, 
-        FmCommonModule,       
-        placementsRouting,
+        FmEntriesCoreModule, 
+        FmCommonModule
     ],
     declarations: [
         PlacementEditorComponent,
         PlacementsViewerComponent,
+        PlacementViewerComponent,
         OrderByPlacementDatePipe,
-		ViewPlacementComponent
+        ViewPlacementComponent,
+        ViewPlacementsComponent
+    ],
+    exports: [
+        PlacementsViewerComponent,
+        PlacementViewerComponent
     ]
 })
-export class PlacementsModule { 
-  constructor(private dateAdapter:DateAdapter<Date>) {
-    dateAdapter.setLocale('en-GB');
-  }
+export class FmPlacementsCoreModule { 
+    constructor(private dateAdapter:DateAdapter<Date>) {
+        dateAdapter.setLocale('en-GB');
+    }
 }
+
+/* I have split these modules as we do not want the routing included
+* in other modules that include this as it causes issues with the "" path
+* being matched. Not sure if this is a bug or by design?!
+*/
+
+@NgModule({
+    imports:      [
+        FmPlacementsCoreModule,
+        placementsRouting
+    ]
+})
+export class FmPlacementsModule {}

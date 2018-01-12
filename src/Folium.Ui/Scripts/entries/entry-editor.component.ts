@@ -37,11 +37,12 @@ import { DialogDeleteConfirmComponent } from "../common/dialog-delete-confirm.co
 import { DialogShareEntryComponent } from "./dialog-share-entry.component";
 import { DialogManageUserSkillSetsComponent } from "../user/dialog-manage-user-skill-sets.component";
 import { UserService } from "../user/user.service";
+import { SkillFiltersService } from "../skills/skill-filters.service";
 
 @Component({
 	selector: "entry-editor",
 	templateUrl: "html/entries/entry-editor.component.html",
-  	providers: [SkillBundleService] // Use a new instance of the skills bundle.
+  	providers: [SkillBundleService, SkillFiltersService] // Use a new instance of the skills bundle and filters.
 })
 export class EntryEditorComponent implements OnInit, OnDestroy {
 	@Input()
@@ -193,7 +194,7 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 	
 	shareEntry() {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-			data: this.entry.id,
+			data: { entryId: this.entry.id, user: this.user },
 		});
 		dialogRef.afterClosed().subscribe((result: boolean) => {
 			this.entry.shared = result;
@@ -269,7 +270,7 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 	private getSkillGroups(skillSetId: number) {
 		return this.skillService
 			.getSkillGroups(skillSetId)
-			.flatMap(skillGroups => this.skillAssessmentService.setSkillAssessmentsForSkillGroups(skillSetId, skillGroups, this.entry ? this.entry.assessmentBundle : undefined, false));
+			.flatMap(skillGroups => this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.user.id, skillSetId, skillGroups, this.entry ? this.entry.assessmentBundle : undefined, false));
 	}
 
 	private selectSkillSet(skillSet: SkillSet) {

@@ -16,29 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import {
-	Component,
-	OnInit
-} from "@angular/core";
+import { Component, Input } from "@angular/core";
 
-import { SkillBundleService } from "./skill-bundle.service";
-import { User } from "../dtos";
-import { ActivatedRoute } from "@angular/router";
+import { Placement, User } from "./../dtos";
 
 @Component({
-	template: "<skills-browser [user]='user' [autoSave]='true'></skills-browser>"
+  selector: "placement-viewer",
+  templateUrl: "html/placements/placement-viewer.component.html",
 })
-export class SkillsComponent implements OnInit {
-	user: User;
+export class PlacementViewerComponent {
+  @Input()
+  placement: Placement;
 
-	constructor(
-		private skillBundleService: SkillBundleService,
-		private route: ActivatedRoute) { }
-
-	ngOnInit() {
-		this.skillBundleService.resetBundle();
-		this.route.data.forEach((data: { currentUser: User }) => {
-			this.user = data.currentUser;
-		});
-	}
+  @Input()
+  user: User;
 }

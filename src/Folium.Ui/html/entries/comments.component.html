@@ -33,7 +33,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 	<div class="col-2 hidden-md-down">
 		<div class="card-block">
 			{{comment.author.firstName}} {{comment.author.lastName}}<br/>
-			<span class="small"> {{comment.createdAt | date: 'd MMM yyyy'}} </span>
+			<span class="small"> {{comment.createdAt | date: 'd MMM yyyy HH:mm'}} </span>
 		</div>
 	</div>
 	<div class="col-10 col-lg-9" [ngClass]="{'': !isMyComment(comment), '': isMyComment(comment)}">
@@ -48,7 +48,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 <!-- New Comment... -->
 <div class="row hidden-print">
 	<div class="col-2 col-lg-1 text-center">
-		<img [fmUserPic]="user" class="img-fluid profile-pic-thumb" [attr.alt]="user.firstName + ' ' + user.lastName + ' profile picture'" >
+		<img [fmUserPic]="signedInUser" class="img-fluid profile-pic-thumb" [attr.alt]="signedInUser.firstName + ' ' + signedInUser.lastName + ' profile picture'" >
 	</div>
 	<div class="col-10 col-lg-11">
 		<div class="card-block">

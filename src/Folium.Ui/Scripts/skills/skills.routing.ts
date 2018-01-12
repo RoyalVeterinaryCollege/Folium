@@ -17,13 +17,13 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Routes, RouterModule } from "@angular/router";
-import { SkillsComponent } from "./skills.component";
+import { ViewSkillsComponent } from "./view-skills.component";
 import { CurrentUserResolve } from "../user/user-resolve.service";
 
 const routes: Routes = [
     {
         path: "",
-        component: SkillsComponent,
+        component: ViewSkillsComponent,
         resolve: {
             currentUser: CurrentUserResolve
         },

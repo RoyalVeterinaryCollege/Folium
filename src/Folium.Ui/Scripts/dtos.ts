@@ -62,6 +62,7 @@ export class SkillSet {
   id: number;
   name: string;
   description: string;
+  courseIds: number[];
   selected: boolean;
 }
 
@@ -138,8 +139,27 @@ export class User {
 	lastName: string;
 	pic: string;
 	lastSignIn: Date;
-  courses: number[];
+  courses: CourseEnrolment[];
   email: string;
+  hasTutees: boolean;
+  hasTutor: boolean;
+  totalEntries: number;
+  totalSelfAssessments: number;
+  totalPlacements: number;
+  totalEntriesSharedWithYou: number;
+}
+
+export class TuteeGroup {
+    id: number;
+    title: string;
+    courseId: number;
+    tutees: User[];
+}
+
+export class CourseEnrolment {
+    courseId: number;
+    title: string;
+    year: number;
 }
 
 export class Where {

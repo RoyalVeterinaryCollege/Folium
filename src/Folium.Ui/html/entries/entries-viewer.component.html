@@ -18,8 +18,8 @@ You should have received a copy of the GNU General Public License
 along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div [ngClass]="{'has-active-element': hasActiveElement()}">
-	<div class="row pb-2">
+<div [ngClass]="{'has-active-element': hasActiveElement}">
+	<div *ngIf="viewingOwnEntries" class="row pb-2">
 		<div class="col">
 			<button *ngIf="!isNewEntryOpen" class="btn btn-primary btn-shadow float-right" (click)="onNewEntryClick()"><i class="fa fa-plus" aria-hidden="true"></i> Create entry</button>
 		</div>
@@ -32,11 +32,14 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<div class="loader primary">Loading...</div>
 	</div>
 	<!-- No Entries... -->
-	<div *ngIf="entries && entries.length === 0 && !hasActiveElement()" class="row">
+	<div *ngIf="entries && entries.length === 0 && !hasActiveElement" class="row">
 		<div class="col">
-			<div class="app-card">
-				<div class="card-block">
-					Looks like you don't have any entries<span *ngIf="placement"> for this placement</span>, <a [routerLink]="" (click)="isNewEntryOpen = true">create one</a>.
+			<div class="app-card">				
+				<div *ngIf="viewingOwnEntries" class="card-block">
+						Looks like you don't have any entries<span *ngIf="placement"> for this placement</span>, <a [routerLink]="" (click)="isNewEntryOpen = true">create one</a>.
+					</div>
+				<div *ngIf="!viewingOwnEntries" class="card-block">
+					{{user.firstName}} {{user.lastName}} has not shared any entries with you.
 				</div>
 			</div>
 		</div>
@@ -98,6 +101,6 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				</active-element>
 			</div>
 		</div>
-		<button *ngIf="canLoadPages && !hasActiveElement()" class="btn btn-primary btn-shadow w-100 mb-4" (click)="loadMoreEntries()">Load more...</button>
+		<button *ngIf="canLoadPages && !hasActiveElement" class="btn btn-primary btn-shadow w-100 mb-4" (click)="loadMoreEntries()">Load more...</button>
 	</div>
 </div>

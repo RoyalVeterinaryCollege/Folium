@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Component, OnInit, OnDestroy, Pipe, PipeTransform } from "@angular/core";
+import { Component, OnInit, OnDestroy, Pipe, PipeTransform, Input, EventEmitter, Output } from "@angular/core";
 import { Router } from "@angular/router";
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material';
@@ -31,17 +31,24 @@ import { NotificationService } from "./../common/notification.service";
 import { DialogDeleteConfirmComponent } from "./../common/dialog-delete-confirm.component";
 
 @Component({
+  selector: "placements-viewer",
   templateUrl: "html/placements/placements-viewer.component.html",
 })
 export class PlacementsViewerComponent implements OnInit, OnDestroy {
   placements: Placement[];
   canLoadPages: boolean = false;
   isNewPlacementOpen: boolean = false; 
+
+  @Input()
   user: User;
 
+	@Output()
+  onViewPlacement = new EventEmitter<Placement>();
+  
   private pageSize: number = 20;
-  private page: number = 0;  
+  private page: number = 0;
   private signedInUser$: Subscription;
+  private signedInUser: User;
   
   constructor(
     private userService: UserService,
@@ -52,10 +59,8 @@ export class PlacementsViewerComponent implements OnInit, OnDestroy {
     private dialog: MatDialog) { }
 
   ngOnInit() {    
-    this.signedInUser$ = this.userService.signedInUser.subscribe(user => {
-      this.user = user;        
-      this.loadPlacements();
-    });
+    this.loadPlacements();
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.signedInUser = user);
   }
 
   onNewPlacementClick() {
@@ -79,9 +84,8 @@ export class PlacementsViewerComponent implements OnInit, OnDestroy {
     return this.user.id == placement.userId;
   }
 
-  onSelectPlacementClick(event: Event, placement: Placement) {
-	  this.router.navigate(['/placements',placement.id]);
-    event.preventDefault();
+  onViewPlacementClick(placement: Placement) {
+    this.onViewPlacement.next(placement);
   }
 
   onEditPlacementClick(placement: Placement) {
@@ -113,8 +117,12 @@ export class PlacementsViewerComponent implements OnInit, OnDestroy {
   }
 
   // Determines if there is a active-element currently open.
-  hasActiveElement() {
+  get hasActiveElement(): boolean {
     return this.isNewPlacementOpen || (this.placements && this.placements.find(e => e.editing) != undefined)
+  }
+
+  get viewingOwnPlacements(): boolean {
+    return this.signedInUser.id === this.user.id;
   }
 
   ngOnDestroy() {
@@ -140,7 +148,7 @@ export class PlacementsViewerComponent implements OnInit, OnDestroy {
 
   private loadPlacements() {
 	  this.page++;
-	  this.placementsService.getPlacements(this.page, this.pageSize)
+	  this.placementsService.getPlacements(this.user.id, this.page, this.pageSize)
       .subscribe((placements: Placement[]) => {
         if(!this.placements) {
           this.placements = [];

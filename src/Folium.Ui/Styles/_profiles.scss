@@ -27,6 +27,7 @@
     height: 10.63rem;
     width: 10.63rem;
 }
+
 .profile-pic-thumb {
     @extend .rounded-circle;
     width: 3.438rem;
@@ -35,7 +36,6 @@ header .profile-pic-thumb {
     width:4.438rem;
     height: 4.438rem;
 }
-
 //Media Queries
 @include media-breakpoint-down(sm) {
     header .profile-pic-thumb {

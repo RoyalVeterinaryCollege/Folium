@@ -35,12 +35,14 @@ import {  SkillGroup,
           SelfAssessmentScale,
           SkillFilterFacet,
           Skill,
-          SelfAssessment
+          SelfAssessment,
+          User
         } from "../dtos";
 import { SkillService } from "./skill.service";
 import { SkillFiltersService } from "../skills/skill-filters.service";
 import { NotificationService } from "../common/notification.service"
 import { SkillBundleService } from "./skill-bundle.service";
+import { SkillAssessmentService } from "./skill-assessment.service";
 
 @Component({
   templateUrl: "html/skills/skill-group-list.component.html",
@@ -59,6 +61,7 @@ export class SkillGroupListComponent implements OnInit, OnDestroy, OnChanges {
 
   constructor(
     private skillService: SkillService,
+    private skillAssessmentService: SkillAssessmentService,
     private skillFiltersService: SkillFiltersService,
 	  private changeDetectorRef: ChangeDetectorRef,
 	  private notificationService: NotificationService,
@@ -66,6 +69,9 @@ export class SkillGroupListComponent implements OnInit, OnDestroy, OnChanges {
 
   @Input()
   autoSave: boolean = false;
+
+  @Input()
+  user: User;
 
   @Input()
   readOnly: boolean = false;
@@ -95,7 +101,7 @@ export class SkillGroupListComponent implements OnInit, OnDestroy, OnChanges {
     this.searchTerms = this.skillFiltersService.searchTerms;
     this.loadSelfAssessmentScales();
 
-    if (this.readOnly || this.bundleView) {
+    if (this.bundleView) {
       this.applyAssessmentBundleFilter();
       this.expandAllSkillGroups();
     } else {
@@ -125,6 +131,10 @@ export class SkillGroupListComponent implements OnInit, OnDestroy, OnChanges {
     return this.skillGroups
       ? this.skillGroups.map(g => this.getSkillTotalFromGroup(g)).reduce((x, y) => x + y, 0)
       : -1;
+  }
+  
+  getAverageSelfAssessmentFromGroup(skillGroup: SkillGroup) {
+    return this.skillAssessmentService.getAverageSelfAssessmentFromGroup(skillGroup);
   }
 
   onToggleSkillGroup(event: Event, skillGroup: SkillGroup) {

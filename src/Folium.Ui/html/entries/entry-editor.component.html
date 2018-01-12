@@ -162,7 +162,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				<div *ngIf="!skillGroups" class="loader-container">
 					<div class="loader primary">Loading...</div>
 				</div>
-				<skill-group-list *ngIf="skillGroups && bundleSize > 0 && !isSkillsModalShown" [bundleView]="true" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" (selfAssessmentChange)="onSelfAssessmentChange($event)"></skill-group-list>
+				<skill-group-list *ngIf="skillGroups && bundleSize > 0 && !isSkillsModalShown" [bundleView]="true" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [user]="user" (selfAssessmentChange)="onSelfAssessmentChange($event)"></skill-group-list>
 				<div class="row" *ngIf="skillGroups && bundleSize == 0">
 					<div class="col">
 						<p>There are no skills associated with this entry.</p>
@@ -181,16 +181,43 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 </div>
 <!--Add Skills-->
 <div bsModal [config]="{show: true, backdrop: false, keyboard: false}" #skillsModal="bs-modal" *ngIf="isSkillsModalShown" (onHidden)="onSkillsModalHidden()" class="modal fade" tabindex="-1" role="dialog" aria-label="Add Skills" aria-hidden="true">
-  <div class="modal-dialog modal-full-screen">
-    <div class="container">
-      <div class="modal-content">          
-          <div class="modal-body">
-            <skills-browser [skillSet]="selectedSkillSet" [user]="user" [skillGroups]="skillGroups" (selfAssessmentChange)="onSelfAssessmentChange($event)"></skills-browser>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-primary btn-shadow" (click)="skillsModal.hide()"> Done </button>
-          </div>
-      </div>
+  	<div class="modal-dialog modal-full-screen">
+		<div class="container">
+			<div class="modal-content">          
+				<div class="modal-body">
+					<section class="title">
+						<div class="container">
+							<div class="d-flex justify-content-start">
+								<div class="mr-auto">
+									<h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1> 
+								</div>
+								<div class="p-1">
+									<skill-search></skill-search>
+								</div>
+								<div class="p-1">
+									<filter-skills [skillSetId]="selectedSkillSet.id"></filter-skills>
+								</div>      
+							</div>
+						</div>
+					</section>
+					<section class="content-main">
+						<div class="container">				
+							<div class="row">
+								<div class="col">									
+        							<div>
+										<h2>{{selectedSkillSet.name}}</h2>
+									</div>
+									<active-skill-filters></active-skill-filters>
+								</div>
+							</div>
+							<skill-group-list *ngIf="skillGroups" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [autoSave]="false" [user]="user" [readOnly]="false"></skill-group-list>
+						</div>
+					</section>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-primary btn-shadow" (click)="skillsModal.hide()"> Done </button>
+				</div>
+			</div>
+		</div>		
     </div>
-  </div>
 </div>

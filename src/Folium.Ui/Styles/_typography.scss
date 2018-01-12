@@ -36,10 +36,10 @@ h2, .h2 {
     font-size: 1.5rem;
 }
 h3, .h3 {
-    font-size: 1.35rem;
+    font-size: 1.1rem;
 }
 h4, .h4 {
-    font-size: 1.25rem;
+    font-size: 1rem;
 }
 @font-face {
     font-family: 'Folium';
@@ -75,7 +75,7 @@ h4, .h4 {
   .folium-placement:before {
     content: "\e902";
   }
-  .folium-entires:before {
+  .folium-entries:before {
     content: "\e903";
   }
   .folium-report:before {

@@ -105,10 +105,20 @@ namespace Folium.Api.Controllers {
 		[NoCache]
 		// GET skill-set/{skillSetId}
 		[HttpGet("skill-sets/{skillSetId}/self-assessments")]
-		public async Task<ActionResult> SkillSelfAssessments(int skillSetId, int userId = -1) {
-			/* TODO: Check for default userId and use current user. */
-			var currentUser = await _userService.GetUserAsync(User);
-			var selfAssessments = (await _selfAssessmentService.GetSelfAssessmentsAsync(skillSetId, currentUser.Id))
+		public async Task<ActionResult> SkillSelfAssessments(int skillSetId, int? userId = null) {
+			var user = await _userService.GetUserAsync(User);
+            if(userId.HasValue && user.Id != userId.Value) {
+                var userToView = _userService.GetUser(userId.Value);
+                if (userToView == null) return Json(null);
+                if (await _userService.CanViewUserDataAsync(user, userToView)) {
+                    user = userToView;
+                }
+                else {
+                    return Json(null);
+                }
+            }
+
+			var selfAssessments = (await _selfAssessmentService.GetSelfAssessmentsAsync(skillSetId, user.Id))
 				.Select(s => new SelfAssessmentDto(s))
 				.ToList(); ;
 

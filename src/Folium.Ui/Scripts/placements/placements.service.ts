@@ -36,8 +36,8 @@ export class PlacementsService {
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
 
-	getPlacements(page: number, pageSize: number): Observable<Placement[]> {
-		return this.http.get(`${this.placementsUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}`)
+	getPlacements(userId: number, page: number, pageSize: number): Observable<Placement[]> {
+		return this.http.get(`${this.placementsUrl}?userId=${userId}&skip=${((page - 1) * pageSize)}&take=${pageSize}`)
 			.map((res: Response) => this.responseService.parseJson(res));
 	}
 

@@ -23,8 +23,8 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<h1>Sharing</h1> 
 	</div>	
 	<div mat-dialog-content>
-		<div *ngIf="collaborators.length > 0">
-			<span class="d-block py-3">Shared with:</span>
+		<div *ngIf="collaborators.length > 0" class="mb-3">
+			Shared with:
 			<mat-chip-list>
 				<mat-chip *ngFor="let collaborator of collaborators" [removable]="true" [selectable]="false" (remove)="onRemoveCollaboratorClick(collaborator)">
 					<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
@@ -38,9 +38,11 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<form>
 			<div class="row">
 				<div class="col">
-					<mat-form-field>
+					<mat-form-field floatPlaceholder="never">
+						<!-- The floats for the label on an autocomplete field didn't seem to work correctly, the text remained whilst they typed, so using this instead.-->
+						<label for="collaboratorToInviteInput" class="mat-form-field-placeholder" style="display:block; top:-1em;">Invite people...</label>
 						<mat-chip-list #collaboratorsToInviteChipList>
-							<mat-chip *ngFor="let collaborator of collaboratorsToInvite" [removable]="true" [selectable]="false" (remove)="onRemoveCollaboratorToInviteClick(collaborator)">
+							<mat-chip *ngFor="let collaborator of collaboratorsToInvite" [removable]="true" [selectable]="false" (click)="onRemoveCollaboratorToInviteClick(collaborator)" (remove)="onRemoveCollaboratorToInviteClick(collaborator)">
 								<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
 								{{getCollaboratorLabel(collaborator)}}
 								<mat-icon matChipRemove>
@@ -49,7 +51,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 								</mat-icon>
 							</mat-chip>
 						</mat-chip-list>
-						<input matInput #collaboratorToInviteInput placeholder="Invite people..." [(ngModel)]="collaboratorToInviteQuery" [matChipInputFor]="collaboratorsToInviteChipList" (input)="onCollaboratorInput()" [matAutocomplete]="auto" name="newCollaborator" autocomplete="off" >
+						<input matInput id="collaboratorToInviteInput" #collaboratorToInviteInput [(ngModel)]="collaboratorToInviteQuery" aria-label="Invite people" [matChipInputFor]="collaboratorsToInviteChipList" (input)="onCollaboratorInput()" [matAutocomplete]="auto" name="newCollaborator" autocomplete="off" >
 						<mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCollaboratorSelected($event)">
 							<mat-option *ngFor="let option of collaboratorOptions" [value]="option">
 								<span [innerHTML]='highlightMatch(option.name)'></span>
@@ -61,12 +63,23 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 			<div class="row" *ngIf="collaboratorsToInvite.length > 0">
 				<div class="col">
 					<div class="form-group">
-						<mat-form-field>
+						<mat-form-field floatPlaceholder="always">
 							<textarea matInput placeholder="Optional message" [(ngModel)]="message" name="message"></textarea>
 						</mat-form-field>
 					</div>
 				</div>
-			</div>	
+			</div>
+			<div class="row" *ngIf="tutors.length > 0">
+				<div class="col">
+					Tutors:
+					<mat-chip-list>
+						<mat-chip *ngFor="let tutor of tutors" [selectable]="false" (click)="onTutorClick(tutor)" >
+							<img [fmUserPic]="tutor" class="profile-pic img-fluid" alt="Profile picture">
+							{{getCollaboratorLabel(tutor)}}
+						</mat-chip>
+					</mat-chip-list>
+				</div>
+			</div>
 		</form>
 	</div>
 	<div mat-dialog-actions class="d-flex justify-content-between"  *ngIf="collaboratorsToInvite.length > 0">

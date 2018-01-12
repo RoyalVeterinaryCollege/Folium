@@ -20,6 +20,8 @@ import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from "@angu
 import { Router, ActivatedRoute } from "@angular/router";
 import { MatDialog } from '@angular/material';
 
+import { Subscription } from "rxjs/Subscription";
+
 import { Entry, SkillGroup, SelfAssessmentScale, EntrySummary, User, SkillSet } from "./../dtos";
 import { EntriesService } from "./entries.service";
 import { SkillService } from "../skills/skill.service";
@@ -28,6 +30,7 @@ import { DialogDeleteConfirmComponent } from "./../common/dialog-delete-confirm.
 import { SkillAssessmentService } from "../skills/skill-assessment.service";
 import { SkillBundleService } from "../skills/skill-bundle.service";
 import { DialogShareEntryComponent } from "./dialog-share-entry.component";
+import { UserService } from "../user/user.service";
 
 @Component({
 	selector: "entry-viewer",
@@ -39,7 +42,11 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 	bundleSize: number;
 	entry: Entry;
 	
+  private signedInUser$: Subscription;
+  private signedInUser: User;
+	
   constructor(
+    private userService: UserService,
 		private router: Router,
 		private route: ActivatedRoute,
 		private entriesService: EntriesService,
@@ -69,10 +76,7 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
 		this.loadEntry();
-	}
-
-  get canModifyEntry(): boolean {
-    return this.entry.author.id === this.user.id
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.signedInUser = user);
 	}
 	
   editEntry() {
@@ -102,7 +106,7 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 		this.skillBundleService.setBundleItems(this.entry.assessmentBundle);
 		this.skillService.getSkillGroups(this.entry.skillSetId)
 			.subscribe(skillGroups => {
-				this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.entry.skillSetId, skillGroups, this.entry.assessmentBundle, true /* readOnlyBundle */)
+				this.skillAssessmentService.setSkillAssessmentsForSkillGroups(this.user.id, this.entry.skillSetId, skillGroups, this.entry.assessmentBundle, true /* readOnlyBundle */)
 					.subscribe(_ => {
 						this.skillGroups = skillGroups;
 						this.bundleSize = Object.keys(this.entry.assessmentBundle).length;
@@ -123,7 +127,7 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 
 	shareEntry() {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-  		data: this.entry.id,
+  		data: { entryId: this.entry.id, user: this.user },
 		});
 		dialogRef.afterClosed().subscribe((result: boolean) => {
 			this.entry.shared = result;
@@ -131,7 +135,12 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 		});
 	}
 	
+	get canModifyEntry(): boolean {
+		return this.entry.author.id === this.signedInUser.id
+	}
+	
   ngOnDestroy() {
 		this.onClose.emit(this.entrySummary);
+	  this.signedInUser$.unsubscribe();
   }
 }

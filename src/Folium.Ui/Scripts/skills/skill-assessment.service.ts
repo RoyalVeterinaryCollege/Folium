@@ -36,17 +36,17 @@ export class SkillAssessmentService {
 	private skillSetChanged$: Subscription;
 
     // Local cache.
-	private selfAssessments: { [skillSetId: number]: { [skillId: number]: SelfAssessment } } = {};
+	private selfAssessments: { [userId:number]: { [skillSetId: number]: { [skillId: number]: SelfAssessment } } } = {};
 
     constructor(
 		private http: Http, 
 		private responseService: ResponseService) {
 	}
 
-	setSkillAssessmentsForSkillGroups(skillSetId: number, skillGroups: SkillGroup[]): Observable<SkillGroup[]>;
-	setSkillAssessmentsForSkillGroups(skillSetId: number, skillGroups: SkillGroup[], selfAssessmentBundle: SelfAssessments, readOnlyBundle: boolean): Observable<SkillGroup[]>;
-	setSkillAssessmentsForSkillGroups(skillSetId: number, skillGroups: SkillGroup[], selfAssessmentBundle?: SelfAssessments, readOnlyBundle?: boolean): Observable<SkillGroup[]> {		
-		let setAssessments = function(skillGroups: SkillGroup[], selfAssessments: SelfAssessments, selfAssessmentBundle: SelfAssessments, readOnlyBundle: boolean) {
+	setSkillAssessmentsForSkillGroups(userId: number, skillSetId: number, skillGroups: SkillGroup[]): Observable<SkillGroup[]>;
+	setSkillAssessmentsForSkillGroups(userId: number, skillSetId: number, skillGroups: SkillGroup[], selfAssessmentBundle: SelfAssessments, readOnlyBundle: boolean): Observable<SkillGroup[]>;
+	setSkillAssessmentsForSkillGroups(userId: number, skillSetId: number, skillGroups: SkillGroup[], selfAssessmentBundle?: SelfAssessments, readOnlyBundle?: boolean): Observable<SkillGroup[]> {		
+		let setAssessments = function(userId: number, skillGroups: SkillGroup[], selfAssessments: SelfAssessments, selfAssessmentBundle: SelfAssessments, readOnlyBundle: boolean) {
 			if(!skillGroups) return;
 			// loop the skills setting the assessment.
 			skillGroups.forEach(skillGroup => {
@@ -57,32 +57,32 @@ export class SkillAssessmentService {
 					skill.assessment.activeSelfAssessment = ((selfAssessmentBundle && selfAssessmentBundle[skill.id]) ?  Utils.deepClone(selfAssessmentBundle[skill.id]) :  Utils.deepClone(selfAssessments[skill.id]));
 					skill.assessment.isInBundle = selfAssessmentBundle ? selfAssessmentBundle[skill.id] != undefined : false;
 				});
-				setAssessments(skillGroup.childGroups, selfAssessments, selfAssessmentBundle, readOnlyBundle);
+				setAssessments(userId, skillGroup.childGroups, selfAssessments, selfAssessmentBundle, readOnlyBundle);
 			});
 		}
-		return this.getSelfAssessments(skillSetId)
+		return this.getSelfAssessments(userId, skillSetId)
 			.do(selfAssessments => {				
-				setAssessments(skillGroups, selfAssessments, selfAssessmentBundle, readOnlyBundle);
+				setAssessments(userId, skillGroups, selfAssessments, selfAssessmentBundle, readOnlyBundle);
 			})
 			.map(_ => skillGroups);
     }
 
-	updateSelfAssessment(skillSetId: number, selfAssessment: SelfAssessment) {
+	updateSelfAssessment(userId: number, skillSetId: number, selfAssessment: SelfAssessment) {
 		let selfAssessments: SelfAssessments = {};
 		selfAssessments[selfAssessment.skillId] = selfAssessment;
-		this.updateSelfAssessments(skillSetId, selfAssessments);
+		this.updateSelfAssessments(userId, skillSetId, selfAssessments);
 	}
 
-	updateSelfAssessments(skillSetId: number, selfAssessmentBundle: SelfAssessments) {
-		if(!this.selfAssessments[skillSetId]) return;
+	updateSelfAssessments(userId: number, skillSetId: number, selfAssessmentBundle: SelfAssessments) {
+		if(!this.selfAssessments[userId][skillSetId]) return;
 		Object.keys(selfAssessmentBundle).forEach(skillId => {
 			let updatedSelfAssessment = selfAssessmentBundle[skillId] as SelfAssessment;
-			let currentSelfAssessment = this.selfAssessments[skillSetId][skillId] as SelfAssessment;
+			let currentSelfAssessment = this.selfAssessments[userId][skillSetId][skillId] as SelfAssessment;
 			
 			// If we have a self assessment that has been updated to empty then remove it.
 			if(!updatedSelfAssessment) {
-				if(this.selfAssessments[skillSetId][skillId]) {
-					delete this.selfAssessments[skillSetId][skillId];
+				if(this.selfAssessments[userId][skillSetId][skillId]) {
+					delete this.selfAssessments[userId][skillSetId][skillId];
 				}
 				return;
 			}
@@ -90,7 +90,7 @@ export class SkillAssessmentService {
 			// Set it if we don't have a current self assessment for that skill or it is newer.
 			if(!currentSelfAssessment 
 				|| this.getEpochTime(currentSelfAssessment.createdAt) <= this.getEpochTime(updatedSelfAssessment.createdAt)) {
-				this.selfAssessments[skillSetId][skillId] = Utils.deepClone(updatedSelfAssessment);
+				this.selfAssessments[userId][skillSetId][skillId] = Utils.deepClone(updatedSelfAssessment);
 				return;
 			}
 		});
@@ -119,20 +119,44 @@ export class SkillAssessmentService {
 		return bundle;
 	}
 
+	getAverageSelfAssessmentFromGroup(skillGroup: SkillGroup) {
+		if (!skillGroup) return 0;
+		let getTotalAndCount = function(skillGroup: SkillGroup) {
+			let totalAndCount = skillGroup.skills.map(s => {
+			if(s.assessment.hidden) {
+				return { total: 0, count: 0 }; // don't include the assessment if it is hidden.
+			} 
+			return s.assessment.activeSelfAssessment 
+				? { total: s.assessment.activeSelfAssessment.score, count: 1 } // If we have an assessment then use the score.
+				: { total: 0, count: 1 }; // No assessment, count it, but use 0 as the total.
+			});
+			skillGroup.childGroups.forEach(group => {
+			totalAndCount.push(getTotalAndCount(group));
+			});
+			// Sum up all the totals and counts.
+			return totalAndCount.reduce((previous, current) => { return { total: previous.total + current.total, count: previous.count + current.count }; }, { total: 0, count: 0 });
+		}
+		let totals = getTotalAndCount(skillGroup);
+		return totals.total / totals.count;    
+	}
+
 	private getEpochTime(dateTime: Date): number {
 		return Math.floor(dateTime.getTime() / 1000);
 	}
 	
-	private getSelfAssessments(skillSetId: number): Observable<SelfAssessments> {
-		let url = `${this.skillSetUrl}/${skillSetId}/self-assessments`;
+	private getSelfAssessments(userId: number, skillSetId: number): Observable<SelfAssessments> {
+		let url = `${this.skillSetUrl}/${skillSetId}/self-assessments?userId=${userId}`;
 		// Return the cached value if available.
-        return this.selfAssessments[skillSetId]
-			? Observable.of(this.selfAssessments[skillSetId])
+        return (this.selfAssessments[userId] && this.selfAssessments[userId][skillSetId])
+			? Observable.of(this.selfAssessments[userId][skillSetId])
             : this.http.get(url)
                .map(response => {
 				   let selfAssessments = this.responseService.parseJson(response) as SelfAssessment[];
-				   this.selfAssessments[skillSetId] = Utils.toDictionary(selfAssessments, (selfAssessment) => selfAssessment.skillId);
-                   return this.selfAssessments[skillSetId];
+				   if(!this.selfAssessments[userId]) {
+					this.selfAssessments[userId] = {};
+				   }
+				   this.selfAssessments[userId][skillSetId] = Utils.toDictionary(selfAssessments, (selfAssessment) => selfAssessment.skillId);
+                   return this.selfAssessments[userId][skillSetId];
                 }, this);
 	}
 }

@@ -35,15 +35,18 @@ namespace Folium.Api.Controllers {
     public class UsersController : Controller {
         private readonly ILogger<UsersController> _logger;
         private readonly IUserService _userService;
+        private readonly IEntryService _entryService;
         private readonly ISkillService _skillService;
 			
         public UsersController(
             ILogger<UsersController> logger,
             IUserService userService,
-            ISkillService skillService) {
+            ISkillService skillService,
+            IEntryService entryService) {
             _logger = logger;
             _userService = userService;
             _skillService = skillService;
+            _entryService = entryService;
         }                   
 
         [NoCache, Authorize, HttpGet]
@@ -62,9 +65,28 @@ namespace Folium.Api.Controllers {
 		public async Task<ActionResult> Current() {
 			if (User == null || !User.Identity.IsAuthenticated) return Json(null);
 			return Json(await GetCurrentUser());
-		}
+        }
 
-		[NoCache, Authorize, HttpGet("sign-in")]
+        [NoCache, HttpGet("{userId}")]
+        // GET users/{userId}
+        // Gets the requested user.
+        public async Task<ActionResult> GetUser(int userId){
+            if (User == null || !User.Identity.IsAuthenticated) return Json(null);
+            var currentUser = await _userService.GetUserAsync(User);
+            // Need to validate the user is authorised to access the users data.
+            if(userId != currentUser.Id) {
+                var userToView = _userService.GetUser(userId);
+                if (userToView != null && await _userService.CanViewUserDataAsync(currentUser, userToView)) {
+                    var dto = new UserDto(userToView);
+                    dto.TotalEntriesSharedWithYou = await _entryService.GetSharedEntryCountAsync(currentUser, userToView);
+                    return Json(dto);
+                }
+                return Json(null);
+            }
+            return Json(new UserDto(currentUser));
+        }
+
+        [NoCache, Authorize, HttpGet("sign-in")]
         // GET users/sign-in
         // Registers that a user has signed in.
         public async Task<ActionResult> RegisterSignIn() {
@@ -78,7 +100,7 @@ namespace Folium.Api.Controllers {
                     LastName = User.LastName()                    
                 });
 
-                return Json(newUser);
+                return Json(new UserDto(newUser));
             }
 
             // Check if the first name & last name need updating.
@@ -126,16 +148,35 @@ namespace Folium.Api.Controllers {
             return Json(GetCurrentUser());
 		}
 
-		[NoCache, Authorize, HttpGet("current/courses/{courseId}/tutors")]
-		// GET users/current/courses/{courseId}/tutors
+		[NoCache, Authorize, HttpGet("{userId}/courses/{courseId}/tutors")]
+		// GET users/{userId}/courses/{courseId}/tutors
 		// Gets the tutors for the currently signed in user.
-		public async Task<ActionResult> GetTutors(int courseId) {
+		public async Task<ActionResult> GetTutors(int userId, int courseId) {
 			var currentUser = await _userService.GetUserAsync(User);
+            var userToView = _userService.GetUser(userId);
 
-			var tutors = await _userService.GetTutorsAsync(currentUser, courseId);
+            if (userToView == null) return new BadRequestResult();
 
-			return Json(tutors);
+            if(await _userService.CanViewUserDataAsync(currentUser, userToView)) {
+                var tutors = await _userService.GetTutorsAsync(userToView, courseId);
+                return Json(tutors.Select(t => new UserDto(t)));
+            }
+            else {
+                return new UnauthorizedResult();
+            }			
 		}
+
+        [NoCache, Authorize, HttpGet("current/tutees")]
+        // GET users/current/tutees
+        // Gets the tutees for the currently signed in user.
+        public async Task<ActionResult> GetTutees()
+        {
+            var currentUser = await _userService.GetUserAsync(User);
+
+            var tutees = await _userService.GetTuteesAsync(currentUser.Id);
+
+            return Json(tutees);
+        }
 
         [NoCache, Authorize, HttpGet("{userId}/skill-sets")]
         // GET users/{userId}/skill-sets
@@ -200,8 +241,7 @@ namespace Folium.Api.Controllers {
             var user = await _userService.GetUserAsync(User);
             
             return user == null ? null : new UserDto(user);
-		}
-
-	}
+        }
+    }
 }
 

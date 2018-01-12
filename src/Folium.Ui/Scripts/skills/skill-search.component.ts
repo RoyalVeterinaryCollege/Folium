@@ -22,7 +22,7 @@ import { Component,
          OnInit,
          OnDestroy } from "@angular/core";
 
-import { SkillFilter, SkillSet, SkillFilterFacet } from "../dtos";
+import { SkillFilter, SkillFilterFacet } from "../dtos";
 import { SkillService } from "./skill.service";
 import { SkillFiltersService } from "./skill-filters.service";
 
@@ -34,9 +34,6 @@ import { Subscription } from "rxjs/subscription";
 })
 export class SkillSearchComponent {
   searchTerm = "";
-
-	@Input()
-  skillSet: SkillSet;
 
   constructor(
     private skillService: SkillService,

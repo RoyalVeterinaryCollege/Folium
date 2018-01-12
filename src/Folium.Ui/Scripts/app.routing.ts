@@ -24,7 +24,8 @@ const routes: Routes = [
     {
         path: "",
         redirectTo: "/home",
-        pathMatch: "full"
+        pathMatch: "full",
+        canActivate: [AuthGuard]
     },
     {
         path: "home",
@@ -32,23 +33,28 @@ const routes: Routes = [
         canActivate: [AuthGuard]
     },
     {
+        path: "tutees",
+        loadChildren: "js/tutees/tutees.module#FmTuteesModule",
+        canActivate: [AuthGuard]
+    },
+    {
         path: "placements",
-        loadChildren: "js/placements/placements.module#PlacementsModule",
+        loadChildren: "js/placements/placements.module#FmPlacementsModule",
         canActivate: [AuthGuard]
     },
     {
         path: "entries",
-        loadChildren: "js/entries/entries.module#EntriesModule",
+        loadChildren: "js/entries/entries.module#FmEntriesModule",
         canActivate: [AuthGuard]
     },
     {
         path: "skills",
-        loadChildren: "js/skills/skills.module#SkillsModule",
+        loadChildren: "js/skills/skills.module#FmSkillsModule",
         canActivate: [AuthGuard]
     },
     {
         path: "reports",
-        loadChildren: "js/skills/skills.module#SkillsModule",
+        loadChildren: "js/skills/skills.module#FmSkillsModule",
         canActivate: [AuthGuard]
     }
 ];

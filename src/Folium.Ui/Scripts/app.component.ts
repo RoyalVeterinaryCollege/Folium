@@ -24,18 +24,21 @@ import { Subscription } from "rxjs/subscription";
 import { SecurityService } from "./common/security.service";
 import { UserService } from "./user/user.service";
 import { DialogUserEditorComponent } from "./user/dialog-user-editor.component";
+import { User } from "./dtos";
 
 @Component({
   selector: "my-app",
   templateUrl: "html/layout.html",
 })
 
-export class AppComponent implements OnInit, OnDestroy {
-  isAuthenticated: boolean = false;
+export class AppComponent implements OnInit, OnDestroy {  
+  user: User;
 
   private viewContainerRef: ViewContainerRef;
   private onSignInComplete$: Subscription;
   private onUserEditViewChange$: Subscription;
+  private signedInUser$: Subscription;
+  private registerSignIn$: Subscription;
   private dialogRef: MatDialogRef<DialogUserEditorComponent>
 
   constructor(
@@ -71,12 +74,17 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Regsiter a sign in with the user service when the security service is happy a user has signed in.
     this.onSignInComplete$ = this.securityService.onSignInComplete.subscribe(url => {
-		  this.userService.registerSignIn().subscribe(_ => _);
+		  this.registerSignIn$ = this.userService.registerSignIn().subscribe(user => this.user = user);
     });
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.user = user);
   }
 
   ngOnDestroy() {
     this.onSignInComplete$.unsubscribe();
     this.onUserEditViewChange$.unsubscribe();
+    this.signedInUser$.unsubscribe();
+    if(this.registerSignIn$){
+      this.registerSignIn$.unsubscribe();
+    }
   }
 }

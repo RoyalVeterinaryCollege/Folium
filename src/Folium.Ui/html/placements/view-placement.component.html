@@ -29,19 +29,6 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 </section>
 <section class="content-main">
 	<div class="container">
-		<!-- Loading... -->
-		<div *ngIf="!placement" class="loader-container">
-			<div class="loader primary">Loading...</div>
-		</div>
-		<!-- Placement... -->
-		<div *ngIf="placement">
-			<div class="row">
-				<div class="col">
-					<h2 class="mt-2">{{placement.title}} <small class="text-muted">{{placement.start | date: 'd MMM yyyy'}} - {{placement.end | date: 'd MMM yyyy'}}</small></h2>	
-				</div>
-			</div>			
-			<!-- Entries... -->
-			<entries-viewer [user]="user" [placement]="placement"></entries-viewer>
-		</div>		
+		<placement-viewer [user]="user" [placement]="placement"></placement-viewer>	
 	</div>
 </section>

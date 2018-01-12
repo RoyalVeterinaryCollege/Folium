@@ -18,12 +18,12 @@
 */
 import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
 import { enableProdMode } from "@angular/core";
-import { AppModule } from "./app.module";
+import { FmAppModule } from "./app.module";
 declare var appSettings;
 
 if (appSettings.production) {
   enableProdMode();
 }
 
-platformBrowserDynamic().bootstrapModule(AppModule);
+platformBrowserDynamic().bootstrapModule(FmAppModule);
 
