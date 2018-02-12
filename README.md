@@ -90,3 +90,6 @@ Folium has been built with the help of these superb librarys
 - [IdentityServer](https://github.com/IdentityServer/IdentityServer4)
 - [Hangfire](https://github.com/HangfireIO/Hangfire)
 
+Crossbrowser testing sponsored by [Browser Stack](https://www.browserstack.com)
+
+[<img src="https://www.browserstack.com/images/layout/browserstack-logo-600x315.png" alt="Browser Stack" height="100px">](https://www.browserstack.com)
