@@ -1,0 +1,84 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div class="light-background shadow-level-1">
+    <section class="main-home">
+		<div class="container pt-3 pb-3">
+			<div class="row align-items-center">
+				<div class="col-12  col-sm-5 col-lg-4 d-none d-sm-block">
+						<user-card [user]="user"></user-card>
+				</div>
+				<div class="col-12  col-sm-7 col-lg-8">
+					<div class="row">
+                        <div *ngIf="user && user.hasTutees" class="col-6" [ngClass]="(user && user.hasTutees) ? 'col-lg-3' : 'col-lg-3'">
+                            <a [routerLink]="['/tutees']" routerLinkActive="active">
+                                <div class="card icon-links tutees icon-card">
+                                    <div class="icon-content">
+                                        <p class="text-uppercase text-center">Tutees</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+						<div class="col-6" [ngClass]="(user && user.hasTutees) ? 'col-lg-3' : 'col-lg-3'">
+							<a [routerLink]="['/skills']" routerLinkActive="active">
+								<div class="card icon-links skills icon-card">
+									<div class="icon-content">
+										<p class="text-uppercase text-center">Skills</p>
+									</div>
+								</div>
+							</a>
+						</div>
+						<div class="col-6" [ngClass]="(user && user.hasTutees) ? 'col-lg-3' : 'col-lg-3'">
+							<a [routerLink]="['/entries']" routerLinkActive="active">
+								<div class="card icon-links entries icon-card">
+									<div class="icon-content">
+										<p class="text-uppercase text-center">Entries</p>
+									</div>
+								</div>
+							</a>
+						</div>
+						<div class="col-6" [ngClass]="(user && user.hasTutees) ? 'col-lg-3' : 'col-lg-3'">
+							<a [routerLink]="['/placements']" routerLinkActive="active">
+								<div class="card icon-links placements icon-card">
+									<div class="icon-content">
+										<p class="text-uppercase text-center">Placements</p>
+									</div>
+								</div>
+							</a>
+						</div>
+						<div class="col-6" [ngClass]="(user && user.hasTutees) ? 'col-lg-3' : 'col-lg-3'">
+							<a [routerLink]="['/reports']" routerLinkActive="active">
+								<div class="card icon-links reports icon-card">
+									<div class="icon-content">
+										<p class="text-uppercase text-center">Reports</p>
+									</div>
+								</div>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</div>
+<section class="content-main">
+	<div class="container">
+	</div>
+</section>

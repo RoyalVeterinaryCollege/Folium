@@ -1,53 +1,63 @@
 {
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
     "version": "2.0.0",
-    "linux": { "command": "sh", "args": ["-c"] },
-    "osx": { "command": "sh", "args": ["-c"] },
-    "windows": { "command": "powershell", "args": ["-Command"] },
     "tasks": [
         {
-            "taskName": "dotnet: restore",
+            "label": "build",
+            "type": "npm",
+            "script": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$tsc"
+            ]
+        },
+        {
+            "label": "test",
+            "type": "npm",
+            "script": "test",
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "serve",
             "type": "shell",
-            "command": "dotnet restore",
-            "problemMatcher": "$msCompile"
+            "command": "npm start",
+            "problemMatcher": [
+                "$tsc"
+            ]
         },
         {
-            "taskName": "dotnet: build",
+            "label": "open",
             "type": "shell",
-            "command": "gulp build; dotnet build",
-            "group": "build",
-            "problemMatcher": "$msCompile"
+            "command": "npm start -- -o",
+            "problemMatcher": [
+                "$tsc"
+            ]
         },
         {
-            "type": "gulp",
-            "task": "styles"
-        },
-        {
-            "type": "gulp",
-            "task": "scripts",
-            "problemMatcher": "$jshint"
-        },
-        {
-            "type": "gulp",
-            "task": "watch",
-            "isBackground": true,
-            "problemMatcher": []
-        },
-        {
-            "taskName": "dotnet: test",
+            "label": "lint",
             "type": "shell",
-            "command": "dotnet test",
-            "group": "test"
+            "command": "npm run lint",
+            "problemMatcher": [
+                "$tsc"
+            ]
         },
         {
-            "taskName": "dotnet: version",
+            "label": "e2e",
             "type": "shell",
-            "command": "dotnet --version"
-        },
-        {
-            "taskName": "dotnet: publish",
-            "type": "shell",
-            "command": "gulp publish; dotnet publish -c Release",
-            "problemMatcher": "$msCompile"
+            "command": "npm run e2e"
         }
     ]
 }

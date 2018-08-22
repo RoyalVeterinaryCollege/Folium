@@ -52,16 +52,16 @@ namespace Folium.Api.Services {
 			var id = Guid.NewGuid();
 			var placementAggregate = (PlacementAggregate)_factory.Build(typeof(PlacementAggregate), id, null);
 			placementAggregate.OnFirstCreated();
-			placementAggregate.Create(placementDto.UserId, placementDto.Title, placementDto.Start, placementDto.End, placementDto.Reference, user.Id);
+			placementAggregate.Create(placementDto.UserId, placementDto.Title, placementDto.Start, placementDto.End, placementDto.Reference, user.Id, placementDto.Type);
 			_repository.Save(placementAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
 			placementDto.Id = id;
-	        placementDto.FullyQualifiedTitle = PlacementAggregate.GetFullyQualifiedTitle(placementDto.Title, placementDto.Start, placementDto.End);
+	        placementDto.FullyQualifiedTitle = PlacementAggregate.GetFullyQualifiedTitle(placementDto.Title, placementDto.Type, placementDto.Start, placementDto.End);
 	        return placementDto;
 		}
 
 		public PlacementDto UpdatePlacement(User user, PlacementDto placementDto) {
 			var placementAggregate = _repository.GetById<PlacementAggregate>(placementDto.Id);
-			placementAggregate.Update(placementDto.Title, placementDto.Start, placementDto.End, placementDto.Reference, user.Id);
+			placementAggregate.Update(placementDto.Title, placementDto.Start, placementDto.End, placementDto.Reference, user.Id, placementDto.Type);
 			_repository.Save(placementAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
 			return placementDto;
 		}

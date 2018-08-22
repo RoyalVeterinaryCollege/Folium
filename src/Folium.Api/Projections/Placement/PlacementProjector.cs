@@ -75,7 +75,8 @@ namespace Folium.Api.Projections.Placement {
 					   ,[CreatedBy]
 					   ,[CreatedAt]
 					   ,[LastUpdatedBy]
-					   ,[LastUpdatedAt])
+					   ,[LastUpdatedAt]
+                       ,[Type])
 				 SELECT
 					   @Id
 					   ,@UserId
@@ -88,6 +89,7 @@ namespace Folium.Api.Projections.Placement {
 					   ,@CreatedAt
 					   ,@CreatedBy
 					   ,@CreatedAt
+                       ,@Type
 				WHERE NOT EXISTS(SELECT * FROM [dbo].[PlacementProjector.Placement] WHERE Id = @Id);";
 			tx.Connection.Execute(sql, (object) sqlParams, tx);
 		}
@@ -105,6 +107,7 @@ namespace Folium.Api.Projections.Placement {
 					,[Reference] = @Reference
 					,[LastUpdatedBy] = @LastUpdatedBy
 					,[LastUpdatedAt] = @LastUpdatedAt
+                    ,[Type] = @type
 				WHERE Id = @Id;
 
 				UPDATE [PlacementProjector.Entry]

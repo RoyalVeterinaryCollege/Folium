@@ -25,22 +25,12 @@ namespace Folium.Api.Models {
     public class Taxonomy {
         public int Id { get; set; } 
         public string Name { get; set; }
-        public TaxonomyType Type { get; set; }
         public int SkillSetId { get; set; }
         public int DraftOf { get; set; }
         public bool Removed { get; set; }
         public int CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; } 
         public int LastUpdatedBy { get; set; }
-        public DateTime LastUpdatedAt { get; set; } 
-        
-    }
-    public enum TaxonomyType {
-        Unknown = 0,
-        SkillsHierarchies = 1,
-        SkillsFilters = 2,
-        SkillsBundles = 3,
-        PersonalSkillsBundles = 4,
-        PersonalEntryTags = 3,
+        public DateTime LastUpdatedAt { get; set; }        
     }
 }      

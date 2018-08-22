@@ -20,17 +20,19 @@ using System;
 
 namespace Folium.Api.Models.Entry.Events {
 	internal class EntryUpdated {
-		public EntryUpdated(string title, string description, string where, DateTime when, DateTime lastUpdatedAt) {
+		public EntryUpdated(string title, string description, string where, DateTime when, DateTime lastUpdatedAt, int? skillGroupingId = null) {
 			Description = description;
 			Title = title;
 			Where = where;
 			When = when;
 			LastUpdatedAt = lastUpdatedAt;
+            SkillGroupingId = skillGroupingId;
 		}
 		public string Title { get; }
 		public string Description { get; }
 		public string Where { get; }
 		public DateTime When { get; }
 		public DateTime LastUpdatedAt { get; }
+        public int? SkillGroupingId { get; }
 	}
 }

@@ -29,7 +29,8 @@ namespace Folium.Api.Models.Placement.Events {
 			int createdBy, 
 			DateTime createdAt, 
 			int lastUpdatedBy, 
-			DateTime lastUpdatedAt):base(
+			DateTime lastUpdatedAt,
+            string type = null):base(
 				userId,
 				title,
 				start,
@@ -38,6 +39,7 @@ namespace Folium.Api.Models.Placement.Events {
 				createdBy,
 				createdAt,
 				lastUpdatedBy,
-				lastUpdatedAt) { }
+				lastUpdatedAt,
+                type) { }
 	}
 }      

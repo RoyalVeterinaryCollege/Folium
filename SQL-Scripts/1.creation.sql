@@ -378,6 +378,7 @@ CREATE TABLE [dbo].[User](
 	[HasProfilePic] [bit] NOT NULL,
 	[ProfilePicVersion] [int] NOT NULL,
 	[FirstName] [nvarchar](1000) NULL,
+	[MiddleNames] [nvarchar](1000) NULL,
 	[LastName] [nvarchar](1000) NULL,
 	[LastSignIn] [datetime] NULL,
  CONSTRAINT [PK_User] PRIMARY KEY CLUSTERED 

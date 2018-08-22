@@ -46,7 +46,7 @@ namespace Folium.Api.Dtos {
 
             Id = user.Id;
             Email = user.Email;
-            FirstName = user.FirstName;
+            FirstName = user.FirstName + (string.IsNullOrEmpty(user.MiddleNames) ? "" : " " + user.MiddleNames);
             LastName = user.LastName;
             LastSignIn = user.LastSignIn;
 	        Courses = user.Courses == null ? new List<CourseEnrolmentDto>() : user.Courses.Select(c => new CourseEnrolmentDto(c)).ToList();

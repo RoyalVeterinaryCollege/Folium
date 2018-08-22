@@ -24,11 +24,13 @@ using System.Threading.Tasks;
 
 namespace Folium.Api.Services {
     public interface ITaxonomyService {
-        Task<IReadOnlyList<TaxonomyTerm>> GetHierarchyTermsAsync(int skillSetId);
-        Task<IReadOnlyList<SkillTaxonomyTerm>> GetHierarchySkillTermsAsync(int skillSetId);
+        Task<Taxonomy> GetTaxonomyAsync(int taxonomyId);
+        Task<IReadOnlyList<Taxonomy>> GetSkillGroupingTaxonomysAsync(int skillSetId);
         Task<IReadOnlyList<Taxonomy>> GetSkillFilterTaxonomysAsync(int skillSetId);
-        Task<IReadOnlyList<TaxonomyTerm>> GetSkillFilterTermsAsync(int skillSetId);
-        Task<IReadOnlyList<SkillTaxonomyTerm>> GetSkillFilterSkillTermsAsync(int skillSetId);
+        Task<IReadOnlyList<TaxonomyTerm>> GetTermsAsync(int taxonomyId);
+        Task<IReadOnlyList<SkillTaxonomyTerm>> GetSkillTermsAsync(int? taxonomyId = null, int? taxonomyTermId = null);
+        Task<IReadOnlyList<TaxonomyTerm>> GetAllTaxonomyTermFiltersAsync(int skillSetId);
+        Task<IReadOnlyList<SkillTaxonomyTerm>> GetAllSkillTermFiltersAsync(int skillSetId);
     }
     public class TaxonomyService : ITaxonomyService {
         private readonly IDbService _dbService;
@@ -36,63 +38,53 @@ namespace Folium.Api.Services {
             _dbService = dbService;
         }
 
-        public async Task<IReadOnlyList<TaxonomyTerm>> GetHierarchyTermsAsync(int skillSetId) {
-            using(var connection = _dbService.GetConnection()){
+        public async Task<Taxonomy> GetTaxonomyAsync(int taxonomyId) {
+            using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
-                var terms = await connection.QueryAsync<TaxonomyTerm>(@" 
-                                                    SELECT TaxonomyTerm.*
-                                                    FROM [dbo].[TaxonomyTerm]
-                                                    INNER JOIN [dbo].[Taxonomy]
-                                                            ON Taxonomy.Id = TaxonomyTerm.TaxonomyId
-                                                    WHERE Taxonomy.SkillSetId = @SkillSetId
-                                                        AND Taxonomy.Type = @TaxonomyType;", 
+                var taxonomy = await connection.QueryFirstAsync<Taxonomy>(@" 
+                                                    SELECT *
+                                                    FROM [dbo].[Taxonomy]
+                                                    WHERE Id = @TaxonomyId;",
                                                     new {
-                                                        SkillSetId = skillSetId, 
-                                                        TaxonomyType = (int)TaxonomyType.SkillsHierarchies
+                                                        TaxonomyId = taxonomyId
                                                     });
-                return terms.ToList();
+                return taxonomy;
             }
         }
 
-        public async Task<IReadOnlyList<SkillTaxonomyTerm>> GetHierarchySkillTermsAsync(int skillSetId) {
-            using(var connection = _dbService.GetConnection()){
+        public async Task<IReadOnlyList<Taxonomy>> GetSkillGroupingTaxonomysAsync(int skillSetId) {
+            using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
-                var terms = await connection.QueryAsync<SkillTaxonomyTerm>(@" 
-                                                    SELECT SkillTaxonomyTerm.*
-                                                    FROM [dbo].[SkillTaxonomyTerm]
-                                                    INNER JOIN [dbo].[Skill]
-                                                            ON SkillTaxonomyTerm.SkillId = Skill.Id
-                                                    INNER JOIN [dbo].[TaxonomyTerm]
-                                                            ON SkillTaxonomyTerm.TaxonomyTermId = TaxonomyTerm.Id          
-                                                    INNER JOIN [dbo].[Taxonomy]
-                                                            ON Taxonomy.Id = TaxonomyTerm.TaxonomyId
-                                                    WHERE Skill.SkillSetId = @SkillSetId
-                                                        AND Taxonomy.Type = @TaxonomyType;",
+                var terms = await connection.QueryAsync<Taxonomy>(@" 
+                                                    SELECT Taxonomy.*
+                                                    FROM [dbo].[Taxonomy]
+                                                    INNER JOIN [dbo].[TaxonomySkillGrouping]
+                                                            ON [Taxonomy].Id = [TaxonomySkillGrouping].TaxonomyId
+                                                    WHERE Taxonomy.SkillSetId = @SkillSetId;",
                                                     new {
-                                                        SkillSetId = skillSetId, 
-                                                        TaxonomyType = (int)TaxonomyType.SkillsHierarchies
+                                                        SkillSetId = skillSetId
                                                     });
                 return terms.ToList();
             }
         }
 
         public async Task<IReadOnlyList<Taxonomy>> GetSkillFilterTaxonomysAsync(int skillSetId) {
-            using(var connection = _dbService.GetConnection()){
+            using (var connection = _dbService.GetConnection()) {
                 await connection.OpenAsync();
                 var terms = await connection.QueryAsync<Taxonomy>(@" 
                                                     SELECT Taxonomy.*
-                                                    FROM [dbo].[Taxonomy]    
-                                                    WHERE Taxonomy.SkillSetId = @SkillSetId
-                                                        AND Taxonomy.Type = @TaxonomyType;", 
+                                                    FROM [dbo].[Taxonomy]
+                                                    INNER JOIN [dbo].[TaxonomySkillFilter]
+                                                            ON [Taxonomy].Id = [TaxonomySkillFilter].TaxonomyId
+                                                    WHERE Taxonomy.SkillSetId = @SkillSetId;",
                                                     new {
-                                                        SkillSetId = skillSetId, 
-                                                        TaxonomyType = (int)TaxonomyType.SkillsFilters
+                                                        SkillSetId = skillSetId
                                                     });
                 return terms.ToList();
             }
         }
 
-        public async Task<IReadOnlyList<TaxonomyTerm>> GetSkillFilterTermsAsync(int skillSetId) {
+        public async Task<IReadOnlyList<TaxonomyTerm>> GetTermsAsync(int taxonomyId) {
             using(var connection = _dbService.GetConnection()){
                 await connection.OpenAsync();
                 var terms = await connection.QueryAsync<TaxonomyTerm>(@" 
@@ -100,37 +92,81 @@ namespace Folium.Api.Services {
                                                     FROM [dbo].[TaxonomyTerm]
                                                     INNER JOIN [dbo].[Taxonomy]
                                                             ON Taxonomy.Id = TaxonomyTerm.TaxonomyId
-                                                    WHERE Taxonomy.SkillSetId = @SkillSetId
-                                                        AND Taxonomy.Type = @TaxonomyType;",  
+                                                    WHERE Taxonomy.Id = @TaxonomyId;", 
                                                     new {
-                                                        SkillSetId = skillSetId, 
-                                                        TaxonomyType = (int)TaxonomyType.SkillsFilters
+                                                        TaxonomyId = taxonomyId,
                                                     });
                 return terms.ToList();
             }
         }
 
-        public async Task<IReadOnlyList<SkillTaxonomyTerm>> GetSkillFilterSkillTermsAsync(int skillSetId) {
+        public async Task<IReadOnlyList<SkillTaxonomyTerm>> GetSkillTermsAsync(int? taxonomyId = null, int? taxonomyTermId = null) {
+            if (taxonomyId == null && taxonomyTermId == null) return new List<SkillTaxonomyTerm> { };
+
             using(var connection = _dbService.GetConnection()){
                 await connection.OpenAsync();
-                var terms = await connection.QueryAsync<SkillTaxonomyTerm>(@" 
-                                                    SELECT SkillTaxonomyTerm.*
-                                                    FROM [dbo].[SkillTaxonomyTerm]
-                                                    INNER JOIN [dbo].[Skill]
-                                                            ON SkillTaxonomyTerm.SkillId = Skill.Id
-                                                    INNER JOIN [dbo].[TaxonomyTerm]
-                                                            ON SkillTaxonomyTerm.TaxonomyTermId = TaxonomyTerm.Id        
+                var sql = taxonomyId.HasValue
+                    ? @" 
+                        SELECT SkillTaxonomyTerm.*
+                        FROM [dbo].[SkillTaxonomyTerm]
+                        INNER JOIN [dbo].[TaxonomyTerm]
+                                ON SkillTaxonomyTerm.TaxonomyTermId = TaxonomyTerm.Id          
+                        INNER JOIN [dbo].[Taxonomy]
+                                ON Taxonomy.Id = TaxonomyTerm.TaxonomyId
+                        WHERE Taxonomy.Id = @TaxonomyId;"
+                    : @" 
+                        SELECT SkillTaxonomyTerm.*
+                        FROM [dbo].[SkillTaxonomyTerm]
+                        INNER JOIN [dbo].[TaxonomyTerm]
+                                ON SkillTaxonomyTerm.TaxonomyTermId = TaxonomyTerm.Id   
+                        WHERE TaxonomyTerm.Id = @TaxonomyTermId;";
+
+                var terms = await connection.QueryAsync<SkillTaxonomyTerm>(
+                    sql,
+                    new {
+                        TaxonomyTermId = taxonomyTermId,
+                        TaxonomyId = taxonomyId
+                    });
+                return terms.ToList();
+            }
+        }
+
+        public async Task<IReadOnlyList<TaxonomyTerm>> GetAllTaxonomyTermFiltersAsync(int skillSetId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                var terms = await connection.QueryAsync<TaxonomyTerm>(@" 
+                                                    SELECT TaxonomyTerm.*
+                                                    FROM [dbo].[TaxonomyTerm]
                                                     INNER JOIN [dbo].[Taxonomy]
-                                                            ON Taxonomy.Id = TaxonomyTerm.TaxonomyId    
-                                                    WHERE Skill.SkillSetId = @SkillSetId
-                                                        AND Taxonomy.Type = @TaxonomyType;",  
+                                                            ON Taxonomy.Id = TaxonomyTerm.TaxonomyId
+                                                    INNER JOIN [dbo].[TaxonomySkillFilter]
+                                                            ON [Taxonomy].Id = [TaxonomySkillFilter].TaxonomyId
+                                                    WHERE Taxonomy.SkillSetId = @SkillSetId;",
                                                     new {
-                                                        SkillSetId = skillSetId, 
-                                                        TaxonomyType = (int)TaxonomyType.SkillsFilters
+                                                        SkillSetId = skillSetId
                                                     });
                 return terms.ToList();
             }
         }
-        
+
+        public async Task<IReadOnlyList<SkillTaxonomyTerm>> GetAllSkillTermFiltersAsync(int skillSetId) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                var terms = await connection.QueryAsync<SkillTaxonomyTerm>(@" 
+                                                    SELECT SkillTaxonomyTerm.*
+                                                    FROM [dbo].[SkillTaxonomyTerm]
+                                                    INNER JOIN [dbo].[TaxonomyTerm]
+                                                            ON SkillTaxonomyTerm.TaxonomyTermId = TaxonomyTerm.Id        
+                                                    INNER JOIN [dbo].[Taxonomy]
+                                                            ON Taxonomy.Id = TaxonomyTerm.TaxonomyId  
+                                                    INNER JOIN [dbo].[TaxonomySkillFilter]
+                                                            ON [Taxonomy].Id = [TaxonomySkillFilter].TaxonomyId  
+                                                    WHERE Taxonomy.SkillSetId = @SkillSetId;",
+                                                    new {
+                                                        SkillSetId = skillSetId
+                                                    });
+                return terms.ToList();
+            }
+        }
     }
 }

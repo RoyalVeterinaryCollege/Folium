@@ -20,7 +20,7 @@ using System;
 
 namespace Folium.Api.Models.Entry.Events {
     public class EntryCreated {
-		public EntryCreated(int skillSetId, string title, string description, int userId, string where, DateTime when, DateTime createdAt, DateTime lastUpdatedAt) {
+		public EntryCreated(int skillSetId, string title, string description, int userId, string where, DateTime when, DateTime createdAt, DateTime lastUpdatedAt, int? skillGroupingId) {
 			SkillSetId = skillSetId;
 			Description = description;
 			Title = title;
@@ -29,13 +29,15 @@ namespace Folium.Api.Models.Entry.Events {
 			When = when;
 			CreatedAt = createdAt;
 			LastUpdatedAt = lastUpdatedAt;
+            SkillGroupingId = skillGroupingId;
 		}
 		public int SkillSetId { get; }
 		public string Title { get; }
 		public string Description { get; }
 		public int UserId { get; }
 		public string Where { get; }
-		public DateTime When { get; }
+        public int? SkillGroupingId { get; private set; }
+        public DateTime When { get; }
 		public DateTime CreatedAt { get; }
 		public DateTime LastUpdatedAt { get; }
 	}

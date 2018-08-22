@@ -1,0 +1,137 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+  <div class="row align-items-top border-top-0 border-right-0 d-print-none">
+    <div class="col-12 col-md-5 col-lg-4 mb-3">
+        <user-card [user]="user"></user-card>
+    </div>
+    <div class="col-12 col-md-7 col-lg-8">
+      <div class="row">
+        <div class="col-6">
+          <div class="card nav-card mb-3">
+            <a [routerLink]="" (click)="loadSkills()">
+              <div class="card-header">
+                <p class="text-uppercase"><span class="folium-skills pr-2"></span>Skills</p>
+              </div>
+              <div class="card-body">
+                <span *ngIf="user">{{user.totalSelfAssessments}} assessments</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card nav-card mb-3">
+            <a [routerLink]="" (click)="loadEntries()">
+              <div class="card-header">
+                <p class="text-uppercase"><span class="folium-entries pr-2"></span>Entries</p>
+              </div>
+              <div class="card-body">
+                <span *ngIf="user">{{user.totalEntries}} entries, {{user.totalEntriesSharedWithYou}} shared with you</span>
+              </div> 
+            </a>
+          </div>
+        </div>      
+        <div class="col-6">
+          <div class="card nav-card mb-3">
+            <a [routerLink]="" (click)="loadPlacements()">
+              <div class="card-header">
+                <p class="text-uppercase"><span class="folium-placement pr-2"></span>Placements</p>
+              </div>
+              <div class="card-body">
+                <span *ngIf="user">{{user.totalPlacements}} placements</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr class="d-print-none">
+  <div *ngIf="user">
+    <div [ngSwitch]="currentContent">
+      <!-- Skills -->
+      <div *ngSwitchCase="tuteeContent.Skills">        
+        <!-- No Skill Sets... -->
+        <div *ngIf="skillSets && skillSets.length === 0" class="row">
+          <div class="col">
+            <div class="app-card">
+              <div class="card-body">
+                {{user.firstName}} {{user.lastName}} doesn't have any skill sets.
+              </div>              
+            </div>
+          </div>
+        </div>
+        <div *ngIf="skillSet">
+          <div class="d-flex justify-content-start">
+            <div class="mr-auto">
+              <h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1> 
+            </div>
+            <div class="p-1">
+              <skill-search></skill-search>
+            </div>
+            <div class="p-1">
+              <filter-skills [skillSetId]="skillSet.id"></filter-skills>
+            </div>
+          </div>
+          <div *ngIf="skillGroupings && skillGroupings.length > 1 && skillGrouping" class="row">
+            <div class="col text-right">{{skillGrouping.name}} <span><i class="folium-group" aria-hidden="true" role="button" (click)="onChangeSkillGroupingClick()" aria-label="Change Skill Grouping" title="Change Skill Grouping"></i></span></div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <!-- Loading Skills... -->
+              <div *ngIf="!skillGroups" class="loader-container">
+                <div class="loader primary">Loading...</div>
+              </div>
+              <active-skill-filters></active-skill-filters>
+            </div>
+          </div>
+          <skill-group-list *ngIf="skillGroups" [skillSetId]="skillSet.id" [skillGroups]="skillGroups" [autoSave]="false" [user]="user" [readOnly]="true"></skill-group-list>            
+        </div>
+      </div>
+      <!-- Entries -->
+      <div *ngSwitchCase="tuteeContent.Entries">          
+        <div class="d-flex justify-content-start d-print-none">
+          <h1 class="p-1 m-0"> <span class="folium-entries small"></span> <span class="text-uppercase">Entries</span> 
+            <small class="text-muted">({{user.totalEntriesSharedWithYou}} shared with you)</small></h1>					
+        </div>
+        <entries-viewer [user]='user'></entries-viewer>
+      </div>
+      <!-- Placements -->
+      <div *ngSwitchCase="tuteeContent.Placements">
+        <div class="d-flex justify-content-start">
+          <h1 class="text-uppercase p-1 m-0"><span class="folium-placement small"></span> Placements </h1>				
+        </div>
+        <placements-viewer [user]='user' (onViewPlacement)="onViewPlacement($event)"></placements-viewer>
+      </div>
+      <!-- Placement -->
+      <div *ngSwitchCase="tuteeContent.Placement">
+        <div class="d-flex justify-content-start">
+          <h1 class="text-uppercase p-1 m-0"><span class="folium-placement small"></span> Placements </h1>				
+        </div>
+        <placement-viewer [user]="user" [placement]="placement"></placement-viewer>	
+      </div>
+      <!-- Loading... -->
+      <div *ngSwitchDefault>
+        <div class="loader-container">
+          <div class="loader primary">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>

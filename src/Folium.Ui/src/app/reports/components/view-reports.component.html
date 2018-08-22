@@ -1,0 +1,60 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<section class="title">
+	<div class="container">
+		<div class="d-flex justify-content-start">
+			<h1 class="text-uppercase p-1 m-0"><span class="folium-reports small"></span> Reports </h1>				
+		</div>
+	</div>
+</section>
+<section class="content-main">
+	<div class="container">
+		<div class="row">
+			<div class="col-6 col-lg-3">
+				<a [routerLink]="['/reports/self-assessment-engagement']" routerLinkActive="active">
+					<div class="card icon-links skills icon-card">
+						<div class="icon-content">
+							<p class="text-uppercase text-center">Self Assessment Engagement</p>
+						</div>
+					</div>
+				</a>
+			</div>
+			<div class="col-6 col-lg-3">
+				<a [routerLink]="['/reports/entry-engagement']" routerLinkActive="active">
+					<div class="card icon-links entries icon-card">
+						<div class="icon-content">
+							<p class="text-uppercase text-center">Entry Engagement</p>
+						</div>
+					</div>
+				</a>
+			</div>
+			<div class="col-6 col-lg-3">
+				<a [routerLink]="['/reports/placement-engagement']" routerLinkActive="active">
+					<div class="card icon-links placements icon-card">
+						<div class="icon-content">
+							<p class="text-uppercase text-center">Placement Engagement</p>
+						</div>
+					</div>
+				</a>
+			</div>
+		</div>
+	</div>
+</section>

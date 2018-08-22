@@ -21,10 +21,16 @@ using Folium.Api.Models;
 using Dapper;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Data;
+using System;
 
 namespace Folium.Api.Services {
     public interface ICourseService {
-        Task<IReadOnlyList<Course>> GetCoursesAsync();
+        Task<IReadOnlyList<Course>> GetCoursesAsync();        
+        Task<IEnumerable<Course>> GetCoursesAdministratedByUserAsync(User user);
+        IEnumerable<CourseEnrolment> GetCourseEnrolments(User user, IDbTransaction transaction = null);
+        IEnumerable<CourseEnrolment> GetActiveCourseEnrolments(User user, IDbTransaction transaction = null);
+        IEnumerable<CourseEnrolment> GetCourseEnrolments(int courseId, int enrolmentYear, int courseYear, IDbTransaction transaction = null);
     }
     public class CourseService : ICourseService {
         private readonly IDbService _dbService;
@@ -40,6 +46,92 @@ namespace Folium.Api.Services {
                     FROM [dbo].[Course]");
                 return courses.ToList();
             }
+        }
+        
+        public IEnumerable<CourseEnrolment> GetCourseEnrolments(User user, IDbTransaction transaction = null) {
+            IDbConnection connection = null;
+            if (transaction == null) {
+                connection = _dbService.GetConnection();
+            }
+            else {
+                connection = transaction.Connection;
+            }
+            var closedConnection = connection.State == ConnectionState.Closed;
+            if (closedConnection) {
+                connection.Open();
+            }
+            try {
+                return (connection.Query<CourseEnrolment>(@"
+					    SELECT *, [Course].Title AS CourseTitle
+					    FROM [dbo].[CourseEnrolment]
+                        INNER JOIN [dbo].[Course]
+                            ON [CourseEnrolment].[CourseId] = [Course].[Id]
+					    WHERE [UserId] = @UserId
+					",
+                    new {
+                        UserId = user.Id
+                    }, transaction)).ToList();
+            }
+            finally {
+                if (connection != null && closedConnection && connection is IDisposable) {
+                    connection.Dispose();
+                }
+            }
+        }
+
+        public IEnumerable<CourseEnrolment> GetCourseEnrolments(int courseId, int enrolmentYear, int courseYear, IDbTransaction transaction = null) {
+            IDbConnection connection = null;
+            if (transaction == null) {
+                connection = _dbService.GetConnection();
+            }
+            else {
+                connection = transaction.Connection;
+            }
+            var closedConnection = connection.State == ConnectionState.Closed;
+            if (closedConnection) {
+                connection.Open();
+            }
+            try {
+                return (connection.Query<CourseEnrolment>(@"
+					    SELECT *, [Course].Title AS CourseTitle
+					    FROM [dbo].[CourseEnrolment]
+                        INNER JOIN [dbo].[Course]
+                            ON [CourseEnrolment].[CourseId] = [Course].[Id]
+					    WHERE [Course].[Id] = @CourseId
+                        AND [EnrolmentYear] = @EnrolmentYear
+                        AND [CourseYear] = @CourseYear
+					",
+                    new {
+                        CourseId = courseId,
+                        EnrolmentYear = enrolmentYear,
+                        CourseYear = courseYear
+                    }, transaction)).ToList();
+            }
+            finally {
+                if (connection != null && closedConnection && connection is IDisposable) {
+                    connection.Dispose();
+                }
+            }
+        }
+
+        public async Task<IEnumerable<Course>> GetCoursesAdministratedByUserAsync(User user) {
+            using (var connection = _dbService.GetConnection()) {
+                await connection.OpenAsync();
+                return (connection.Query<Course>(@"
+					    SELECT *
+					    FROM [dbo].[Course]
+                        INNER JOIN [dbo].[CourseAdministrator]
+                            ON [Course].[Id] = [CourseAdministrator].[CourseId]
+					    WHERE [UserId] = @UserId
+					",
+                    new {
+                        UserId = user.Id
+                    }));
+            }
+        }
+
+        public IEnumerable<CourseEnrolment> GetActiveCourseEnrolments(User user, IDbTransaction transaction = null) {
+            return GetCourseEnrolments(user, transaction).Where(c => c.Active);
         }
     }
 }

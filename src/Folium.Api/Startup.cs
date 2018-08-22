@@ -77,10 +77,13 @@ namespace Folium.Api {
             services.AddSingleton<ITaxonomyService, TaxonomyService>();
             services.AddSingleton<ISelfAssessmentService, SelfAssessmentService>();
             services.AddSingleton<IUserService, UserService>();
-			services.AddSingleton<IEntryService, EntryService>();
+            services.AddSingleton<ITutorGroupService, TutorGroupService>();
+            services.AddSingleton<IEntryService, EntryService>();
 			services.AddSingleton<IPlacementService, PlacementService>();
-            services.AddSingleton<IEmailService, EmailService>();
+            services.AddSingleton<IReportService, ReportService>();
+            services.AddTransient<IEmailService, EmailService>();
             services.AddSingleton<IViewRenderService, ViewRenderService>();
+            services.AddSingleton<IMessagingService, MessagingService>();
             services.AddSingleton<IConfigurationRoot>(Configuration);
 
             var connectionString = Configuration.GetConnectionString("SqlConnectionString");

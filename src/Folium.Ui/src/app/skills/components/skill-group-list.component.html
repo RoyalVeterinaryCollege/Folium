@@ -1,0 +1,81 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div [class.mb-5]="!readOnly">
+	<!-- List Skills... -->
+	<div class="row" *ngFor="let skillGroup of (skillGroups | filter: filters:searchTerms);trackBy: trackSkillGroup">
+		<div *ngIf="getSkillTotalFromGroup(skillGroup) > 0" class="col">
+			<div class="app-card mb-sm-2" [ngClass]="{'hover': !skillGroup.expanded}" (click)="onExpandSkillGroup($event, skillGroup)">
+				<div class="card-body">
+					<div class="panel panel-default">
+						<div class="h4 mb-0" role="tab">
+							<div class="row">
+								<div class="col-lg-6 col-10">
+									<h3 class="mb-0">
+										<a [routerLink]="" class="panel-title" (click)="onToggleSkillGroup($event, skillGroup)">
+											<i class="fa d-print-none" [ngClass]="skillGroup.expanded ? 'fa-angle-double-up' : ' fa-angle-double-down'" aria-hidden="true"></i> {{ skillGroup.name }} 							
+										</a>
+									</h3>
+								</div>
+								<div class="col-2 d-lg-none col-lg-1">
+									{{ getSkillTotalFromGroup(skillGroup) }}
+								</div>
+								<div class="col-12 d-lg-none small mt-1" *ngIf="skillGroup.description">
+									{{ skillGroup.description }}
+								</div>
+								<div class="col-lg-5 mb-3 mt-1">
+									<!-- Use the assessment slider markup for a simple read only summary -->
+									<div class="assessment-slider-wrapper assessment-slider-disabled">
+										<div class="assessment-slider-container">
+											<div class="assessment-slider-track-container">
+												<div class="assessment-slider-track"></div>
+												<div class="assessment-slider-track assessment-slider-track-fill" [style.border-color]="'hsl(' + getAverageSelfAssessmentFromGroup(skillGroup) + ',100%,40%)'" [style.width]="getAverageSelfAssessmentFromGroup(skillGroup)+'%'"></div>
+											</div>
+										</div>                             
+									</div>
+								</div>
+								<!-- When we upgrade to BSv4 we can remove this and use the order-lg-12 to change the order on the other div that shows the count. -->
+								<div class="col-lg-1 d-none d-lg-block">
+									{{ getSkillTotalFromGroup(skillGroup) }}
+								</div>
+								<div class="col-12 d-none d-lg-block small mt-1" *ngIf="skillGroup.description">
+									{{ skillGroup.description }}
+								</div>
+							</div>
+						</div>
+						<div *ngIf="skillGroup.expanded" class="pt-3" [collapse]="!skillGroup.expanded">
+							<skill-group [readOnly]="readOnly" [skillGroup]="skillGroup" [skillSetId]="skillSetId" [expanded]="skillGroup.expanded" [autoSave]="autoSave" [user]="user"></skill-group>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- No Skills... -->
+	<div class="row" *ngIf="getSkillTotalFromGroups() === 0">
+		<div class="col">
+			<div class="app-card">
+				<div class="card-body">
+					<h4 class="card-title text-muted">No Skills</h4>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

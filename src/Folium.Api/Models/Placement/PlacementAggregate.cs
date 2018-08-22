@@ -34,30 +34,31 @@ namespace Folium.Api.Models.Placement {
 		public DateTime CreatedAt { get; set; }
 		public int LastUpdatedBy { get; set; }
 		public DateTime LastUpdatedAt { get; set; }
+        public string Type { get; set; }
 
-		public static string GetFullyQualifiedTitle(string title, DateTime start, DateTime end) {
-			return $"{title} ({start.ToString("d MMM yy")}-{end.ToString("d MMM yy")})";
+        public static string GetFullyQualifiedTitle(string title, string type, DateTime start, DateTime end) {
+			return $"{(string.IsNullOrEmpty(type) ? "" : (type + ": "))}{title} ({start.ToString("d MMM yy")}-{end.ToString("d MMM yy")})";
 		}
 
 		private bool _isCreated;
 		private bool _isRemoved;
 
-		public void Create(int userId, string title, DateTime start, DateTime end, string reference, int createdBy) {
+		public void Create(int userId, string title, DateTime start, DateTime end, string reference, int createdBy, string type = null) {
 			if (_isCreated || _isRemoved) return;
-			RaiseEvent(new PlacementCreated(userId, title, start, end, reference, createdBy, DateTime.UtcNow, createdBy, DateTime.UtcNow));
+			RaiseEvent(new PlacementCreated(userId, title, start, end, reference, createdBy, DateTime.UtcNow, createdBy, DateTime.UtcNow, type));
 		}
-		public void Update(string title, DateTime start, DateTime end, string reference, int updatedBy) {
+		public void Update(string title, DateTime start, DateTime end, string reference, int updatedBy, string type = null) {
 			if (!_isCreated || _isRemoved) return;
-			var originalFullyQualifiedTitle = GetFullyQualifiedTitle(Title, Start, End);
-			var newFullyQualifiedTitle = GetFullyQualifiedTitle(title, start, end);
-			RaiseEvent(new PlacementUpdated(UserId, title, start, end, reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow));
+			var originalFullyQualifiedTitle = GetFullyQualifiedTitle(Title, Type, Start, End);
+			var newFullyQualifiedTitle = GetFullyQualifiedTitle(title, type, start, end);
+			RaiseEvent(new PlacementUpdated(UserId, title, start, end, reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow, type));
 			if (!originalFullyQualifiedTitle.Equals(newFullyQualifiedTitle)) {
-				RaiseEvent(new PlacementNameUpdated(UserId, title, start, end, reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow, originalFullyQualifiedTitle));
+				RaiseEvent(new PlacementNameUpdated(UserId, title, start, end, reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow, originalFullyQualifiedTitle, type));
 			}
 		}
 		public void Remove(int updatedBy) {
 			if (!_isCreated || _isRemoved) return;
-			RaiseEvent(new PlacementRemoved(UserId, Title, Start, End, Reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow));
+			RaiseEvent(new PlacementRemoved(UserId, Title, Start, End, Reference, CreatedBy, CreatedAt, updatedBy, DateTime.UtcNow, Type));
 		}
 
 		#region Events
@@ -73,6 +74,7 @@ namespace Folium.Api.Models.Placement {
 			CreatedAt = @event.CreatedAt;
 			LastUpdatedBy = @event.LastUpdatedBy;
 			LastUpdatedAt = @event.LastUpdatedAt;
+            Type = @event.Type;
 		}
 		
 		void Apply(PlacementUpdated @event) {
@@ -82,6 +84,7 @@ namespace Folium.Api.Models.Placement {
 			Reference = @event.Reference;
 			LastUpdatedBy = @event.LastUpdatedBy;
 			LastUpdatedAt = @event.LastUpdatedAt;
+            Type = @event.Type;
 		}
 		void Apply(PlacementNameUpdated @event) {
 			// noop.

@@ -1,0 +1,67 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+   
+    <script src="/lib/oidc-client/dist/oidc-client.min.js"></script>
+<script>
+	// If the window has been framed then call the parent with the successful message.
+	if (window.parent && window.parent.angularComponentRef) {
+		var mgr = new Oidc.UserManager();
+		mgr.signinRedirectCallback().then(function(user) {
+			window.parent.angularComponentRef.signInComplete(user);
+		});
+	} else {
+		var mgr = new Oidc.UserManager();
+		mgr.signinRedirectCallback().then(function(user) {
+			// As we can't communicate with running folium app we have manually register the sign in and reload the app.
+
+			var request = new XMLHttpRequest();
+			request.open('GET', user.state.apiRootUri + 'users/sign-in', true);
+			request.setRequestHeader('Authorization', 'Bearer ' + user.access_token);
+			request.onload = function() {
+				if (request.status >= 200 && request.status < 400) {
+					// Success!
+					var signInRedirectUrl = (user.state && user.state.signInRedirectUrl) ? user.state.signInRedirectUrl : "/";
+					window.location.replace(signInRedirectUrl);
+				} else {
+					// We reached our target server, but it returned an error
+					document.querySelector('#error').style.display = '';
+				}
+			};
+
+			request.onerror = function() {
+				// There was a connection error of some sort
+				document.querySelector('#error').style.display = '';
+			};
+			request.send();
+
+		});
+	}
+</script>
+<p id="error" style="display: none;">There was a problem signing you in, please <a href="/">try again</a>.</p>
+</body>
+</html>
+

@@ -31,7 +31,6 @@ using Microsoft.AspNetCore.Hosting;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
 using System.Data;
-using System.Data.Common;
 
 namespace Folium.Api.Services {
     public interface IUserService {
@@ -45,9 +44,6 @@ namespace Folium.Api.Services {
         Task UpdateUserAsync(User user);
         Task UpdateUserAsync(User user, Stream imageStream);
         Task RemoveUserImage(User user);
-	    Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId);
-        Task<IEnumerable<TuteeGroupDto>> GetTuteesAsync(int userId);
-        Task<bool> IsUsersTutorAsync(int tutorId, int userId);
 
         Task RefreshCollaboratorOptionsAsync();
 	    IEnumerable<CollaboratorOptionDto> GetCollaboratorOptions(User user, string matchMe);
@@ -55,15 +51,21 @@ namespace Folium.Api.Services {
     }
     public class UserService : IUserService {
         private readonly IDbService _dbService;
+        private readonly ICourseService _courseService;
+        private readonly ITutorGroupService _tutorGroupServices;
         private readonly string _profilePicDirectory;		
         private readonly ILogger<UserService> _logger;
 	    private readonly List<CollaboratorOptionDto> _collaboratorOptions; // local cache of all possible collaborators. 
         public UserService(
             ILogger<UserService> logger,
             IHostingEnvironment hostingEnvironment,
-            IDbService dbService) {
+            IDbService dbService,
+            ICourseService courseService,
+            ITutorGroupService tutorGroupService) {
             _logger = logger;
-            _dbService = dbService;            
+            _dbService = dbService;
+            _courseService = courseService;
+            _tutorGroupServices = tutorGroupService;
             _profilePicDirectory = $"{hostingEnvironment.WebRootPath}{Path.DirectorySeparatorChar}images{Path.DirectorySeparatorChar}profiles{Path.DirectorySeparatorChar}150x150{Path.DirectorySeparatorChar}";
 			_collaboratorOptions = new List<CollaboratorOptionDto>();
         }
@@ -84,7 +86,7 @@ namespace Folium.Api.Services {
 					        INNER JOIN [dbo].[User]
 						        ON [CourseEnrolment].[UserId] = [User].[Id]
 					        WHERE [User].[Email] = @Email
-					        AND [CourseEnrolment].[Removed] = 0) THEN 1 ELSE 0
+					        AND [CourseEnrolment].[Active] = 1) THEN 1 ELSE 0
                         END AS HasTutor,
                         CASE WHEN EXISTS(
                             SELECT *
@@ -105,7 +107,7 @@ namespace Folium.Api.Services {
                     }, splitOn: "UserId")).FirstOrDefault();
 				if(user != null)
                 {
-                    user.Courses = GetCourseEnrolments(connection, user);
+                    user.Courses = _courseService.GetActiveCourseEnrolments(user).ToList();
                 }
                 return user;
             }
@@ -133,7 +135,7 @@ namespace Folium.Api.Services {
 					        INNER JOIN [dbo].[User]
 						        ON [CourseEnrolment].[UserId] = [User].[Id]
 					        WHERE [User].[Id] = @UserId
-					        AND [CourseEnrolment].[Removed] = 0) THEN 1 ELSE 0
+					        AND [CourseEnrolment].[Active] = 1) THEN 1 ELSE 0
                         END AS HasTutor,
                         CASE WHEN EXISTS(
                             SELECT *
@@ -151,7 +153,7 @@ namespace Folium.Api.Services {
 						UserId = userId
 					}, transaction, splitOn: "UserId").FirstOrDefault();
 				if (user != null) {
-                    user.Courses = GetCourseEnrolments(connection, user, transaction);
+                    user.Courses = _courseService.GetActiveCourseEnrolments(user, transaction).ToList();
 				}
 				return user;
 			}
@@ -300,91 +302,6 @@ namespace Folium.Api.Services {
 	        await RefreshCollaboratorOptionsAsync();
         }
 
-        public async Task<IEnumerable<TuteeGroupDto>> GetTuteesAsync(int userId) {
-            using (var connection = _dbService.GetConnection()) {
-                await connection.OpenAsync();
-                var tutorGroups = new List<TuteeGroupDto>();
-                await connection.QueryAsync<TuteeGroup, User, ActivitySummary, TuteeGroupDto>(@"
-                    SELECT [TuteeGroup].*, [User].*, [ActivitySummary].[UserId] AS [Id], [ActivitySummary].*
-					FROM [dbo].[CourseEnrolment]
-					INNER JOIN [dbo].[Tutee]
-						ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
-					INNER JOIN [dbo].[TuteeGroup]
-						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
-					INNER JOIN [dbo].[User]
-						ON [CourseEnrolment].[UserId] = [User].[Id]
-                    LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
-                            ON [User].[Id] = [ActivitySummary].[UserId]
-					WHERE [CourseEnrolment].[Removed] = 0
-                        AND [TuteeGroup].[TutorId] = @UserId;",
-                    (tuteeGroup, user, activitySummary) => {
-                        var group = tutorGroups.FirstOrDefault(t => t.Id == tuteeGroup.Id);
-                        user.ActivitySummary = activitySummary;
-                        if (group == null) {
-                            group = new TuteeGroupDto {
-                                Id = tuteeGroup.Id,
-                                Title = tuteeGroup.Title,
-                                CourseId = tuteeGroup.CourseId,
-                                Tutees = new List<UserDto> { new UserDto(user) }
-                            };
-                            tutorGroups.Add(group);
-                        }
-                        else {
-                            group.Tutees.Add(new UserDto(user));
-                        }
-                        return group;
-                    },
-                    new {
-                        UserId = userId
-                    });
-                return tutorGroups;
-            }
-        }
-
-        public async Task<IEnumerable<User>> GetTutorsAsync(User user, int courseId) {
-			using (var connection = _dbService.GetConnection()) {
-				await connection.OpenAsync();
-				var tutors = await connection.QueryAsync<User>(@"
-                    SELECT [User].*
-					FROM [dbo].[CourseEnrolment]
-					INNER JOIN [dbo].[Tutee]
-						ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
-					INNER JOIN [dbo].[TuteeGroup]
-						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
-					INNER JOIN [dbo].[User]
-						ON [TuteeGroup].[TutorId] = [User].[Id]
-					WHERE [CourseEnrolment].[UserId] = @userId
-					AND [CourseEnrolment].[CourseId] = @courseId 
-					AND [CourseEnrolment].[Removed] = 0;",
-					new {
-						userId = user.Id,
-						courseId
-					});
-				return tutors;
-			}
-		}
-
-        public async Task<bool> IsUsersTutorAsync(int tutorId, int userId) {
-            using (var connection = _dbService.GetConnection()) {
-                await connection.OpenAsync();
-                var tutorMatchCount = await connection.ExecuteScalarAsync<int>(@"
-                    SELECT COUNT(*)
-					FROM [dbo].[CourseEnrolment]
-					INNER JOIN [dbo].[Tutee]
-						ON [CourseEnrolment].[Id] = [Tutee].[CourseEnrolmentId]
-					INNER JOIN [dbo].[TuteeGroup]
-						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
-					WHERE  [TuteeGroup].[TutorId] = @tutorId
-                    AND [CourseEnrolment].[UserId] = @userId;",
-                    new
-                    {
-                        userId = userId,
-                        tutorId = tutorId
-                    });
-                return tutorMatchCount == 1;
-            }
-        }
-
         /// <summary>
         /// Refresh the local collaborator options list which is used to autocomplete when sharing.
         /// </summary>
@@ -394,14 +311,14 @@ namespace Folium.Api.Services {
 				await connection.OpenAsync();
 				var users = await connection.QueryAsync<CollaboratorOptionDto, UserDto, CollaboratorOptionDto>(@"
                     SELECT [User].[Id]
-							,'""' + ISNULL([User].[FirstName], '') + ' ' + ISNULL([User].[LastName], '') + '"" &lt;' + [User].[Email] + '&gt;' AS [Name]
+							,ISNULL([User].[FirstName], '') + ' ' + ISNULL([User].[LastName], '') + ' &lt;' + [User].[Email] + '&gt;' AS [Name]
 							,[User].*
                     FROM [dbo].[User]
 					WHERE [Id] >= 0;",
 					(collaboratorOptionDto, user) => { collaboratorOptionDto.User = user; return collaboratorOptionDto; });
 				var groups = await connection.QueryParentChildAsync<CollaboratorOptionDto, UserDto, int, List<UserDto>>(@"
                     SELECT	[TuteeGroup].[Id]
-							,'""' + [Title] + ' Tutor Group""' AS [Name]
+							,[Title] + ' Tutor Group' AS [Name]
 							,[User].*
 					FROM [dbo].[CourseEnrolment]
 					INNER JOIN [dbo].[Tutee]
@@ -410,13 +327,16 @@ namespace Folium.Api.Services {
 					ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
 					INNER JOIN [dbo].[User]
 					ON [CourseEnrolment].[UserId] = [User].Id
+					WHERE [CourseEnrolment].[Active] = 1
+                    AND [TuteeGroup].[Removed] = 0
 					UNION					
 					SELECT	[TuteeGroup].[Id]
-							,'""' + [Title] + ' Tutor Group""' AS [Name]
+							,[Title] + ' Tutor Group' AS [Name]
 							,[User].*
 					FROM [dbo].[TuteeGroup]
 					INNER JOIN [dbo].[User]
-					ON [TuteeGroup].TutorId = [User].Id;",
+					ON [TuteeGroup].TutorId = [User].Id
+                    WHERE [TuteeGroup].[Removed] = 0;",
 					collaboratorOptionDto => collaboratorOptionDto.Id,
 					collaboratorOptionDto => collaboratorOptionDto.Group ?? (collaboratorOptionDto.Group = new List<UserDto>()),
 					(group, user) => group.Add(user));
@@ -439,23 +359,11 @@ namespace Folium.Api.Services {
             if (userToView.Id == currentUser.Id) return true;
             var systemUser = await GetOrCreateSystemUserAsync();
             if (currentUser.Id == systemUser.Id) return true;
-            if (!userToView.HasTutor) return false;
-            return await IsUsersTutorAsync(currentUser.Id, userToView.Id);
-        }
-
-        private List<CourseEnrolment> GetCourseEnrolments(IDbConnection connection, User user, IDbTransaction transaction = null) {
-            return (connection.Query<CourseEnrolment>(@"
-					    SELECT *, [Course].Title AS CourseTitle
-					    FROM [dbo].[CourseEnrolment]
-                        INNER JOIN [dbo].[Course]
-                            ON [CourseEnrolment].[CourseId] = [Course].[Id]
-					    WHERE [UserId] = @UserId
-					    AND [Removed] = 0
-					",
-                    new
-                    {
-                        UserId = user.Id
-                    }, transaction)).ToList();
+            if(userToView.HasTutor && await _tutorGroupServices.IsUsersTutorAsync(currentUser.Id, userToView.Id)) return true;
+            // If the current user is a course admin on any of the courses the user has enrolled on.
+            var courseEnrolments = _courseService.GetCourseEnrolments(userToView);
+            var courses = await _courseService.GetCoursesAdministratedByUserAsync(currentUser);
+            return courseEnrolments.Any(e => courses.Any(c => c.Id == e.CourseId));
         }
 
         private void DeleteUserImage(User user) {

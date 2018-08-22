@@ -141,9 +141,26 @@ namespace Folium.Api.Controllers {
 			// Update the entry.
 			_entryService.UpdateEntry(currentUser, entryDto);
 			return Json(latestSelfAssessments);
-		}
+        }
 
-		[HttpPost("{entryId}/remove")]
+        [HttpPost("{entryId}/skill-grouping")]
+        // POST entries/{entryId}/skill-grouping
+        // Change the skill grouping for the entry.
+        public async Task<ActionResult> ChangeEntrySkillGrouping(Guid entryId, [FromBody]dynamic data) {
+            var currentUser = await _userService.GetUserAsync(User);
+
+            var entryDto = await _entryService.GetEntryAsync(currentUser, entryId);
+
+            if (!(await IsValidEntry("ChangeEntrySkillGrouping", currentUser, entryDto))) {
+                return new BadRequestResult();
+            }
+
+            // change the skill grouping.
+            _entryService.ChangeEntrySkillGrouping(entryId, (int)data.skillGroupingId);
+            return new OkResult();
+        }
+
+        [HttpPost("{entryId}/remove")]
 		// POST entries/{entryId}/remove
 		// Remove the entry for the user.
 		public async Task<ActionResult> RemoveEntry(Guid entryId) {

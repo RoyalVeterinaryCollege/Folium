@@ -16,10 +16,12 @@ To create a build of the Folium app you will need to follow the following steps:
 
 1. Ensure you have .NET Core SDK installed [https://www.microsoft.com/net/core](https://www.microsoft.com/net/core)
 2. Have Node.js installed [https://nodejs.org/en/download/](https://nodejs.org/en/download/)
-3. Make sure you have gulp installed globally `npm install -g gulp-cli`
+3. Make sure you have the Angular CLI installed globally `npm install -g @angular/cli`
 4. Once you have cloned the repo, navigate to Folium.Ui project directory and run `npm install`
+5. Copy the [environment.template.ts](https://github.com/RoyalVeterinaryCollege/Folium/blob/master/src/Folium.Ui/src/environments/environment.template.ts) file and rename it `environment.ts` and update the template with the correct settings for your environment.
+6. Copy the [appsettings.template.json](https://github.com/RoyalVeterinaryCollege/Folium/blob/master/src/Folium.Api/appsettings.template.json) file and rename it `appsettings.json ` and update the template with the correct settings for your environment.
 
-To create a build, navigate to the Folium.Api folder and run `dotnet restore` to restore the nuget packages, then run `dotnet publish -c Release`. Navigate to the Folium.Ui folder and run `gulp publish; dotnet publish -c Release`.
+To create a build, navigate to the Folium.Api folder and run `dotnet restore` to restore the nuget packages, then run `dotnet publish -c Release`. Navigate to the Folium.Ui folder and run `ng build --configuration=production`.
 
 ### Deploy
 
@@ -33,8 +35,7 @@ To deploy the app, first complete the build steps above and then complete the fo
 4. Install and configure [IdentityServer](https://github.com/IdentityServer/IdentityServer4)
 	> We found identityserver app pool must have 'Load User Profile' in Advanced Settings and the identity needs permissions to read its private key via mmc snap in -> All Tasks -> Manage Private Keys.
 5. Copy the Folium.Api and Folium.Ui build outputs (publish folders) into two seperate web applications
-6. You need to set your appsettings, copy the appsettings.template.json in both projects and paste as appsettings.json, update the template with the correct settings for your environment
-7. Install a Skill set (see below)
+6. Install a Skill set (see below)
 
 ### Skill set install
 
@@ -60,8 +61,7 @@ Some points to help you get setup and running, please shout if we have forgot an
 
 * Following the Build steps above locally
 * Our prefered development environment is [Visual Studio Code](https://code.visualstudio.com/)
-* In the Folium.Ui project there are a number of predefined Visual Studio tasks which in run the various gulp tasks, or you can run them directly from the command line.
-* There is a gulp watch task which will automatically transpile the typescript, sass files and sync the files to the wwwroot folder. You should run this task in the background whilst developing Folium.Ui, there is also a watch.bat and watch.command which can be run directly from the relevant OS.
+* In the Folium.Ui project there are a number of predefined Visual Studio tasks which in run the various ng tasks, or you can run them directly from the command line e.g. `npm start` will serve the UI project using `ng serve` this will automatically watch for changes to the code and reload the page.
 
 ### Dependencies
 
@@ -84,7 +84,6 @@ Folium has been built with the help of these superb librarys
 - [hammer.js](https://github.com/hammerjs/hammer.js)
 - [node.js](https://github.com/nodejs/node)
 - [npm](https://github.com/npm/npm)
-- [gulp](https://github.com/gulpjs/gulp)
 - [sass](https://github.com/sass/sass)
 - [systemjs](https://github.com/systemjs/systemjs)
 - [IdentityServer](https://github.com/IdentityServer/IdentityServer4)

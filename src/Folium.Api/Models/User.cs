@@ -31,6 +31,7 @@ namespace Folium.Api.Models {
         public bool HasProfilePic { get; set; } 
         public int ProfilePicVersion { get; set; } 
         public string FirstName { get; set; }
+        public string MiddleNames { get; set; }
         public string LastName { get; set; }
         public DateTime LastSignIn { get; set; }
 		public List<CourseEnrolment> Courses { get; set; }

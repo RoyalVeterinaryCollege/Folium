@@ -30,7 +30,8 @@ namespace Folium.Api.Models.Placement.Events {
 			DateTime createdAt,
 			int lastUpdatedBy,
 			DateTime lastUpdatedAt,
-			string originalFullyQualifiedTitle) : base(
+			string originalFullyQualifiedTitle,
+            string type = null) : base(
 				userId,
 				title,
 				start,
@@ -39,7 +40,8 @@ namespace Folium.Api.Models.Placement.Events {
 				createdBy,
 				createdAt,
 				lastUpdatedBy,
-				lastUpdatedAt) {
+				lastUpdatedAt,
+                type) {
 			OriginalFullyQualifiedTitle = originalFullyQualifiedTitle;
 		}
 		public string OriginalFullyQualifiedTitle { get; set; }

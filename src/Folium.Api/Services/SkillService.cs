@@ -275,7 +275,6 @@ namespace Folium.Api.Services {
                                     taxonomy.Id = (await connection.QueryAsync<int>(@"
                                         INSERT INTO [dbo].[Taxonomy]
                                             ([Name]
-                                            ,[Type]
                                             ,[SkillSetId]
                                             ,[Removed]
                                             ,[CreatedAt]
@@ -283,7 +282,6 @@ namespace Folium.Api.Services {
                                             ,[LastUpdatedAt]
                                             ,[LastUpdatedBy])
                                         VALUES (@Name
-                                                ,0
                                                 ,@SkillSetId
                                                 ,0
                                                 ,@When

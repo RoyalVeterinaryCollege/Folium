@@ -37,12 +37,13 @@ namespace Folium.Api.Models.Entry {
         public DateTime CreatedAt { get; private set; } 
         public DateTime LastUpdatedAt { get; private set; }
 		public int? TypeId { get; private set; }
-		private readonly List<Dictionary<int, SelfAssessment>> _assessmentBundle = new List<Dictionary<int, SelfAssessment>>();
+        public int? SkillGroupingId { get; private set; }
+        private readonly List<Dictionary<int, SelfAssessment>> _assessmentBundle = new List<Dictionary<int, SelfAssessment>>();
 		private readonly HashSet<int> _sharedWith = new HashSet<int>();
 		public bool IsShared => _sharedWith.Count > 0;
 		readonly Dictionary<int, EntryComment> _comments = new Dictionary<int, EntryComment>();
 
-		public ReadOnlyCollection<EntryComment> FieldDefinitions => _comments.Values.ToList().AsReadOnly();
+		public ReadOnlyCollection<EntryComment> Comments => _comments.Values.ToList().AsReadOnly();
 
 		/// <summary>
 		/// Gets all the assessment bundles, the most recent of which will be the last.
@@ -53,18 +54,22 @@ namespace Folium.Api.Models.Entry {
 		private bool _isCreated;
 		private bool _isRemoved;
 
-		public void Create(int skillSetId, string title, string description, int userId, string where, DateTime when, int? entryTypeId = null) {
+		public void Create(int skillSetId, string title, string description, int userId, string where, DateTime when, int? entryTypeId = null, int? skillGroupingId = null) {
 			if (_isCreated || _isRemoved) return;
-			RaiseEvent(new EntryCreated(skillSetId, title, description, userId, where, when, DateTime.UtcNow, DateTime.UtcNow));
+			RaiseEvent(new EntryCreated(skillSetId, title, description, userId, where, when, DateTime.UtcNow, DateTime.UtcNow, skillGroupingId));
 			if (entryTypeId.HasValue) {
 				RaiseEvent(new EntryCreatedWithType(entryTypeId.Value));
 			}
 		}
-		public void Update(string title, string description, string where, DateTime when) {
+		public void Update(string title, string description, string where, DateTime when, int? skillGroupingId = null) {
 			if (!_isCreated || _isRemoved) return;
-			RaiseEvent(new EntryUpdated(title, description, where, when, DateTime.UtcNow));
-		}
-		public void Remove() {
+			RaiseEvent(new EntryUpdated(title, description, where, when, DateTime.UtcNow, skillGroupingId));
+        }
+        public void ChangeSkillGrouping(int skillGroupingId) {
+            if (!_isCreated || _isRemoved) return;
+            RaiseEvent(new EntrySkillGroupingChanged(skillGroupingId));
+        }
+        public void Remove() {
 			if (!_isCreated || _isRemoved) return;
 			RaiseEvent(new EntryRemoved());
 		}
@@ -103,6 +108,7 @@ namespace Folium.Api.Models.Entry {
 			UserId = @event.UserId;
 			CreatedAt = @event.CreatedAt;
 			LastUpdatedAt = @event.LastUpdatedAt;
+            SkillGroupingId = @event.SkillGroupingId;
 		}
 
 		void Apply(EntryCreatedWithType @event) {
@@ -119,6 +125,9 @@ namespace Folium.Api.Models.Entry {
 			When = @event.When;
 			LastUpdatedAt = @event.LastUpdatedAt;
 		}
+        void Apply(EntrySkillGroupingChanged @event) {
+            SkillGroupingId = @event.SkillGroupingId;
+        }
 		void Apply(EntryRemoved @event) {
 			_isRemoved = true;
 		}
@@ -136,6 +145,7 @@ namespace Folium.Api.Models.Entry {
 		}
 		void Apply(EntryCommentCreated @event) {
 			_comments.Add(@event.Id, new EntryComment {
+                Id = @event.Id,
 				Comment = @event.Comment,
 				CreatedAt = @event.CreatedAt,
 				CreatedBy = @event.CreatedBy

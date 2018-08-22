@@ -47,5 +47,6 @@ namespace Folium.Api.Dtos {
 		public DateTime LastUpdatedAt { get; set; }
 		public List<EntryCommentDto> Comments { get; set; }
 		public bool Shared { get; set; }
-	}
+        public int? SkillGroupingId { get; set; }
+    }
 }

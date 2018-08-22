@@ -24,6 +24,7 @@ namespace Folium.Api.Dtos {
         public int Id { get; set; }
         public string Title { get; set; }
         public int CourseId { get; set; }
+        public int TutorId { get; set; }
         public IList<UserDto> Tutees { get; set; }
     }
 }

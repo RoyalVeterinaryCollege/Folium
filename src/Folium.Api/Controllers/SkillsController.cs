@@ -60,18 +60,31 @@ namespace Folium.Api.Controllers {
                 .Select(s => new SkillSetDto(s)).ToList();
             return Json(sets);
         }
+
+        [NoCache]
+        // GET skill-sets/{skillSetId}/skill-groupings
+        [HttpGet("skill-sets/{skillSetId}/skill-groupings")]
+        public async Task<ActionResult> SkillGroupings(int skillSetId) {
+            var groups = await _taxonomyService.GetSkillGroupingTaxonomysAsync(skillSetId);
+            var dtos = groups
+                .OrderBy(t => t.Name)
+                .Select(t => new TaxonomyDto { Id=t.Id, Name = t.Name, SkillSetId = t.SkillSetId })
+                .ToList();
+
+            return Json(dtos);
+        }
         
         [NoCache]
-        // GET skill-sets/{skillSetId}
-        [HttpGet("skill-sets/{skillSetId}")]
-        public async Task<ActionResult> SkillSet(int skillSetId) {
-			var skills = (await _skillService.GetSkillsAsync(skillSetId)).Where(s => s.Removed == false).ToList();
-            var hierarchyTerms = (await _taxonomyService.GetHierarchyTermsAsync(skillSetId));
-            var skillTerms = await _taxonomyService.GetHierarchySkillTermsAsync(skillSetId);
-            var groups = hierarchyTerms
+        // GET skill-sets/{skillSetId}/skill-groupings/{skillGroupingId}
+        [HttpGet("skill-sets/{skillSetId}/skill-groupings/{skillGroupingId}")]
+        public async Task<ActionResult> SkillSet(int skillSetId, int skillGroupingId) {
+            var skills = (await _skillService.GetSkillsAsync(skillSetId)).Where(s => s.Removed == false).ToList();
+            var terms = (await _taxonomyService.GetTermsAsync(skillGroupingId));
+            var skillTerms = await _taxonomyService.GetSkillTermsAsync(taxonomyId: skillGroupingId);
+            var groups = terms
                 .Where(t => t.ParentTaxonomyTermId == null)
                 .OrderBy(t => t.Name)
-                .Select(t => new SkillGroupDto(t, hierarchyTerms, skillTerms, skills))
+                .Select(t => new SkillGroupDto(t, terms, skillTerms, skills))
                 .ToList();
 
             return Json(groups);
@@ -82,14 +95,22 @@ namespace Folium.Api.Controllers {
         [HttpGet("skill-sets/{skillSetId}/filters")]
         public async Task<ActionResult> SkillFilters(int skillSetId) {
             var filters = await _taxonomyService.GetSkillFilterTaxonomysAsync(skillSetId);
-            var filterTerms = await _taxonomyService.GetSkillFilterTermsAsync(skillSetId);
-            var skillTerms = await _taxonomyService.GetSkillFilterSkillTermsAsync(skillSetId);
+            var filterTerms = await _taxonomyService.GetAllTaxonomyTermFiltersAsync(skillSetId);
+            var skillTerms = await _taxonomyService.GetAllSkillTermFiltersAsync(skillSetId);
             var groups = filters
                 .OrderBy(t => t.Name)
                 .Select(t => new SkillFilterDto(t, filterTerms.Where(f => f.TaxonomyId == t.Id).OrderBy(f => f.Name).ToList(), skillTerms))
                 .ToList();
 
             return Json(groups);
+        }
+
+        [NoCache]
+        // GET skill-sets/{skillSetId}/skill-bundles/{skillBundleId}
+        [HttpGet("skill-sets/{skillSetId}/skill-bundles/{skillBundleId}")]
+        public async Task<ActionResult> SkillBundle(int skillSetId, int skillBundleId) {
+            var skillTerms = await _taxonomyService.GetSkillTermsAsync(taxonomyTermId: skillBundleId);
+            return Json(skillTerms.Select(t => t.SkillId));
         }
 
         [NoCache]

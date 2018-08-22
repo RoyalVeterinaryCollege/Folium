@@ -33,5 +33,6 @@ namespace Folium.Api.Dtos {
 		public int LastUpdatedBy { get; set; }
 		public DateTime LastUpdatedAt { get; set; }
 		public int EntryCount { get; set; }
-	}
+        public string Type { get; set; }
+    }
 }

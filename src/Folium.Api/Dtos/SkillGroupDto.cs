@@ -25,12 +25,14 @@ namespace Folium.Api.Dtos {
     public class SkillGroupDto{
         public int Id { get; set; }
         public string Name { get; set; }
+        public string Description { get; set; }
         public IReadOnlyList<SkillGroupDto> ChildGroups { get; set; }
         public IReadOnlyList<SkillDto> Skills { get; set; }
 
         public SkillGroupDto(TaxonomyTerm taxonomyTerm, IReadOnlyList<TaxonomyTerm> taxonomyTerms, IReadOnlyList<SkillTaxonomyTerm> skillTaxonomyTerms, IReadOnlyList<Skill> skills){
             Id = taxonomyTerm.Id;
             Name = taxonomyTerm.Name;
+            Description = taxonomyTerm.Description;
             ChildGroups = taxonomyTerms.Where(t => t.ParentTaxonomyTermId == taxonomyTerm.Id).Select(t => new SkillGroupDto(t, taxonomyTerms, skillTaxonomyTerms, skills)).ToList();
             Skills = skills.Join(
                 skillTaxonomyTerms.Where(s => s.TaxonomyTermId == taxonomyTerm.Id), 

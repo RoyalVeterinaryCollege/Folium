@@ -29,6 +29,7 @@ using Folium.Api.Models.Entry.Events;
 using Folium.Api.Models.Placement.Events;
 using Folium.Api.Models.SelfAssessing.Events;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Folium.Api.Projections.Entry {
 	[Projector(1)]
@@ -42,7 +43,8 @@ namespace Folium.Api.Projections.Entry {
 			   .FirstProject<EntryCreated>(OnEntryCreated)
 			   .ThenProject<EntryCreatedWithType>(OnEntryCreatedWithType)
 			   .ThenProject<EntryUpdated>(OnEntryUpdated)
-			   .ThenProject<EntryRemoved>(OnEntryRemoved)
+               .ThenProject<EntrySkillGroupingChanged>(OnEntrySkillGroupingChanged)
+               .ThenProject<EntryRemoved>(OnEntryRemoved)
 			   .ThenProject<EntrySelfAssessmentCreated>(OnEntrySelfAssessmentCreated)
 			   .ThenProject<EntrySelfAssessmentAdded>(OnEntrySelfAssessmentAdded)
 			   .ThenProject<EntrySelfAssessmentUpdated>(OnEntrySelfAssessmentUpdated)
@@ -55,7 +57,7 @@ namespace Folium.Api.Projections.Entry {
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
 		}
 
-		public override void Project(ICommit commit) {
+        public override void Project(ICommit commit) {
 			_conventionProjector.Project(commit);
 		}
 
@@ -74,7 +76,8 @@ namespace Folium.Api.Projections.Entry {
 					   ,[When]
 					   ,[CreatedAt]
 					   ,[LastUpdatedAt]
-					   ,[Shared])
+					   ,[Shared]
+                       ,[SkillGroupingId])
 				 SELECT
 					   @Id
 					   ,@SkillSetId
@@ -86,6 +89,7 @@ namespace Folium.Api.Projections.Entry {
 					   ,@CreatedAt
 					   ,@LastUpdatedAt
 					   ,0 -- Not shared
+                       ,@SkillGroupingId
 				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.Entry] WHERE Id = @Id);";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
 		}
@@ -120,8 +124,18 @@ namespace Folium.Api.Projections.Entry {
 					,[LastUpdatedAt] = @LastUpdatedAt
 				WHERE Id = @Id;";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
-		}
-		private void OnEntryRemoved(IDbTransaction tx, ICommit commit, EntryRemoved @event) {
+        }
+        private void OnEntrySkillGroupingChanged(IDbTransaction tx, ICommit commit, EntrySkillGroupingChanged @event) {
+            var sqlParams = @event.ToDynamic();
+            sqlParams.Id = commit.AggregateId();
+
+            const string sql = @"
+				UPDATE [dbo].[EntryProjector.Entry]
+				SET [SkillGroupingId] = @SkillGroupingId
+				WHERE Id = @Id;";
+            tx.Connection.Execute(sql, (object)sqlParams, tx);
+        }
+        private void OnEntryRemoved(IDbTransaction tx, ICommit commit, EntryRemoved @event) {
 			var sqlParams = @event.ToDynamic();
 			sqlParams.Id = commit.AggregateId();
 

@@ -1,0 +1,63 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!-- List Comments... -->
+<div class="row">
+	<div class="col-12">
+		<h3 class="mt-3"> Comments</h3>
+	</div>
+</div>
+<div *ngFor="let comment of (entry.comments | orderByCommentDate)" class="row justify-content-end" id="comment-{{comment.id}}">
+	<div class="col-2 col-lg-1 text-center">
+		<div class="pt-3">
+			<img [fmUserPic]="comment.author" class="img-fluid profile-pic-thumb" [attr.alt]="comment.author.firstName + ' ' + comment.author.lastName + ' profile picture'" [attr.title]="comment.author.firstName + ' ' + comment.author.lastName" >
+		</div>
+	</div>
+	<div class="col-2 d-none d-lg-block">
+		<div class="card-body">
+			{{comment.author.firstName}} {{comment.author.lastName}}<br/>
+			<span class="small"> {{comment.createdAt | date: 'd MMM yyyy HH:mm'}} </span>
+		</div>
+	</div>
+	<div class="col-10 col-lg-9">
+		<div class="card-body">
+			<span class="d-lg-none">	{{comment.author.firstName}} {{comment.author.lastName}} <span class="small">	{{comment.createdAt | date: 'd MMM'}} </span> <br/> </span>
+			{{comment.comment}}
+			<hr>
+		</div>
+	</div>
+
+</div>
+<!-- New Comment... -->
+<div class="row d-print-none">
+	<div class="col-2 col-lg-1 text-center">
+		<img [fmUserPic]="signedInUser" class="img-fluid profile-pic-thumb" [attr.alt]="signedInUser.firstName + ' ' + signedInUser.lastName + ' profile picture'" >
+	</div>
+	<div class="col-10 col-lg-11">
+		<div class="card-body">
+			<form #commentForm="ngForm" (ngSubmit)="onCommentClick()">
+				<mat-form-field>
+					<textarea required matInput placeholder="New Comment" [(ngModel)]="newComment" name="newComment"></textarea>
+				</mat-form-field>
+				<button type="submit" class="btn btn-primary btn-shadow" [disabled]="!commentForm.form.valid">Comment</button>
+			</form>
+		</div>
+	</div>
+</div>

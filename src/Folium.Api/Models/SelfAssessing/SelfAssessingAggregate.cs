@@ -53,14 +53,20 @@ namespace Folium.Api.Models.SelfAssessing {
 				}
 			} else {
 				var skillSelfAssessments = _selfAssessments[selfAssessment.SkillId];
-				// Check if the assessment is more recent than the current or the same time (this can happen if attached to an entry).
-				if (skillSelfAssessments.LastOrDefault().Key <= selfAssessment.CreatedAt.ToUnixTimeMilliseconds()) {
-					RaiseEvent(new SkillSelfAssessmentUpdated(skillSetId, selfAssessment));
-				}
+                // Check if the assessment is more recent than the current or the same time (this can happen if attached to an entry).
+                if (skillSelfAssessments.LastOrDefault().Key <= selfAssessment.CreatedAt.ToUnixTimeMilliseconds()) {
+                    if (skillSelfAssessments.LastOrDefault().Value.Score != selfAssessment.Score) {
+                        // Only raise the event if the self assessment has changed.
+                        RaiseEvent(new SkillSelfAssessmentUpdated(skillSetId, selfAssessment));
+                    }
+                }
 				// If this is a self assessment associated with an entry then raise an event for that.
 				if (selfAssessment.EntryId.HasValue) {
 					if (skillSelfAssessments.ContainsKey(selfAssessment.CreatedAt.ToUnixTimeMilliseconds())) {
-						RaiseEvent(new EntrySelfAssessmentUpdated(skillSetId, selfAssessment));
+                        if (skillSelfAssessments.LastOrDefault().Value.Score != selfAssessment.Score) {
+                            // Only raise the event if the self assessment has changed.
+                            RaiseEvent(new EntrySelfAssessmentUpdated(skillSetId, selfAssessment));
+                        }
 					}
 					else {
 						RaiseEvent(new EntrySelfAssessmentAdded(skillSetId, selfAssessment));

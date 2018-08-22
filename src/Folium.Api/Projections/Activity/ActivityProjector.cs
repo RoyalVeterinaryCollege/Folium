@@ -36,6 +36,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
+using Folium.Api.Models.Messaging;
 
 namespace Folium.Api.Projections.Activity {
 	[Projector(5)]
@@ -66,15 +67,16 @@ namespace Folium.Api.Projections.Activity {
 				.ThenProject<SkillSelfAssessmentRemoved>(OnSelfAssessmentRemoved)
 				.ThenProject<EntryShared>(OnEntryShared)
 				.ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
-				.ThenProject<EntryCommentCreated>(OnEntryCommentCreated);
+				.ThenProject<EntryCommentCreated>(OnEntryCommentCreated)
+                .ThenProject<MessageCreated>(OnMessageCreated);
 
-			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
+            _conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
             _entryService = entryService;
             _userService = userService;
             _applicationConfiguration = applicationConfiguration;
         }
 
-		public override void Project(ICommit commit) {
+        public override void Project(ICommit commit) {
 			_conventionProjector.Project(commit);
         }
 
@@ -283,11 +285,11 @@ namespace Folium.Api.Projections.Activity {
                 When = @event.CreatedAt,
                 Link = $"{commit.AggregateId()},{@event.Id}"
             });
-
+            var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
             var author = new UserDto(_userService.GetUser(@event.CreatedBy, tx));
             var collaborators = 
                 (_entryService.GetCollaborators(commit.AggregateId())).ToArray()
-                .Union(new[] { author })
+                .Union(new[] { entryAuthor })
                 .Where(c => c.Id != @event.CreatedBy);
 
             foreach(var collaborator in collaborators) {
@@ -333,15 +335,31 @@ namespace Folium.Api.Projections.Activity {
                     To = collaborator.Email,
                     When = commit.CommitStamp,
                     Subject = $"{author.FirstName} {author.LastName} has shared an entry with you",
-                    HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has shared an entry in Folium with you.</p>{customText}",
+                    HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has shared an entry in Folium with you.</p>{customText}<p style='line-height:2.5;'>Thanks<br>The Folium Team</p>",
                     ActionLink = $"{_applicationConfiguration.Value.BaseUrl}/entries/{commit.AggregateId()}",
                     ActionTitle = "View Entry"
                 };
                 CreateEmailNotification(tx, notification);
             }
         }
+        
+        private void OnMessageCreated(IDbTransaction tx, ICommit comment, MessageCreated @event) {
+            // Get the users.
+            var fromUser = _userService.GetUser(@event.FromUserId, tx);
+            var toUser = _userService.GetUser(@event.ToUserId, tx);
 
-		public enum ActivityType {
+            var notification = new Models.EmailNotification {
+                Id = Guid.NewGuid(),
+                UserId = @event.FromUserId,
+                To = toUser.Email,
+                When = @event.CreatedAt,
+                Subject = $"{fromUser.FirstName} {fromUser.LastName} has sent you a message",
+                HtmlBody = $"<p>{toUser.FirstName} {toUser.LastName},</p>{@event.Body}<p><p style='line-height:2.5;'>{fromUser.FirstName} {fromUser.LastName}<br><a href='mailto:{fromUser.Email}'>{fromUser.Email}</a></p>"
+            };
+            CreateEmailNotification(tx, notification);
+        }
+
+        public enum ActivityType {
 			EntryCreated = 1,
 			EntryUpdated = 2,
 			EntryRemoved = 3,

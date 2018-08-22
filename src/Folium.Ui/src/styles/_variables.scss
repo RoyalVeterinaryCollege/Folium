@@ -1,0 +1,47 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+// Variables
+
+//colors
+$dark-blue:rgb(69, 91, 101);
+$light-blue: rgb(96, 125, 139);
+$background-grey: rgb(239, 238, 238);
+$orange: rgb(224, 71, 19);
+//$light-grey:rgb(176, 190, 197);
+$light-grey:rgb(196, 207, 212);
+$light-grey-fade:rgba($light-grey,.7);
+
+//overrides 
+$brand-primary: $orange;
+$input-focus-border-color: $brand-primary;
+$input-border-color: $light-grey;
+$checkbox-border-color: $light-grey;
+$input-btn-focus-box-shadow: none;
+$theme-colors: (
+  "primary": $brand-primary,
+  "secondary": #fff
+);
+
+// Required for awesome-bootstrap-checkbox
+$input-border:  $input-border-color;
+
+// Fonts
+$font-family-sans-serif: 'Lato', -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$mat-font-family: $font-family-sans-serif;
+$font-weight-normal: 300;

@@ -1,0 +1,88 @@
+/** 
+ * Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+ * 
+ * This file is part of Folium.
+ * 
+ * Folium is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * Folium is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+*/
+.entry-summary-card {
+    @extend .d-print-none;
+    a {
+        font-size:1.2rem; 
+    }
+    mat-chip-list {
+        display: inline-block;
+    }
+    .col-entry-share-status {
+        text-align: center;
+        .profile-pic-thumb {
+            width: 1.875rem;
+        } 
+        .fa-share-alt {
+            color: $light-blue;
+            font-size:1.6rem;
+            &:hover {
+                color: $link-hover-color;
+            }
+        }  
+    }
+    .col-entry-date {
+        line-height: 2.2em;
+    }
+    .col-entry-actions {
+        .fa-ellipsis-v {
+            color: $link-color;
+            font-size:1.6rem;
+            &:hover {
+                color: $link-hover-color;
+            }
+        }         
+    }  
+}
+.entry-view-card {
+    .col-entry-share-status .fa-share-alt {
+        line-height: 1.3em;
+    }
+}
+.has-active-element .entry-summary-card {
+    @extend .mx-md-2;
+}
+.entry-chip-list-container {
+    display:inline-block;
+    position:relative;
+    line-height: normal;
+    text-align: left;
+    width:100%;
+    margin-top: 1.25em;
+    padding-bottom: 1.25em;
+    font-size: 1.5rem;
+    .entry-chip-list-underline {
+        height: 1px;
+        width: 100%;        
+        background-color: rgba(#000, 0.42);
+    }
+}
+.entry-header {
+    border-bottom: 1px solid $light-grey-fade;
+    margin-left:-1.25rem;
+    margin-right:-1.25rem;
+    margin-bottom: 0.625rem;
+}
+
+//Media Queries 
+@include media-breakpoint-down(xs) {
+    .has-active-element .entry-summary-card {
+        display: none !important;
+    }
+}

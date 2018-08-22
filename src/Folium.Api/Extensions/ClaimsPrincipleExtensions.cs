@@ -28,9 +28,11 @@ namespace Folium.Api.Extensions {
         public static string FirstName(this ClaimsPrincipal claimsPrincipal) {
             return claimsPrincipal.FindFirst(JwtClaimTypes.GivenName)?.Value;
         }
+        public static string MiddleNames(this ClaimsPrincipal claimsPrincipal) {
+            return claimsPrincipal.FindFirst(JwtClaimTypes.MiddleName)?.Value;
+        }
         public static string LastName(this ClaimsPrincipal claimsPrincipal) {
-            var middleName = claimsPrincipal.FindFirst(JwtClaimTypes.MiddleName) == null ? "" : claimsPrincipal.FindFirst(JwtClaimTypes.GivenName).Value + " ";
-            return middleName + claimsPrincipal.FindFirst(JwtClaimTypes.FamilyName)?.Value;
+            return claimsPrincipal.FindFirst(JwtClaimTypes.FamilyName)?.Value;
         }
     }
 }

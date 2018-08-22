@@ -39,7 +39,8 @@ namespace Folium.Api.Services {
         Task<EntrySummaryDto> GetEntrySummaryAsync(User user, Guid entryId);
 
         EntryDto UpdateEntry(User user, EntryDto entryDto);
-	    void RemoveEntry(Guid entryId);
+        void ChangeEntrySkillGrouping(Guid entryId, int skillGroupingId);
+        void RemoveEntry(Guid entryId);
 		Task<IEnumerable<WhereDto>> GetPlacesAsync(User user, string startsWith = "");
 		Task<IEnumerable<EntryTypeDto>> GetEntryTypesAsync(IEnumerable<int> skillSetIds);
 	    void RemoveCollaborator(User user, Guid entryId, int collaboratorId);
@@ -47,6 +48,7 @@ namespace Folium.Api.Services {
 	    int CreateComment(EntryCommentDto entryCommentDto);
 	    Task<IEnumerable<UserDto>> GetCollaboratorsAsync(Guid entryId);
         IEnumerable<UserDto> GetCollaborators(Guid entryId, IDbTransaction transaction = null);
+        UserDto GetEntryAuthor(Guid entryId, IDbTransaction transaction = null);
 
     }
     public class EntryService : IEntryService {
@@ -66,7 +68,7 @@ namespace Folium.Api.Services {
 			var id = Guid.NewGuid();
 			var entryAggregate = (EntryAggregate)_factory.Build(typeof(EntryAggregate), id, null);
 			entryAggregate.OnFirstCreated();
-			entryAggregate.Create(entryDto.SkillSetId, entryDto.Title, entryDto.DescriptionString(), user.Id, entryDto.Where, entryDto.When, entryDto.EntryType?.Id);
+			entryAggregate.Create(entryDto.SkillSetId, entryDto.Title, entryDto.DescriptionString(), user.Id, entryDto.Where, entryDto.When, entryDto.EntryType?.Id, entryDto.SkillGroupingId);
 			entryAggregate.AddAssessmentBundle(
 				entryDto.AssessmentBundle.ToDictionary(
 					s => s.Key, 
@@ -97,9 +99,15 @@ namespace Folium.Api.Services {
 					}));
 			_repository.Save(entryAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
 			return entryDto;
-		}
+        }
 
-		public void RemoveEntry(Guid entryId) {
+        public void ChangeEntrySkillGrouping(Guid entryId, int skillGroupingId) {
+            var entryAggregate = _repository.GetById<EntryAggregate>(entryId);
+            entryAggregate.ChangeSkillGrouping(skillGroupingId);
+            _repository.Save(entryAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+        }
+
+        public void RemoveEntry(Guid entryId) {
 			var entryAggregate = _repository.GetById<EntryAggregate>(entryId);
 			entryAggregate.Remove();
 			_repository.Save(entryAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
@@ -348,8 +356,10 @@ namespace Folium.Api.Services {
 				await connection.OpenAsync();
 
 				var types = await connection.QueryAsync<EntryTypeDto>(@" 
-                    SELECT *
+                    SELECT [EntryType].*, [SkillSetId]
                     FROM [dbo].[EntryType]
+                    INNER JOIN [dbo].[SkillSetEntryType]
+                            ON [EntryType].Id = [SkillSetEntryType].[EntryTypeId]
                     WHERE [SkillSetId] IN @SkillSetIds",
 					new {
 						SkillSetIds = skillSetIds
@@ -395,7 +405,7 @@ namespace Folium.Api.Services {
                     new
                     {
                         EntryId = entryId
-                    });
+                    }, transaction);
                 return collaborators.ToList();
             }
             finally {
@@ -404,5 +414,36 @@ namespace Folium.Api.Services {
                 }
             }
         }
-	}
+
+        public UserDto GetEntryAuthor(Guid entryId, IDbTransaction transaction = null) {
+            IDbConnection connection = null;
+            if (transaction == null) {
+                connection = _dbService.GetConnection();
+            }
+            else {
+                connection = transaction.Connection;
+            }
+            var closedConnection = connection.State == ConnectionState.Closed;
+            if (closedConnection) {
+                connection.Open();
+            }
+            try {
+                var author = connection.QuerySingle<UserDto>(@" 
+                    SELECT [User].*
+                    FROM [dbo].[User]
+					INNER JOIN [dbo].[EntryProjector.Entry] [Entry]
+					ON [User].[Id] = [Entry].[UserId]
+                    WHERE [Entry].[Id] = @EntryId",
+                    new {
+                        EntryId = entryId
+                    }, transaction);
+                return author;
+            }
+            finally {
+                if (connection != null && closedConnection && connection is IDisposable) {
+                    connection.Dispose();
+                }
+            }
+        }
+    }
 }

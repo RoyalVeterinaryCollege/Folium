@@ -20,7 +20,7 @@ using System;
 
 namespace Folium.Api.Models.Placement.Events {
     public abstract class PlacementEvent {
-	    protected PlacementEvent(int userId, string title, DateTime start, DateTime end, string reference, int createdBy, DateTime createdAt, int lastUpdatedBy, DateTime lastUpdatedAt) {
+	    protected PlacementEvent(int userId, string title, DateTime start, DateTime end, string reference, int createdBy, DateTime createdAt, int lastUpdatedBy, DateTime lastUpdatedAt, string type = null) {
 			UserId = userId;
 			Title = title;
 			Start = start;
@@ -30,6 +30,7 @@ namespace Folium.Api.Models.Placement.Events {
 			CreatedAt = createdAt;
 			LastUpdatedBy = lastUpdatedBy;
 			LastUpdatedAt = lastUpdatedAt;
+            Type = type;
 		}
 		public int UserId { get; }
 		public string Title { get; }
@@ -40,6 +41,7 @@ namespace Folium.Api.Models.Placement.Events {
 		public DateTime CreatedAt { get; }
 		public int LastUpdatedBy { get; }
 		public DateTime LastUpdatedAt { get; }
-		public string FullyQualifiedTitle => PlacementAggregate.GetFullyQualifiedTitle(Title, Start, End);
+		public string FullyQualifiedTitle => PlacementAggregate.GetFullyQualifiedTitle(Title, Type, Start, End);
+        public string Type { get; }
 	}
 }      

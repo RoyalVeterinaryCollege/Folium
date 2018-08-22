@@ -25,6 +25,7 @@ namespace Folium.Api.Dtos {
     public class SkillDto {
         public int Id { get; set; }
         public string Name { get; set; }
+        public string Description { get; set; }
         public List<SkillDto> ChildSkills { get; set; }
         public bool CanSelfAssess { get; set; } 
         public int SkillSetId { get; set; } 
@@ -34,6 +35,7 @@ namespace Folium.Api.Dtos {
         public SkillDto(Skill skill, IReadOnlyList<Skill> skills){
             Id = skill.Id;
             Name = skill.Name;
+            Description = skill.Description;
             ChildSkills = skills.Where(s => s.ParentSkillId == skill.Id).Select(s => new SkillDto(s, skills)).ToList();
             CanSelfAssess = skill.CanSelfAssess;
             SkillSetId = skill.SkillSetId;

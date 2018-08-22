@@ -37,16 +37,19 @@ namespace Folium.Api.Controllers {
         private readonly IUserService _userService;
         private readonly IEntryService _entryService;
         private readonly ISkillService _skillService;
-			
+        private readonly ITutorGroupService _tutorGroupService;
+
         public UsersController(
             ILogger<UsersController> logger,
             IUserService userService,
             ISkillService skillService,
-            IEntryService entryService) {
+            IEntryService entryService,
+            ITutorGroupService tutorGroupService) {
             _logger = logger;
             _userService = userService;
             _skillService = skillService;
             _entryService = entryService;
+            _tutorGroupService = tutorGroupService;
         }                   
 
         [NoCache, Authorize, HttpGet]
@@ -97,6 +100,7 @@ namespace Folium.Api.Controllers {
                 var newUser = await _userService.CreateUserAsync(new User(){
                     Email = User.Email(),
                     FirstName = User.FirstName(),
+                    MiddleNames = User.MiddleNames(),
                     LastName = User.LastName()                    
                 });
 
@@ -108,6 +112,7 @@ namespace Folium.Api.Controllers {
                 await _userService.UpdateUserAsync(new User(){
                     Email = User.Email(),
                     FirstName = User.FirstName(),
+                    MiddleNames = User.MiddleNames(),
                     LastName = User.LastName()            
                 });
             }
@@ -158,7 +163,7 @@ namespace Folium.Api.Controllers {
             if (userToView == null) return new BadRequestResult();
 
             if(await _userService.CanViewUserDataAsync(currentUser, userToView)) {
-                var tutors = await _userService.GetTutorsAsync(userToView, courseId);
+                var tutors = await _tutorGroupService.GetTutorsAsync(userToView, courseId);
                 return Json(tutors.Select(t => new UserDto(t)));
             }
             else {
@@ -169,11 +174,10 @@ namespace Folium.Api.Controllers {
         [NoCache, Authorize, HttpGet("current/tutees")]
         // GET users/current/tutees
         // Gets the tutees for the currently signed in user.
-        public async Task<ActionResult> GetTutees()
-        {
+        public async Task<ActionResult> GetTutees() {
             var currentUser = await _userService.GetUserAsync(User);
 
-            var tutees = await _userService.GetTuteesAsync(currentUser.Id);
+            var tutees = await _tutorGroupService.GetTuteesAsync(currentUser.Id);
 
             return Json(tutees);
         }

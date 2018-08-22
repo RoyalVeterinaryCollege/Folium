@@ -1,0 +1,96 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<div class="notifications-container">
+  <div class="container">
+      <notifications></notifications>
+  </div>
+</div>
+<header class="white-text dark-background shadow-level-2">
+  <div class="container">
+      <div class="d-flex justify-content-start">
+          <div class="mr-auto">
+              <a class="" [routerLink]="['/home']"><img src="/assets/images/logo-small.png" class="logo-header p-2" alt=Folium></a>
+          </div>
+          <nav class="navbar navbar-expand-sm">
+              <div class="collapse navbar-collapse">  
+                  <ul class="navbar-nav mr-auto mt-3">
+                      <li *ngIf="user && user.hasTutees" class="nav-item">   
+                          <a class="nav-link" [routerLink]="['/tutees']" routerLinkActive="active">Tutees</a>
+                      </li>
+                      <li class="nav-item">
+                          <a class="nav-link" [routerLink]="['/skills']" routerLinkActive="active">Skills</a>
+                      </li>
+                      <li class="nav-item">
+                          <a class="nav-link" [routerLink]="['/entries']" routerLinkActive="active">Entries</a>
+                      </li>
+                      <li class="nav-item">
+                          <a class="nav-link" [routerLink]="['/placements']" routerLinkActive="active">Placements</a>
+                      </li>
+                      <li class="nav-item">
+                          <a class="nav-link" [routerLink]="['/reports']" routerLinkActive="active">Reports</a>
+                      </li>
+                  </ul>
+              </div>
+          </nav>
+          <div>
+              <user-menu></user-menu>
+          </div>
+      </div>
+  </div>
+</header>
+<router-outlet></router-outlet>
+<footer class="d-md-none footer-main">
+  <div class="container">
+      <div class="row">
+          <div *ngIf="user && user.hasTutees" class="col">
+              <a class="footer-link btn btn-link" [routerLink]="['/tutees']" routerLinkActive="active">
+                  <span class="folium-tutee fs-2"></span><br />
+                  <span class="text-uppercase d-inline-block pt-1">Tutees</span>
+              </a>
+          </div>
+          <div class="col">
+              <a class="footer-link btn btn-link" [routerLink]="['/skills']" routerLinkActive="active">
+                  <span class="folium-skills fs-2"></span><br />
+                  <span class="text-uppercase d-inline-block pt-1">Skills</span>
+              </a>
+          </div>
+          <div class="col">
+              <a class="footer-link btn btn-link" [routerLink]="['/entries']" routerLinkActive="active">
+                  <span class="folium-entries fs-2"></span><br />
+                  <span class="text-uppercase d-inline-block pt-1">Entries</span>
+              </a>
+          </div>
+          <div class="col">
+              <a class="footer-link btn btn-link" [routerLink]="['/placements']" routerLinkActive="active">
+                  <span class="folium-placement fs-2"></span><br />
+                  <span class="text-uppercase d-inline-block pt-1">Placements</span>
+              </a>
+          </div>
+          <div class="col">
+             <a class="footer-link btn btn-link" [routerLink]="['/reports']" routerLinkActive="active"> 
+                  <span class="folium-report fs-2"></span><br />
+                  <span class="text-uppercase d-inline-block pt-1">Reports</span> 
+             </a> 
+          </div>
+      </div>
+  </div>
+</footer>
+<modal-sign-in></modal-sign-in>

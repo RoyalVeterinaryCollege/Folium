@@ -1,0 +1,369 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<section class="title">
+	<div class="container">
+			<div class="d-flex justify-content-start">
+				<a [routerLink]="['/reports']" routerLinkActive="active">
+					<h1 class="text-uppercase p-1 m-0"> <span class="folium-reports small"></span> Reports </h1>
+				</a>			
+			</div>
+	</div>
+</section>
+<section class="content-main">
+	<div class="container">
+		<h2>Entry Engagement Report</h2>
+		<!-- Criteria -->
+		<div class="card app-card mt-2 mb-4 shadow-level-5">
+			<!-- Loading... -->
+			<div *ngIf="!reportForm" class="loader-container">
+				<div class="loader primary">Loading...</div>
+			</div>
+			<div class="card-body">
+				<form [formGroup]="reportForm">
+					<div class="row">
+						<div class="col">
+							<mat-form-field>
+								<mat-chip-list #reportOnChipList required>
+									<mat-chip 
+										*ngFor="let who of reportForm.value.who" 
+										[removable]="true" 
+										[selectable]="false" 
+										(click)="onRemoveReportOnOptionClick(who)" 
+										(remove)="onRemoveReportOnOptionClick(who)">
+										<span [innerHTML]='who.name'></span>
+										<mat-icon matChipRemove>
+											<i class="fa fa-times" aria-hidden="true"></i>
+											<span class="sr-only">Remove</span>
+										</mat-icon>
+									</mat-chip>
+									<input 
+										matInput
+										id="reportOnInput" 
+										#reportOnInput
+										placeholder="Report on"
+										aria-label="Report on" 
+										formControlName="whoQuery"
+										[matChipInputFor]="reportOnChipList" 
+										[matAutocomplete]="reportOnAutoComplete" 
+										name="newReportOn" 
+										autocomplete="off" >
+								</mat-chip-list>
+								<mat-autocomplete 
+									#reportOnAutoComplete="matAutocomplete" 
+									(optionSelected)="onReportOnOptionSelected($event)">
+									<mat-option 
+										*ngFor="let option of filteredReportOnOptions | async" 
+										[value]="option">
+										<span [innerHTML]='highlightReportOnMatch(option.name)'></span>
+									</mat-option>
+									<mat-option 
+										*ngIf="filteredReportOnOptionsLength > maxOptionsToDisplay" 
+										[disabled]="true">
+										[Showing top {{maxOptionsToDisplay}} options only]
+									</mat-option>
+								</mat-autocomplete>
+							</mat-form-field>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col">
+							<mat-form-field>
+								<mat-chip-list #skillSetChipList>
+									<mat-chip 
+										*ngIf="reportForm.value.skillSet" 
+										[removable]="true" 
+										[selectable]="false" 
+										(click)="onRemoveSkillSetClick()" 
+										(remove)="onRemoveSkillSetClick()">
+										{{reportForm.value.skillSet.name}}
+										<mat-icon matChipRemove>
+											<i class="fa fa-times" aria-hidden="true"></i>
+											<span class="sr-only">Remove</span>
+										</mat-icon>
+									</mat-chip>
+									<input 
+										matInput 
+										id="skillSetInput" 
+										#skillSetInput
+										placeholder="Skill Set"
+										aria-label="Skill Set" 
+										formControlName="skillSetQuery"
+										[matChipInputFor]="skillSetChipList" 
+										[matAutocomplete]="skillSetAutoComplete" 
+										name="newSkillSet" 
+										autocomplete="off" >
+								</mat-chip-list>
+								<mat-autocomplete 
+									#skillSetAutoComplete="matAutocomplete" 
+									(optionSelected)="onSkillSetSelected($event)">
+									<mat-option 
+										*ngFor="let skillSet of filteredSkillSets | async" 
+										[value]="skillSet">
+										<span [innerHTML]='highlightSkillSetsMatch(skillSet.name)'></span>
+									</mat-option>
+									<mat-option 
+										*ngIf="filteredSkillSetsLength > maxOptionsToDisplay" 
+										[disabled]="true">
+										[Showing top {{maxOptionsToDisplay}} options only]
+									</mat-option>
+								</mat-autocomplete>
+							</mat-form-field>
+						</div>
+					</div>
+					<div class="row" *ngIf="reportForm.value.skillSet">
+						<div class="col">
+							<mat-form-field>
+								<mat-chip-list #entryTypesChipList>
+									<mat-chip 
+										*ngFor="let entryType of reportForm.value.entryTypes" 
+										[removable]="true" 
+										[selectable]="false" 
+										(click)="onRemoveEntryTypeClick(entryType)" 
+										(remove)="onRemoveEntryTypeClick(entryType)">
+										<span [innerHTML]='entryType.name'></span>
+										<mat-icon matChipRemove>
+											<i class="fa fa-times" aria-hidden="true"></i>
+											<span class="sr-only">Remove</span>
+										</mat-icon>
+									</mat-chip>
+									<input 
+										matInput
+										id="entryTypesInput" 
+										#entryTypesInput
+										placeholder="Entry Type(s)"
+										aria-label="Entry Type(s)" 
+										formControlName="entryTypeQuery"
+										[matChipInputFor]="entryTypesChipList" 
+										[matAutocomplete]="entityTypeAutoComplete" 
+										name="entryTypes" 
+										autocomplete="off" >
+								</mat-chip-list>
+								<mat-autocomplete 
+									#entityTypeAutoComplete="matAutocomplete" 
+									(optionSelected)="onEntryTypeSelected($event)">
+									<mat-option 
+										*ngFor="let entryType of filteredEntryTypes | async" 
+										[value]="entryType">
+										<span [innerHTML]='highlightReportOnMatch(entryType.name)'></span>
+									</mat-option>
+									<mat-option 
+										*ngIf="filteredEntryTypesLength > maxOptionsToDisplay" 
+										[disabled]="true">
+										[Showing top {{maxOptionsToDisplay}} options only]
+									</mat-option>
+								</mat-autocomplete>
+							</mat-form-field>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-sm-6">
+							<mat-form-field>
+								<input matInput [min]="minDate" [matDatepicker]="fromPicker" placeholder="From" formControlName="from" name="from" (focus)="openPicker(fromPicker)" autocomplete="off">
+								<mat-hint align="start"><strong>Only engagement after this date</strong> will be included in the report, leave blank to start from the first engagegment.</mat-hint>
+								<mat-datepicker-toggle matSuffix [for]="fromPicker"></mat-datepicker-toggle>
+							</mat-form-field>
+							<mat-datepicker #fromPicker [touchUi]="touchUi"></mat-datepicker>
+						</div>
+						<div class="col-sm-6">
+							<mat-form-field>
+								<input matInput [matDatepicker]="toPicker" [min]="reportForm.value.from" placeholder="To" formControlName="to" name="to" (focus)="openPicker(toPicker)" autocomplete="off">
+								<mat-hint align="start"><strong>Only engagement before this date</strong> will be included in the report, leave blank to use todays date.</mat-hint>
+								<mat-datepicker-toggle matSuffix [for]="toPicker"></mat-datepicker-toggle>
+							</mat-form-field>
+							<mat-datepicker #toPicker [touchUi]="touchUi"></mat-datepicker>
+						</div>
+					</div>
+					<div class="row mt-3">			
+						<div class="col">
+							<button class="btn btn-primary btn-shadow float-right" (click)="onGenerateReportClick()" type="submit" [disabled]="reportForm.invalid">
+								Generate Report
+							</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>		
+		<!-- Results -->
+		<div id="timeline-container" class="card app-card mt-2 mb-4 shadow-level-5" *ngIf="resultSet || fetchingReportData">
+			<div class="card-body">
+				<!-- Loading... -->
+				<div *ngIf="fetchingReportData" class="loader-container">
+					<div class="loader primary">Loading...</div>
+				</div>
+				<!-- Timeline -->
+				<div *ngIf="resultTimelines" class="row">
+					<div class="col">
+						<h3>Timeline</h3>
+						<hr>
+						<div class="line-chart-container">
+							<ngx-charts-line-chart
+								[results]="resultTimelines"
+								[xScaleMin]="resultSet.criteria.from ? resultSet.criteria.from : undefined"
+								[xScaleMax]="resultSet.criteria.to ? resultSet.criteria.to : undefined"
+								[xAxis]="true"
+								[yAxis]="true"
+								[timeline]="true"
+								[scheme]="reportsService.colorScheme">
+							</ngx-charts-line-chart>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="card app-card mt-2 mb-4 shadow-level-5" *ngIf="resultSummary">
+			<div class="card-body">
+				<!-- Summary -->
+				<div class="row align-items-center">
+					<div class="col-12">
+						<h3>Users</h3>
+						<hr>
+						<div class="row mb-4">
+							<div class="col-md-6">
+								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('entry', $event.target, resultSummary)">
+									<h4>Made an Entry</h4>
+									<ngx-charts-advanced-pie-chart
+										[results]="resultSummary.engagement"
+										[label]="'Total Users'"
+										[scheme]="reportsService.colorScheme"
+										(select)="onPieChartClick('entry', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>								
+							<div class="col-md-6">
+								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('shared_entry', $event.target, resultSummary)">
+									<h4>Shared an Entry</h4>
+									<ngx-charts-advanced-pie-chart
+										[results]="resultSummary.shared"
+										[label]="'Total Users'"
+										[scheme]="reportsService.colorScheme"
+										(select)="onPieChartClick('shared_entry', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>
+						</div>
+						<div class="row mb-4">							
+							<div class="col-md-6">
+								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('tutor_shared_entry', $event.target, resultSummary)">
+									<h4>Shared an Entry with Tutor</h4>
+									<ngx-charts-advanced-pie-chart
+										[results]="resultSummary.sharedWithTutor"
+										[label]="'Total Users'"
+										[scheme]="reportsService.colorScheme"
+										(select)="onPieChartClick('tutor_shared_entry', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>							
+							<div class="col-md-6">
+								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('commented_entry', $event.target, resultSummary)">
+									<h4>Have Comments on an Entry</h4>
+									<ngx-charts-advanced-pie-chart
+										[results]="resultSummary.commented"
+										[label]="'Total Users'"
+										[scheme]="reportsService.colorScheme"
+										(select)="onPieChartClick('commented_entry', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="mb-5" #scrollToUserList><!-- Use the element to scroll to the center of as we have the fixed banner -->
+				</div>
+				<!-- User Lists -->
+				<div class="row">
+					<div class="col-12">
+						{{userList.data.length}}
+						<span [ngSwitch]="resultSummary.activeEngagementType">
+							<span *ngSwitchCase="entryEngagementTypes.Entry_Engaged">users have made an entry</span>
+							<span *ngSwitchCase="entryEngagementTypes.Entry_NonEngaged">users have not made an entry</span>
+							<span *ngSwitchCase="entryEngagementTypes.SharedEntry_Engaged">users have shared an entry</span>
+							<span *ngSwitchCase="entryEngagementTypes.SharedEntry_NonEngaged">users have not shared an entry</span>
+							<span *ngSwitchCase="entryEngagementTypes.TutorSharedEntry_Engaged">users have shared an entry with their tutor</span>
+							<span *ngSwitchCase="entryEngagementTypes.TutorSharedEntry_NonEngaged">users have not shared an entry with their tutor</span>
+							<span *ngSwitchCase="entryEngagementTypes.CommentedEntry_Engaged">users have made an entry which has a comment</span>
+							<span *ngSwitchCase="entryEngagementTypes.CommentedEntry_NonEngaged">users have not got an entry with a comment</span>
+							<span *ngSwitchDefault>total users</span>
+						</span>
+						&nbsp;<button class="btn btn-secondary" *ngIf="userList.data.length > 0" (click)="emailUsers()">Send E-mail</button>
+						&nbsp;<button class="btn btn-secondary" *ngIf="userList.data.length > 0" (click)="downloadUsers()">Export</button>
+					</div>
+					<div class="col-12">
+						<table mat-table matSort  matSortActive="lastName" matSortDirection="asc" #userListTable [dataSource]="userList" style="width:100%;">
+							<ng-container matColumnDef="firstName">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="firstName">First Name</th>
+								<td mat-cell *matCellDef="let user">
+									<a *ngIf="user.id !== currentUser.id" [routerLink]="" (click)="onUserClick(user.id, userModal)">{{user.firstName}}</a>
+									<span *ngIf="user.id === currentUser.id">{{user.firstName}}</span>
+								</td>
+							</ng-container>
+							<ng-container matColumnDef="lastName">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="lastName">Surname</th>
+								<td mat-cell *matCellDef="let user"> {{user.lastName}} </td>
+							</ng-container>
+							<ng-container matColumnDef="entries">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="totalEntries">Entries</th>
+								<td mat-cell *matCellDef="let user"> {{user.totalEntries}} </td>
+							</ng-container>
+							<ng-container matColumnDef="shared">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="totalShares">Shared</th>
+								<td mat-cell *matCellDef="let user"> {{user.totalShares}} </td>
+							</ng-container>
+							<ng-container matColumnDef="sharedWithTutor">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="totalShareWithTutor">Shared with Tutor</th>
+								<td mat-cell *matCellDef="let user"> {{user.totalShareWithTutor}} </td>
+							</ng-container>
+							<ng-container matColumnDef="comments">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="totalComments">Have Comments</th>
+								<td mat-cell *matCellDef="let user"> {{user.totalComments}} </td>
+							</ng-container>
+							<ng-container matColumnDef="tutors">
+								<th mat-header-cell *matHeaderCellDef>Tutor(s)</th>
+								<td mat-cell *matCellDef="let user"> {{user.tutors.join(', ')}} </td>
+							</ng-container>
+							<tr mat-header-row *matHeaderRowDef="['firstName', 'lastName', 'entries', 'shared', 'sharedWithTutor', 'comments', 'tutors']"></tr>
+							<tr mat-row *matRowDef="let row; columns: ['firstName', 'lastName', 'entries', 'shared', 'sharedWithTutor', 'comments', 'tutors'];"></tr>
+						</table>
+						<mat-paginator #userListPaginator [pageSizeOptions]="[50, 100, 250, 500]" showFirstLastButtons></mat-paginator>
+					</div>
+				</div>	
+			</div>
+		</div>
+	</div>
+</section>
+<!--User Model-->
+<div bsModal #userModal="bs-modal" [config]="{backdrop: false}" 
+	class="modal fade" tabindex="-1" role="dialog" aria-label="User" 
+	aria-hidden="true" (onHidden)="userToView = null">
+	<div class="modal-dialog modal-full-screen">
+		<div class="container">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" (click)="userModal.hide()" aria-label="Close">
+				<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body light p-2">
+				<tutee *ngIf="userToView" [userId]='userToView'></tutee>
+			</div>
+		</div>
+		</div>
+	</div>
+</div>

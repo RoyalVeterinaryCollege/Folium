@@ -30,6 +30,7 @@ using Folium.Api.Extensions;
 using Folium.Api.Models.SelfAssessing;
 using IdentityModel;
 using Microsoft.Extensions.Logging;
+using CommonDomain;
 
 namespace Folium.Api.Services {
     public interface ISelfAssessmentService {
@@ -120,9 +121,17 @@ namespace Folium.Api.Services {
 						UserId = user.Id,
 						CreatedAt = entry?.When ?? selfAssessment.Value.CreatedAt
 					});
-			}
-			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: CreateSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
-			_repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+
+                // There can be a number of events created when adding all the assessments to an entry and there is a 255 limit per save, so check if we are getting close.
+                if(((IAggregate)aggregate).GetUncommittedEvents().Count > 200) {
+                    _logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: CreateSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
+                    _repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+                }
+            }
+            if (((IAggregate)aggregate).GetUncommittedEvents().Count > 0) {
+                _logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: CreateSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
+                _repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+            }
 		}
 		/// <summary>
 		/// Removes all the supplied self assessments and returns a new dictionary of the latest self assessments.
