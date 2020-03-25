@@ -1,0 +1,173 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<!-- Loading... -->
+<div *ngIf="!files" class="row">
+  <div class="col">
+    <div>
+      <h3>
+        ATTACHMENTS
+      </h3>
+      <hr class="d-print-none">
+    </div>
+    <div class="loader-container">
+      <div class="loader primary">Loading...</div>
+    </div>
+  </div>
+</div>
+<!-- Entry... -->
+<div *ngIf="files">
+  <div *ngIf="forComment == false || isEdit == true" class="row">
+    <div class="col">
+      <div>
+        <h3 *ngIf="isEdit">
+          <button type="button" (click)="showFilesModal()" class="btn btn-secondary mr-2">
+            <i class="fas fa-plus"
+               aria-label="Add files"></i>
+          </button>
+          ATTACHMENTS
+        </h3>
+        <h3 *ngIf="!isEdit && entryFiles.length > 0">
+          ATTACHMENTS
+        </h3>
+        <hr *ngIf="forComment == false && (isEdit || entryFiles.length > 0)" class="d-print-none">
+      </div>
+    </div>
+  </div>
+  <!-- Show entry files here -->
+  <div *ngIf="forComment == false && isEdit && entryFiles.length == 0" class="row">
+    <div class="col">
+      <p>There are no files attached to this entry.</p>
+    </div>
+  </div>
+  <div *ngIf="forComment == false && entryFiles.length > 0" class="row">
+    <div *ngFor="let file of this.entryFiles" class="col-6 col-md-4 col-lg-2 pb-3 d-print-inline-block">
+      <ng-container [ngTemplateOutlet]="fileThumbnail"
+                    [ngTemplateOutletContext]="{file:file}">
+      </ng-container>
+    </div>
+  </div>
+  <div *ngIf="forComment == true && commentFiles.length > 0" class="row">
+    <div *ngFor="let file of this.commentFiles" class="col-6 col-md-4 col-lg-2 pb-3 d-print-inline-block">
+      <ng-container [ngTemplateOutlet]="fileThumbnail"
+                    [ngTemplateOutletContext]="{file:file}">
+      </ng-container>
+    </div>
+  </div>
+
+  <div *ngIf="forComment == false && commentFiles.length > 0" class="d-print-none">
+    <div class="row">
+      <div class="col">
+        <div>
+          <h2 *ngIf="isEdit">
+            COMMENT ATTACHMENTS
+          </h2>
+          <h3 *ngIf="!isEdit">
+            COMMENT ATTACHMENTS
+          </h3>
+          <hr class="d-print-none">
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div *ngFor="let file of this.commentFiles" class="col-6 col-md-4 col-lg-2 pb-3">
+        <ng-container [ngTemplateOutlet]="fileThumbnail"
+                      [ngTemplateOutletContext]="{file:file}">
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <!-- Thumbnail template -->
+  <ng-template #fileThumbnail let-file='file'>
+    <div class="card">
+      <div class="cursor-pointer card-img-top card-img-top d-flex justify-content-center align-items-center text-muted" style="height: 120px;" [ngSwitch]="true" (click)="previewFile(file)">
+        <!-- Images -->
+        <img *ngSwitchCase="file.type.startsWith('image')" [src]="getThumbnail(file, 120) | secureImage | async" class="img-fluid">
+        <!-- Encoded Video -->
+        <div *ngSwitchCase="file.isAudioVideoEncoded == true && file.type.startsWith('video')" class="video-thumbnail">
+          <img [src]="getThumbnail(file, 120) | secureImage | async" class="img-fluid">
+          <span class="fa-layers fa-fw fa-3x">
+            <i class="fas fa-circle" data-fa-transform="shrink-2"></i>
+            <i class="fas fa-play-circle" data-fa-transform="shrink-4"></i>
+          </span>
+        </div>
+        <!-- Raw Video -->
+        <i *ngSwitchCase="file.isAudioVideoEncoded == false && file.type.startsWith('video')" class="far fa-file-video fa-4x"></i>
+        <!-- Audio -->
+        <i *ngSwitchCase="file.type.startsWith('audio')" class="far fa-file-audio fa-4x"></i>
+        <!-- Excel -->
+        <i *ngSwitchCase="file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type == 'application/vnd.ms-excel'" class="far fa-file-excel fa-4x"></i>
+        <!-- Word -->
+        <i *ngSwitchCase="file.type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type == 'application/msword'" class="far fa-file-word fa-4x"></i>
+        <!-- Powerpoint -->
+        <i *ngSwitchCase="file.type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || file.type == 'application/vnd.ms-powerpoint'" class="far fa-file-powerpoint fa-4x"></i>
+        <!-- Pdf -->
+        <i *ngSwitchCase="file.type == 'application/pdf'" class="far fa-file-pdf fa-4x"></i>
+        <!-- Zip -->
+        <i *ngSwitchCase="file.type == 'application/zip'" class="far fa-file-archive fa-4x"></i>
+        <!-- Text -->
+        <i *ngSwitchCase="file.type == 'text/plain'" class="far fa-file-alt fa-4x"></i>
+        <!-- Default File -->
+        <i *ngSwitchDefault class="far fa-file fa-4x"></i>
+      </div>
+      <div class="card-footer p-1 text-center">
+        <div class="text-truncate"><small class="text-muted">{{file.filename}}</small></div>
+        <div *ngIf="isEdit">
+          <button type="button" (click)="onDeleteFileClick(file)" class="btn btn-secondary">
+            <span class="sr-only">Delete</span>
+            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
+  <!--Add Files-->
+  <div bsModal [config]="{show: true, backdrop: false, keyboard: false}" #filesModal="bs-modal" *ngIf="isFilesModalShown" (onHidden)="onFilesModalHidden()" class="modal fade" tabindex="-1" role="dialog" aria-label="Add Files" aria-hidden="true">
+    <div class="modal-dialog modal-full-screen modal-add-files">
+      <div class="container">
+        <div class="modal-content">
+          <div class="modal-body">
+            <section class="title">
+              <div class="container">
+                <div class="d-flex justify-content-start">
+                  <div class="mr-auto">
+                    <h1 class="text-uppercase p-1 m-0">Add Files</h1>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="content-main">
+              <div class="container">
+                <!-- Uppy -->
+                <uppy [config]="uppyConfig" [plugins]="uppyPlugins" [on]="uppyEvent"></uppy>
+              </div>
+            </section>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-shadow" (click)="$event.stopPropagation();filesModal.hide();"> Done </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

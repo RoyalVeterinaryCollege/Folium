@@ -29,10 +29,10 @@ import { SkillFiltersService } from "../skill-filters.service";
     <label class="sr-only" for="searchTerm">Search Term</label>
     <input class="form-control" type="text" autocomplete="off" [(ngModel)]="searchTerm" placeholder="Search..." id="searchTerm" [attr.value]="searchTerm" (keyup.enter)="addSearch()">
     <span *ngIf="searchTerm" class="input-group-append">
-      <button class="btn btn-secondary" type="button" (click)="clearSearch()"><i class="fa fa-times" aria-hidden="true"></i><span class="sr-only">Clear</span></button>
+      <button class="btn btn-secondary" type="button" (click)="clearSearch()"><i class="fas fa-times" aria-hidden="true"></i><span class="sr-only">Clear</span></button>
     </span>
     <span class="input-group-append">
-      <button class="btn btn-secondary" type="button" (click)="addSearch()"><i class="fa fa-search" aria-hidden="true"></i><span class="sr-only">Search</span></button>
+      <button class="btn btn-secondary" type="button" (click)="addSearch()"><i class="fas fa-search" aria-hidden="true"></i><span class="sr-only">Search</span></button>
     </span>
   </div>`
 })

@@ -20,19 +20,25 @@ import { Component, OnInit, ViewChild, ElementRef } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
-import { MatAutocompleteSelectedEvent, MatDatepicker, MatTable, MatTableDataSource, MatSort, MatPaginator, MatDialog } from "@angular/material";
+import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
+import { MatDatepicker } from "@angular/material/datepicker";
+import { MatDialog } from "@angular/material/dialog";
+import { MatPaginator } from "@angular/material/paginator";
+import { MatSort } from "@angular/material/sort";
+import { MatTable, MatTableDataSource } from "@angular/material/table";
 
 import { Observable } from "rxjs";
 import { startWith, map } from "rxjs/operators";
 
 import { ScrollToService } from '@nicky-lenaers/ngx-scroll-to';
 
-import { Angular5Csv } from "angular5-csv/Angular5-csv";
+import { AngularCsv } from "angular-csv-ext/dist/Angular-csv";
 
 import { User, ReportOnOption, PlacementEngagementUser, PlacementEngagementReportResultSet, PlacementEngagementReportCriteria } from "../../core/dtos";
 import { ReportsService } from "../reports.service";
 import { NotificationService } from "../../core/notification.service";
 import { DialogMessageUsersComponent } from "./dialog-message-users.component";
+import { Utils } from "src/app/core/utils";
 
 enum PlacementEngagementTypes {
   Placement_Engaged = 'Placement Engaged',
@@ -43,6 +49,10 @@ enum PlacementEngagementTypes {
   SharedPlacementEntry_NonEngaged = 'Shared Placement Entry Non Engagued',
   TutorSharedPlacementEntry_Engaged = 'Tutor Shared Placement Entry Engaged',
   TutorSharedPlacementEntry_NonEngaged = 'Tutor Shared Placement Entry Non Engagued',
+  AllEntriesRequestedSignOff_Engaged = 'All Entries Requested sign-off Engaged',
+  AllEntriesRequestedSignOff_NonEngaged = 'All Entries Requested sign-off Non Engaged',
+  AllEntriesSignedOff_Engaged = 'All Entries Signed Off Engaged',
+  AllEntriesSignedOff_NonEngaged = 'All Entries Signed Off Non Engaged'
 }
 
 @Component({
@@ -67,31 +77,31 @@ export class ViewPlacementEngagementComponent implements OnInit {
   placementTypes: string[];
   allPlacementType = "All";
 
-	@ViewChild("reportOnInput")
+	@ViewChild("reportOnInput", { static: true })
   reportOnInput: ElementRef;
   
-	@ViewChild("skillSetInput")
+	@ViewChild("skillSetInput", { static: false })
   skillSetsInput: ElementRef;
 
-	@ViewChild("entryTypesInput")
+	@ViewChild("entryTypesInput", { static: false })
   entryTypesInput: ElementRef;
 
-	@ViewChild("userListTable")
+	@ViewChild("userListTable", { static: false })
   userListTable: MatTable<PlacementEngagementUser>;
   
-	@ViewChild("scrollToUserList")
+	@ViewChild("scrollToUserList", { static: false })
   scrollToUserList: ElementRef;
   
   private userListPaginator: MatPaginator;
   
-  @ViewChild(MatSort) 
+  @ViewChild(MatSort, { static: false }) 
   set matSort(matSort: MatSort) {
     if(this.userList) {
       this.userList.sort = matSort;
     }
   }
 
-  @ViewChild(MatPaginator) 
+  @ViewChild(MatPaginator, { static: false }) 
   set matPaginator(matPaginator: MatPaginator) {
     this.userListPaginator = matPaginator;
     if(this.userList) {
@@ -225,39 +235,57 @@ export class ViewPlacementEngagementComponent implements OnInit {
     } else {
       switch(chart) {
         case 'placement': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.placements > 0)
             : this.resultSet.users.filter(u => !u.placements || u.placements === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? PlacementEngagementTypes.Placement_Engaged
               : PlacementEngagementTypes.Placement_NonEngaged;
           break;
         }
         case 'placement_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.placementsWithEntries > 0) 
             : this.resultSet.users.filter(u => !u.placementsWithEntries || u.placementsWithEntries === 0);
-          this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
             ? PlacementEngagementTypes.PlacementEntry_Engaged
             : PlacementEngagementTypes.PlacementEntry_NonEngaged;
           break;
         }
         case 'shared_placement_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.placementsWithSharedEntries > 0)
             : this.resultSet.users.filter(u => !u.placementsWithSharedEntries || u.placementsWithSharedEntries === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? PlacementEngagementTypes.SharedPlacementEntry_Engaged
               : PlacementEngagementTypes.SharedPlacementEntry_NonEngaged;
           break;
         }
         case 'tutor_shared_placement_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.placementsWithTutorSharedEntries > 0)
             : this.resultSet.users.filter(u => !u.placementsWithTutorSharedEntries || u.placementsWithTutorSharedEntries === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? PlacementEngagementTypes.TutorSharedPlacementEntry_Engaged
               : PlacementEngagementTypes.TutorSharedPlacementEntry_NonEngaged;
+          break;
+        }
+        case 'placement_requested_sign_off_entries': {
+          this.userList.data = (data.name === "Yes")
+            ? this.resultSet.users.filter(u => u.placementsWithAllEntriesRequestedSignOff > 0)
+            : this.resultSet.users.filter(u => !u.placementsWithAllEntriesRequestedSignOff || u.placementsWithAllEntriesRequestedSignOff === 0);
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
+            ? PlacementEngagementTypes.AllEntriesRequestedSignOff_Engaged
+            : PlacementEngagementTypes.AllEntriesRequestedSignOff_NonEngaged;
+          break;
+        }
+        case 'placement_signed_off_entries': {
+          this.userList.data = (data.name === "Yes")
+            ? this.resultSet.users.filter(u => u.placementsWithAllEntriesSignedOff > 0)
+            : this.resultSet.users.filter(u => !u.placementsWithAllEntriesSignedOff || u.placementsWithAllEntriesSignedOff === 0);
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
+            ? PlacementEngagementTypes.AllEntriesSignedOff_Engaged
+            : PlacementEngagementTypes.AllEntriesSignedOff_NonEngaged;
           break;
         }
       }
@@ -280,10 +308,15 @@ export class ViewPlacementEngagementComponent implements OnInit {
   downloadUsers(){
     var options = { 
       showLabels: true, 
-      headers: ['id', 'First Name', 'Surname', 'Email', 'Placements', 'With Entries', 'Shared', 'Shared with Tutor']
+      headers: ['id', 'Email', 'First Name', 'Surname', 'Placements', 'With Entries', 'Can be signed off', 'All Entries requested for sign-off', 'All Entries signed off', 'Shared', 'Shared with Tutor', 'Tutors']
     };
     
-    new Angular5Csv(this.userList.data, 'Placement Engagement', options);
+    let users = Utils.deepClone(this.userList.data) as PlacementEngagementUser[];
+    users.forEach((user:PlacementEngagementUser) => {
+      user = this.reportsService.removeUserFieldsForCsvDownload(user);
+    });
+    
+    new AngularCsv(users, 'Placement Engagement', options);
   }
 
 	private canAddToReportOnList(reportOn: ReportOnOption): boolean {
@@ -321,6 +354,9 @@ export class ViewPlacementEngagementComponent implements OnInit {
       let user = userIndex[item.userId];
       user.placements = (user.placements ? user.placements : 0) + 1;
       user.placementsWithEntries = (user.placementsWithEntries ? user.placementsWithEntries : 0) + (item.entryCount > 0 ? 1 : 0);
+      user.placementsWithEntriesCanBeSignOff = (user.placementsWithEntriesCanBeSignOff ? user.placementsWithEntriesCanBeSignOff : 0) + item.entrySignOffCompatibleCount > 0 ? 1 : 0;
+      user.placementsWithAllEntriesRequestedSignOff = (user.placementsWithAllEntriesRequestedSignOff ? user.placementsWithAllEntriesRequestedSignOff : 0) + ((item.entrySignOffCompatibleCount > 0 && (item.entrySignOffCompatibleCount == item.entrySignOffRequestCount)) ? 1 : 0);
+      user.placementsWithAllEntriesSignedOff = (user.placementsWithAllEntriesSignedOff ? user.placementsWithAllEntriesSignedOff : 0) + ((item.entrySignOffCompatibleCount > 0 && (item.entrySignOffCompatibleCount == item.entrySignedOffCount)) ? 1 : 0);
       user.placementsWithSharedEntries = (user.placementsWithSharedEntries ? user.placementsWithSharedEntries : 0) + (item.sharedEntryCount > 0 ? 1 : 0);
       user.placementsWithTutorSharedEntries = (user.placementsWithTutorSharedEntries ? user.placementsWithTutorSharedEntries : 0) + (item.sharedEntryWithTutorCount > 0 ? 1 : 0);
     });
@@ -328,18 +364,25 @@ export class ViewPlacementEngagementComponent implements OnInit {
     let totalUsersEngagedWithPlacementEntries = 0;
     let totalUsersEngagedWithSharing = 0;
     let totalUsersEngagedSharingWithTutor = 0;
+    let totalUsersAllEntriesRequestedSignOff = 0;
+    let totalUsersAllEntriesSignedOff = 0;
     this.resultSet.users.forEach(u => {
       // Set any undefined fields to 0.
       u.placements = u.placements ? u.placements : 0; 
       u.placementsWithEntries = u.placementsWithEntries ? u.placementsWithEntries : 0; 
-      u.placementsWithSharedEntries = u.placementsWithSharedEntries ? u.placementsWithSharedEntries : 0; 
-      u.placementsWithTutorSharedEntries = u.placementsWithTutorSharedEntries ? u.placementsWithTutorSharedEntries : 0; 
+      u.placementsWithSharedEntries = u.placementsWithSharedEntries ? u.placementsWithSharedEntries : 0;
+      u.placementsWithTutorSharedEntries = u.placementsWithTutorSharedEntries ? u.placementsWithTutorSharedEntries : 0;
+      u.placementsWithEntriesCanBeSignOff = u.placementsWithEntriesCanBeSignOff ? u.placementsWithEntriesCanBeSignOff : 0;
+      u.placementsWithAllEntriesRequestedSignOff = u.placementsWithAllEntriesRequestedSignOff ? u.placementsWithAllEntriesRequestedSignOff : 0;
+      u.placementsWithAllEntriesSignedOff = u.placementsWithAllEntriesSignedOff ? u.placementsWithAllEntriesSignedOff : 0;
       totalUsersEngagedWithPlacementEntries = totalUsersEngagedWithPlacementEntries + (u.placementsWithEntries > 0 ? 1 : 0);
       totalUsersEngagedWithSharing = totalUsersEngagedWithSharing + (u.placementsWithSharedEntries > 0 ? 1 : 0);
       totalUsersEngagedSharingWithTutor = totalUsersEngagedSharingWithTutor + (u.placementsWithTutorSharedEntries > 0 ? 1 : 0);
+      totalUsersAllEntriesRequestedSignOff = totalUsersAllEntriesRequestedSignOff + ((u.placementsWithEntriesCanBeSignOff > 0 && (u.placementsWithEntriesCanBeSignOff == u.placementsWithAllEntriesRequestedSignOff)) ? 1 : 0);
+      totalUsersAllEntriesSignedOff = totalUsersAllEntriesSignedOff + ((u.placementsWithEntriesCanBeSignOff > 0 && (u.placementsWithEntriesCanBeSignOff == u.placementsWithAllEntriesSignedOff)) ? 1 : 0);
     });
-    
-    return new PlacementEngagementSummary(this.resultSet.users.length, engagedUsers.size, totalUsersEngagedWithPlacementEntries, totalUsersEngagedWithSharing, totalUsersEngagedSharingWithTutor);
+
+    return new PlacementEngagementSummary(this.resultSet.users.length, engagedUsers.size, totalUsersEngagedWithPlacementEntries, totalUsersEngagedWithSharing, totalUsersEngagedSharingWithTutor, totalUsersAllEntriesRequestedSignOff, totalUsersAllEntriesSignedOff);
   }
 
   private sortUsersBySurname() {
@@ -364,21 +407,29 @@ class PlacementEngagementSummary {
   shared: DataPoint[];
   sharedWithTutor: DataPoint[];
   placementEntry: DataPoint[];
+  requestSignOffEntries: DataPoint[];
+  signedOffEntries: DataPoint[];
   public activeEngagementType: PlacementEngagementTypes;
 
-  constructor(totalUsers: number, totalUsersEngagedWithPlacements: number, totalUsersEngagedWithPlacementEntries: number, totalUsersEngagedWithSharing: number, totalUsersEngagedSharingWithTutor: number) {
+  constructor(totalUsers: number, totalUsersEngagedWithPlacements: number, totalUsersEngagedWithPlacementEntries: number, totalUsersEngagedWithSharing: number, totalUsersEngagedSharingWithTutor: number, totalUsersAllEntriesRequestedSignOff: number, totalUsersAllEntriesSignedOff: number) {
     this.placements = new Array<DataPoint>();
-    this.placements.push(new DataPoint("Engaged", totalUsersEngagedWithPlacements, PlacementEngagementTypes.Placement_Engaged));
-    this.placements.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedWithPlacements, PlacementEngagementTypes.Placement_NonEngaged));
+    this.placements.push(new DataPoint("Yes", totalUsersEngagedWithPlacements, PlacementEngagementTypes.Placement_Engaged));
+    this.placements.push(new DataPoint("No", totalUsers - totalUsersEngagedWithPlacements, PlacementEngagementTypes.Placement_NonEngaged));
     this.placementEntry = new Array<DataPoint>();
-    this.placementEntry.push(new DataPoint("Engaged", totalUsersEngagedWithPlacementEntries, PlacementEngagementTypes.PlacementEntry_Engaged));
-    this.placementEntry.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedWithPlacementEntries, PlacementEngagementTypes.PlacementEntry_NonEngaged));
+    this.placementEntry.push(new DataPoint("Yes", totalUsersEngagedWithPlacementEntries, PlacementEngagementTypes.PlacementEntry_Engaged));
+    this.placementEntry.push(new DataPoint("No", totalUsers - totalUsersEngagedWithPlacementEntries, PlacementEngagementTypes.PlacementEntry_NonEngaged));
     this.shared = new Array<DataPoint>();
-    this.shared.push(new DataPoint("Engaged", totalUsersEngagedWithSharing, PlacementEngagementTypes.SharedPlacementEntry_Engaged));
-    this.shared.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedWithSharing, PlacementEngagementTypes.SharedPlacementEntry_NonEngaged));
+    this.shared.push(new DataPoint("Yes", totalUsersEngagedWithSharing, PlacementEngagementTypes.SharedPlacementEntry_Engaged));
+    this.shared.push(new DataPoint("No", totalUsers - totalUsersEngagedWithSharing, PlacementEngagementTypes.SharedPlacementEntry_NonEngaged));
     this.sharedWithTutor = new Array<DataPoint>();
-    this.sharedWithTutor.push(new DataPoint("Engaged", totalUsersEngagedSharingWithTutor, PlacementEngagementTypes.TutorSharedPlacementEntry_Engaged));
-    this.sharedWithTutor.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedSharingWithTutor, PlacementEngagementTypes.TutorSharedPlacementEntry_NonEngaged));
+    this.sharedWithTutor.push(new DataPoint("Yes", totalUsersEngagedSharingWithTutor, PlacementEngagementTypes.TutorSharedPlacementEntry_Engaged));
+    this.sharedWithTutor.push(new DataPoint("No", totalUsers - totalUsersEngagedSharingWithTutor, PlacementEngagementTypes.TutorSharedPlacementEntry_NonEngaged));
+    this.requestSignOffEntries = new Array<DataPoint>();
+    this.requestSignOffEntries.push(new DataPoint("Yes", totalUsersAllEntriesRequestedSignOff, PlacementEngagementTypes.AllEntriesRequestedSignOff_Engaged));
+    this.requestSignOffEntries.push(new DataPoint("No", totalUsers - totalUsersAllEntriesRequestedSignOff, PlacementEngagementTypes.AllEntriesRequestedSignOff_NonEngaged));
+    this.signedOffEntries = new Array<DataPoint>();
+    this.signedOffEntries.push(new DataPoint("Yes", totalUsersAllEntriesSignedOff, PlacementEngagementTypes.AllEntriesSignedOff_Engaged));
+    this.signedOffEntries.push(new DataPoint("No", totalUsers - totalUsersAllEntriesSignedOff, PlacementEngagementTypes.AllEntriesSignedOff_NonEngaged));
   }
 }
 class DataPoint {

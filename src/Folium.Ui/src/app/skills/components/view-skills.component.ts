@@ -26,7 +26,7 @@ import { User, SkillSet, SkillGroup, SkillGrouping } from "../../core/dtos";
 import { ActivatedRoute } from "@angular/router";
 import { DialogManageUserSkillSetsComponent } from "../../user/components/dialog-manage-user-skill-sets.component";
 import { SkillFiltersService } from "../skill-filters.service";
-import { MatDialog } from "@angular/material";
+import { MatDialog } from "@angular/material/dialog";
 import { DialogChangeSkillSetComponent } from "./dialog-change-skill-set.component";
 import { UserService } from "../../user/user.service";
 import { NotificationService } from "../../core/notification.service";

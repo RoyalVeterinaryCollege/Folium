@@ -19,7 +19,7 @@
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse, HttpSentEvent, HttpHeaderResponse, HttpProgressEvent, HttpResponse, HttpUserEvent } from '@angular/common/http';
 
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { catchError, switchMap, filter, take } from "rxjs/operators";
 
 import { SecurityService } from './security.service';
@@ -60,7 +60,7 @@ export class AuthorizationInterceptor implements HttpInterceptor {
                           return this.handleAuthError(request, next);
                   }
                 }
-                return Observable.throw(error);
+                return throwError(error);
               }
           )
       );

@@ -19,9 +19,20 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
 <div [ngClass]="{'has-active-element': hasActiveElement}">
-	<div *ngIf="viewingOwnEntries" class="row pb-2">
-		<div class="col">
-			<button *ngIf="!isNewEntryOpen" class="btn btn-primary btn-shadow float-right" (click)="onNewEntryClick()"><i class="fa fa-plus" aria-hidden="true"></i> Create entry</button>
+	<div class="d-flex flex-row-reverse justify-content-between align-items-center pl-1 pl-sm-0 pr-1 pr-sm-0">
+		<div>
+			<button *ngIf="!sharedEntriesOnly" class="btn btn-primary btn-shadow mb-2" (click)="onNewEntryClick()"><i class="fas fa-plus" aria-hidden="true"></i> Create entry</button>
+		</div>
+		<div *ngIf="entries && !placement">
+			<mat-form-field appearance="none">
+				<mat-select aria-label="Entries Filter" [(value)]="activeFilter" (selectionChange)="filterChange()" id="entry-filter">
+					<mat-select-trigger [innerHtml]="activeFilter.label | safeHtml">
+					</mat-select-trigger>
+					<mat-option *ngFor="let filter of (sharedEntriesOnly ? sharedEntryFilters : myEntryFilters)" [value]="filter">
+						<div [outerHTML]="filter.label | safeHtml"></div>
+					</mat-option>
+				</mat-select>
+			</mat-form-field>
 		</div>
 	</div>
 	<active-element (backgroundClick)="onNewEntryClose()" *ngIf="isNewEntryOpen">			
@@ -34,10 +45,13 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 	<!-- No Entries... -->
 	<div *ngIf="entries && entries.length === 0 && !hasActiveElement" class="row">
 		<div class="col">
-			<div class="app-card">				
-				<div *ngIf="viewingOwnEntries" class="card-body">
-						Looks like you don't have any entries<span *ngIf="placement"> for this placement</span>, <a [routerLink]="" (click)="isNewEntryOpen = true">create one</a>.
-					</div>
+			<div class="app-card">
+				<div *ngIf="viewingOwnEntries && !hasActiveFilter" class="card-body">
+					Looks like you don't have any entries<span *ngIf="placement"> for this placement</span>, <a [routerLink]="" (click)="onNewEntryClick()">create one</a>.
+				</div>
+				<div *ngIf="viewingOwnEntries && hasActiveFilter" class="card-body">
+					Looks like you don't have any entries which match that filter.
+				</div>
 				<div *ngIf="!viewingOwnEntries" class="card-body">
 					{{user.firstName}} {{user.lastName}} has not shared any entries with you.
 				</div>
@@ -51,40 +65,53 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				<div *ngIf="!entry.viewing && !entry.editing" class="entry-summary-card app-card mb-sm-2">
 					<div class="card-body">
 						<div class="row">
-							<div class="col-2 col-sm-1 pr-0 col-entry-share-status" [ngSwitch]="entry.shared">
-								<span *ngSwitchCase="false"></span>
-								<ng-container *ngSwitchCase="true">
-									<i *ngIf="canModifyEntry(entry)" class="fa fa-share-alt" aria-hidden="true"></i>
-        							<img *ngIf="!canModifyEntry(entry)" [fmUserPic]="entry.author" class="img-fluid profile-pic-thumb" [attr.alt]="entry.author.firstName + ' ' + entry.author.lastName + ' profile picture'" [attr.title]="entry.author.firstName + ' ' + entry.author.lastName" >
-								</ng-container>
+							<div class="col-2 col-lg-1 pr-0 col-entry-status-icon d-flex justify-content-center align-items-center">
+								<span *ngIf="entry.shared">
+									<i *ngIf="isMyEntry(entry)" class="fas fa-share-alt mr-1 summary" aria-hidden="true"></i>
+									<img *ngIf="!isMyEntry(entry)" [fmUserPic]="entry.author" class="img-fluid profile-pic-thumb mr-1" [attr.alt]="entry.author.firstName + ' ' + entry.author.lastName + ' profile picture'" [attr.title]="entry.author.firstName + ' ' + entry.author.lastName">
+								</span>
+								<span *ngIf="entry.signOffRequested && !entry.signedOff">
+									<i class="fas fa-external-link-alt summary" aria-hidden="true"></i>
+								</span>
+								<span *ngIf="entry.signedOff">
+									<i class="fas fa-check-square summary" aria-hidden="true"></i>
+								</span>
 							</div>
 							<div class="col-6 col-lg-8 col-entry-title">
 								<a href [ngClass]="{'float-left mr-2' : entry.type}" (click)="onSelectEntryClick($event, entry)">{{entry.title}}</a>
-								<mat-chip-list *ngIf="entry.type">
+								<mat-chip-list *ngIf="entry.type" class="mt-1">
 									<mat-basic-chip selected="true" class="mat-chip-small selected-entry-type">
 										{{entry.type}}
 									</mat-basic-chip>
 								</mat-chip-list>
 							</div>
-							<div class="col-lg-2 col-2 col-sm-3 pr-0 text-right small col-entry-date">
+							<div class="col-2 col-lg-2 col-sm-3 pr-0 text-right small col-entry-date">
 								{{entry.when | date: 'd MMM yyyy'}}
 							</div>
-							<div *ngIf="canModifyEntry(entry)" class="col-2 col-sm-1 pl-0 pr-0 text-right col-entry-actions">
+							<div *ngIf="isMyEntry(entry) || canSignOffEntry(entry)" class="col-2 col-sm-1 pl-0 pr-0 text-right col-entry-actions">
 								<button mat-icon-button [matMenuTriggerFor]="placementMenu" class="kebab-menu-button">
-									<i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+									<i class="fas fa-ellipsis-v" aria-hidden="true"></i>
 								</button>
 								<mat-menu #placementMenu="matMenu" [overlapTrigger]="false">
-									<div class="btn-group-vertical">										
-										<button class="btn btn-link" (click)="onShareEntryClick(entry)">
-											<i class="fa fa-share-alt" aria-hidden="true"></i>
+									<div class="btn-group-vertical">
+										<button class="btn btn-link" *ngIf="isMyEntry(entry)" (click)="onShareEntryClick(entry)">
+											<i class="fas fa-share-alt pr-1" aria-hidden="true"></i>
 											<span>Share</span>
 										</button>
-										<button class="btn btn-link" (click)="onEditEntryClick(entry)">
-											<i class="fa fa-pencil" aria-hidden="true"></i>
+										<button class="btn btn-link" *ngIf="canRequestSignOff(entry)" (click)="requestSignOff(entry)">
+											<i class="fas fa-external-link-alt pr-1" aria-hidden="true"></i>
+											<span>Request sign-off</span>
+										</button>
+										<button class="btn btn-link" *ngIf="canSignOffEntry(entry)" (click)="signOff(entry)">
+											<i class="fas fa-check-square pr-1" aria-hidden="true"></i>
+											<span>Sign-off</span>
+										</button>
+										<button class="btn btn-link" *ngIf="canModifyEntry(entry)" (click)="onEditEntryClick(entry)">
+											<i class="fas fa-pencil-alt pr-1" aria-hidden="true"></i>
 											<span>Edit</span>
 										</button>
-										<button class="btn btn-link" (click)="onDeleteEntryClick(entry)">
-											<i class="fa fa-trash" aria-hidden="true"></i>
+										<button class="btn btn-link" *ngIf="isMyEntry(entry)" (click)="onDeleteEntryClick(entry)">
+											<i class="fas fa-trash-alt pr-1" aria-hidden="true"></i>
 											<span>Delete</span>
 										</button>
 									</div>

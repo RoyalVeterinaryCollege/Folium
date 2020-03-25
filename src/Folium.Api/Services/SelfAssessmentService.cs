@@ -28,7 +28,6 @@ using EventSaucing.Aggregates;
 using Folium.Api.Dtos;
 using Folium.Api.Extensions;
 using Folium.Api.Models.SelfAssessing;
-using IdentityModel;
 using Microsoft.Extensions.Logging;
 using CommonDomain;
 
@@ -162,9 +161,17 @@ namespace Folium.Api.Services {
 						CreatedAt = entry.When
 					});
 				latestSelfAssessments.Add(selfAssessment.Key, latest);
-			}
-			_logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: RemoveSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
-			_repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+
+                // There can be a number of events created when adding all the assessments to an entry and there is a 255 limit per save, so check if we are getting close.
+                if (((IAggregate)aggregate).GetUncommittedEvents().Count > 200) {
+                    _logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: RemoveSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
+                    _repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+                }
+            }
+            if (((IAggregate)aggregate).GetUncommittedEvents().Count > 0) {
+                _logger.LogDebug($"\n{DateTime.UtcNow.ToUnixTimeMilliseconds()} - {Thread.CurrentThread.ManagedThreadId}: RemoveSelfAssessments({user.Id}, {skillSetId}, {string.Join(",", selfAssessments.Keys)}, {entry?.Id}) called save on aggregate: ({aggregate.Id}, {aggregate.Version}.\n");
+                _repository.Save(aggregate, commitId: Guid.NewGuid(), updateHeaders: null);
+            }
 			return latestSelfAssessments;
 		}
 

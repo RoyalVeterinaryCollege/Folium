@@ -20,7 +20,7 @@ using System;
 */
 namespace Folium.Api {
     public class Configuration {
-        public string BaseUrl { get; set; }
+        public string UiBaseUrl { get; set; }
         public string OidcAuthority { get; set; }
         public bool OidcRequireHttpsMetadata { get; set; }
         public bool EmailNotificationsEnabled { get; set; }
@@ -32,5 +32,11 @@ namespace Folium.Api {
         public bool SmtpRequiresAuthentication { get; set; }
         public string SmtpAccountPassword { get; set; }
         public bool SmtpUseSsl { get; set; }
+        public string TusUrlPath { get; set; }
+        public string TusFiles { get; set; }
+        public bool EncodeVideoFiles { get; set; }
+        public string CoconutAPIKey { get; set; }
+        public string CoconutApiUrl { get; set; }
+        public string CoconutWebHookBaseUrl { get; set; } // If running localhost use https://ngrok.com/
     }
 }

@@ -20,8 +20,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using EventSaucing.Aggregates;
 using Folium.Api.Models.Entry.Events;
+using Microsoft.Extensions.Logging;
 
 namespace Folium.Api.Models.Entry {
 	public class EntryAggregate : Aggregate {
@@ -42,6 +44,10 @@ namespace Folium.Api.Models.Entry {
 		private readonly HashSet<int> _sharedWith = new HashSet<int>();
 		public bool IsShared => _sharedWith.Count > 0;
 		readonly Dictionary<int, EntryComment> _comments = new Dictionary<int, EntryComment>();
+		private readonly HashSet<int> _authorisedUsersToSignOff = new HashSet<int>();
+		public int? SignedOffBy { get; private set; }
+		public DateTime? SignedOffAt { get; private set; }
+		public bool IsPendingSignOff => _authorisedUsersToSignOff.Count > 0 && SignedOffBy.HasValue;
 
 		public ReadOnlyCollection<EntryComment> Comments => _comments.Values.ToList().AsReadOnly();
 
@@ -50,6 +56,10 @@ namespace Folium.Api.Models.Entry {
 		/// </summary>
 		public ReadOnlyCollection<Dictionary<int, SelfAssessment>> AssessmentBundle => _assessmentBundle.AsReadOnly();
 		public ReadOnlyCollection<int> SharedWith => _sharedWith.ToList().AsReadOnly();
+		public ReadOnlyCollection<int> AuthorisedUsersToSignOff => _authorisedUsersToSignOff.ToList().AsReadOnly();
+
+		readonly Dictionary<Guid, EntryFile> _files = new Dictionary<Guid, EntryFile>();
+		public ReadOnlyCollection<EntryFile> Files => _files.Values.ToList().AsReadOnly();
 
 		private bool _isCreated;
 		private bool _isRemoved;
@@ -90,10 +100,51 @@ namespace Folium.Api.Models.Entry {
 			if (!_sharedWith.Contains(collaboratorId)) return;
 			RaiseEvent(new EntryCollaboratorRemoved(userId, collaboratorId));
 		}
-		public int CreateComment(string comment, int createdBy, DateTime createdAt) {
+		public void RequestSignOffBy(int userId, List<int> authorisedUserIds, string message) {
+			if (!_isCreated || _isRemoved) return;
+			RaiseEvent(new EntrySignOffRequested(authorisedUserIds, DateTime.UtcNow, message));
+			// Also share the entry.
+			RaiseEvent(new EntryShared(userId, authorisedUserIds, message));
+		}
+		public int SignOff(string comment, int createdBy, DateTime createdAt, List<Guid> fileIds = null) {
 			var newId = _comments.Count + 1;
 			RaiseEvent(new EntryCommentCreated(newId, comment, createdBy, createdAt));
+			if (fileIds != null && fileIds.Count > 0) {
+				RaiseEvent(new EntryCommentCreatedWithFiles(newId, fileIds));
+			}
+			RaiseEvent(new EntrySignedOff(createdBy, createdAt, newId));
 			return newId;
+		}
+		public void RemoveSignOffUser(int userId) {
+			if (!_isCreated || _isRemoved) return;
+			if (!_authorisedUsersToSignOff.Contains(userId)) return;
+			RaiseEvent(new EntrySignOffUserRemoved(userId));
+		}
+		public int CreateComment(string comment, int createdBy, DateTime createdAt, List<Guid> fileIds = null) {
+			var newId = _comments.Count + 1;
+			RaiseEvent(new EntryCommentCreated(newId, comment, createdBy, createdAt));
+			if(fileIds != null && fileIds.Count > 0) {
+				RaiseEvent(new EntryCommentCreatedWithFiles(newId, fileIds));
+			}
+			return newId;
+		}
+		public void AddFile(Guid fileId, int createdBy, bool onComment, string fileName, string filePath, string fileType, long fileSize) {
+			if (!_isCreated || _isRemoved || _files.ContainsKey(fileId)) return;
+			RaiseEvent(new EntryFileCreated(fileId, createdBy, DateTime.UtcNow, onComment, fileName, filePath, fileType, fileSize));
+		}
+		public void AudioVideoFileEncoded(Guid fileId, string encodedAudioVideoDirectoryPath) {
+			if (!_isCreated || _isRemoved) return;
+			if (_files.ContainsKey(fileId)) {
+				var file = _files[fileId];
+				RaiseEvent(new EntryAudioVideoFileEncoded(fileId, file.CreatedBy,file.CreatedAt, file.OnComment, file.FileName, file.FilePath, file.Type, file.Size, encodedAudioVideoDirectoryPath));
+			}
+		}
+		public void RemoveFile(Guid fileId) {
+			if (!_isCreated || _isRemoved) return;
+			if (_files.ContainsKey(fileId)) {
+				var file = _files[fileId];
+				RaiseEvent(new EntryFileRemoved(fileId, file.CreatedBy, file.CreatedAt, file.OnComment, file.FileName, file.FilePath, file.Type, file.Size));
+			}
 		}
 
 		#region Events
@@ -136,12 +187,28 @@ namespace Folium.Api.Models.Entry {
 			_assessmentBundle.Add(@event.SelfAssessments);
 		}
 		void Apply(EntryShared @event) {
-			foreach (var collaboratorId in @event.CollaboratorIds) {
-				_sharedWith.Add(collaboratorId);
+			foreach (var userId in @event.CollaboratorIds) {
+				if (!_sharedWith.Contains(userId)) {
+					_sharedWith.Add(userId);
+				}
 			}
 		}
 		void Apply(EntryCollaboratorRemoved @event) {
 			_sharedWith.Remove(@event.CollaboratorId);
+		}
+		void Apply(EntrySignOffRequested @event) {
+			foreach (var authorisedUserId in @event.AuthorisedUserIds) {
+				if (!_authorisedUsersToSignOff.Contains(authorisedUserId)) {
+					_authorisedUsersToSignOff.Add(authorisedUserId);
+				}
+			}
+		}
+		void Apply(EntrySignOffUserRemoved @event) {
+			_authorisedUsersToSignOff.Remove(@event.RemoveUserId);
+		}
+		void Apply(EntrySignedOff @event) {
+			SignedOffAt = @event.When;
+			SignedOffBy = @event.AuthorisedUserId;
 		}
 		void Apply(EntryCommentCreated @event) {
 			_comments.Add(@event.Id, new EntryComment {
@@ -151,9 +218,39 @@ namespace Folium.Api.Models.Entry {
 				CreatedBy = @event.CreatedBy
 			});
 		}
+		void Apply(EntryFileCreated @event) {
+			if(!_files.ContainsKey(@event.FileId)) { 
+				_files.Add(@event.FileId, new EntryFile {
+					EntryId = Id,
+					FileId = @event.FileId,
+					CreatedAt = @event.CreatedAt,
+					CreatedBy = @event.CreatedBy,
+					FileName = @event.FileName,
+					FilePath = @event.FilePath,
+					Type = @event.Type,
+					OnComment = @event.OnComment,
+				});
+			}
+		}
+		void Apply(EntryAudioVideoFileEncoded @event) {
+			if (_files.ContainsKey(@event.FileId)) {
+				var file = _files[@event.FileId];
+				file.IsVideoEncoded = true;
+				file.EncodedVideoDirectoryPath = @event.EncodedAudioVideoDirectoryPath;
+			}
+		}
+		void Apply(EntryFileRemoved @event) {
+			if(_files.ContainsKey(@event.FileId)) { 
+				_files.Remove(@event.FileId);
+			}
+		}
+		void Apply(EntryCommentCreatedWithFiles @event) {
+			var comment = _comments[@event.CommentId];
+			comment.FileIds = @event.FileIds;
+		}
 
-		#region Deprecated Events
-		void Apply(SkillsBundleAdded @event) {
+	#region Deprecated Events
+	void Apply(SkillsBundleAdded @event) {
 			_assessmentBundle.Add(@event.SelfAssessments);
 		}
 

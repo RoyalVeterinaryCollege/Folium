@@ -109,6 +109,10 @@ export class Entry {
   author: User;
   comments: EntryComment[];
   shared: boolean;
+  signOffRequested: boolean;
+  signedOff: boolean;
+  isSignOffCompatible: boolean;
+  isAuthorisedToSignOff: boolean;
 }
 
 export class EntrySummary {
@@ -122,6 +126,11 @@ export class EntrySummary {
   skillSetId: number;
   viewing: boolean; // Whether the entry is being viewed.
   editing: boolean; // Whether the entry is being edited.
+  signOffRequested: boolean;
+  signedOff: boolean;
+  isSignOffCompatible: boolean;
+  entryType: EntryType;
+  isAuthorisedToSignOff: boolean;
 	public constructor(entry: Entry) {
     this.id = entry.id;
     this.title = entry.title;
@@ -131,7 +140,17 @@ export class EntrySummary {
     this.author = entry.author;
     this.shared = entry.shared;
     this.skillSetId = entry.skillSetId;
+    this.signOffRequested = entry.signOffRequested;
+    this.signedOff = entry.signedOff;
+    this.isSignOffCompatible = entry.isSignOffCompatible;
+    this.entryType = entry.entryType;
+    this.isAuthorisedToSignOff = entry.isAuthorisedToSignOff;
 	}
+}
+
+export const enum EntrySignOffGroup {
+  Anyone = 'anyone',
+  Tutor = 'tutor',
 }
 
 export class EntryType {
@@ -141,7 +160,11 @@ export class EntryType {
     summary: string,
     inputs: [ { title: string; help: string; } ],
     skillGroupingId: number,
-    skillBundleIds: number[]
+    skillBundleIds: number[],
+    signOff: {      
+      text: string,
+      allowedBy: EntrySignOffGroup
+    },  
   };
   skillSetId: number;
 }
@@ -191,9 +214,10 @@ export class Placement {
   entryCount: number;
   editing: boolean;
   lastUpdatedAt: Date;
+  createdBy: number;
 }
 
-export class CollaboratorOption {
+export class UserOption {
 	name: string;
 	user: User;
 	isGroup: boolean;
@@ -206,12 +230,40 @@ export class EntryComment {
   comment: string;
   author: User;
   createdAt: Date;
+  fileIds: string[];
+  forSignOff: boolean;
+}
+
+export class EntryFile {
+  fileId: string; // guid
+  entryId: string; // guid
+  filename: string;
+  type: string;
+  onComment: boolean;
+  createdBy: number;
+  createdByName: string;
+  createdAt: Date;
+  commentId: number;
+  size: number;
+  static getRequestPath(file: EntryFile) {
+    return `file-uploads/entries/${file.entryId}/${file.fileId}/${file.fileId}`;
+  }
+  static getThumbnailPath(file: EntryFile, size: number) {
+    return EntryFile.getRequestPath(file) + `_t_${size}x${size}`;
+  }
+  isAudioVideoEncoded: boolean;
 }
   
 export class ShareEntry {
   entryId: string; // guid
 	collaboratorIds: number[];
 	message: string;
+}
+
+export class EntrySignOffRequest {
+  entryId: string; // guid
+  authorisedUserIds: number[];
+  message: string;
 }
 
 export class ReportOnOption {
@@ -224,11 +276,14 @@ export class ReportOnOption {
   courseYear: number;
 }
 
-export class SelfAssessmentEngagementReportCriteria {
+export class ReportCriteria {
   who: ReportOnOption[];
-  skillSetId: number;
   from: Date;
   to: Date;
+}
+
+export class SelfAssessmentEngagementReportCriteria extends ReportCriteria {
+  skillSetId: number;
 }
 
 export class SelfAssessmentEngagementReportResult {
@@ -250,11 +305,9 @@ export class SelfAssessmentEngagementReportResultSet {
   users: SelfAssessmentEngagementUser[];
 }
 
-export class EntryEngagementReportCriteria {
-  who: ReportOnOption[];
+export class EntryEngagementReportCriteria extends ReportCriteria {
   entryTypeIds: number[];
-  from: Date;
-  to: Date;
+  basicEntryType: boolean;
 }
 
 export class EntryEngagementReportResult {
@@ -263,11 +316,17 @@ export class EntryEngagementReportResult {
   sharedCount: number;
   sharedWithTutorCount: number;
   commentCount: number;
+  isSignOffCompatible: boolean;
+  signOffRequestCount: number;
+  signedOff: boolean;
 }
 
 export class EntryEngagementUser extends User {
   tutors: string[];
   totalEntries: number;
+  totalPossibleSignOffEntries: number;
+  totalSignedOffRequestedEntries: number;
+  totalSignedOffEntries: number;
   totalShares: number;
   totalShareWithTutor: number;
   totalComments: number;
@@ -279,11 +338,8 @@ export class EntryEngagementReportResultSet {
   users: EntryEngagementUser[];
 }
 
-export class PlacementEngagementReportCriteria {
-  who: ReportOnOption[];
+export class PlacementEngagementReportCriteria extends ReportCriteria {
   type: string;
-  from: Date;
-  to: Date;
 }
 
 export class PlacementEngagementReportResult {
@@ -291,6 +347,9 @@ export class PlacementEngagementReportResult {
   entryCount: number;
   sharedEntryCount: number;
   sharedEntryWithTutorCount: number;
+  entrySignOffCompatibleCount: number;
+  entrySignOffRequestCount: number;
+  entrySignedOffCount: number;
 }
 
 export class PlacementEngagementUser extends User {
@@ -299,6 +358,9 @@ export class PlacementEngagementUser extends User {
   placementsWithEntries: number;
   placementsWithSharedEntries: number;
   placementsWithTutorSharedEntries: number;
+  placementsWithEntriesCanBeSignOff: number;
+  placementsWithAllEntriesRequestedSignOff: number;
+  placementsWithAllEntriesSignedOff: number;
 }
 
 export class PlacementEngagementReportResultSet {

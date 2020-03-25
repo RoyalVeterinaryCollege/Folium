@@ -1,0 +1,92 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+	<div class="dialog-file-preview">
+		<div class="d-flex justify-content-end">
+			<div class="pt-2">{{data.file.size | formatBytes}}</div>
+			<button type="button" (click)="onDownloadFileClick()" class="btn btn-link-icon">
+				<span class="sr-only">Download</span>
+				<i class="fas fa-arrow-alt-circle-down"></i>
+			</button>
+
+			<button *ngIf="data.canDelete" type="button" (click)="onDeleteFileClick()" class="btn btn-link-icon">
+				<span class="sr-only">Delete</span>
+				<i class="fas fa-trash-alt" aria-hidden="true"></i>
+			</button>
+		</div>
+		<div mat-dialog-content>
+			<div [ngSwitch]="true" class="text-center">
+				<!-- Image -->
+				<div *ngSwitchCase="data.file.type.startsWith('image')">
+					<img (load)="loaded()" [src]="getThumbnail(data.file, 600) | secureImage | async" class="img-fluid">
+					<!-- Loading... -->
+					<div *ngIf="imageLoaded == false" class="loader-container">
+						<div class="loader primary">Loading...</div>
+					</div>
+				</div>
+				<!-- Encoded Video -->
+				<div *ngSwitchCase="data.file.isAudioVideoEncoded == true && data.file.type.startsWith('video')">
+					<plyr plyrTitle="Video" style="display: block; max-width: 640px;" [plyrPlaysInline]="true" plyrType="video" autoplay [plyrSources]="playerSources"></plyr>
+				</div>
+				<!-- Raw Video -->
+				<div *ngSwitchCase="data.file.isAudioVideoEncoded == false && data.file.type.startsWith('video')">
+					<i class="far fa-file-video fa-6x"></i>
+					<div class="small pt-2"><em>Your video clip is being converted before it can be previewed. Please check again later.</em></div>
+				</div>
+				<!-- Encoded Audio -->
+				<div *ngSwitchCase="data.file.isAudioVideoEncoded == true && data.file.type.startsWith('audio')">
+					<plyr plyrTitle="Video" style="display: block; max-width: 640px;" plyrType="audio" autoplay [plyrSources]="playerSources"></plyr>
+				</div>
+				<!-- Raw Audio -->
+				<div *ngSwitchCase="data.file.isAudioVideoEncoded == false && data.file.type.startsWith('audio')">
+					<i class="far fa-file-audio fa-6x"></i>
+					<div class="small pt-2"><em>Your audio clip is being converted before it can be previewed. Please check again later.</em></div>
+				</div>
+				<!-- Excel -->
+				<i *ngSwitchCase="data.file.type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || data.file.type == 'application/vnd.ms-excel'" class="far fa-file-excel fa-6x"></i>
+				<!-- Word -->
+				<i *ngSwitchCase="data.file.type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || data.file.type == 'application/msword'" class="far fa-file-word fa-6x"></i>
+				<!-- Powerpoint -->
+				<i *ngSwitchCase="data.file.type == 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || data.file.type == 'application/vnd.ms-powerpoint'" class="far fa-file-powerpoint fa-6x"></i>
+				<!-- Pdf -->
+				<i *ngSwitchCase="data.file.type == 'application/pdf'" class="far fa-file-pdf fa-6x"></i>
+				<!-- Zip -->
+				<i *ngSwitchCase="data.file.type == 'application/zip'" class="far fa-file-archive fa-6x"></i>
+				<!-- Text -->
+				<i *ngSwitchCase="data.file.type == 'text/plain'" class="far fa-file-alt fa-6x"></i>
+				<!-- Default File -->
+				<i *ngSwitchDefault class="far fa-file fa-6x"></i>
+			</div>
+		</div>
+		<div mat-dialog-actions class="d-block mat-dialog-actions ">
+			<div class="text-muted">
+				<span class="mr-2">{{data.file.filename}}</span>
+				<small>{{data.file.createdAt | date: 'd MMM yyyy HH:mm'}}</small>
+				<div *ngIf="data.file.onComment == true">
+					<small>Added by {{data.file.createdByName}}</small>
+				</div>
+			</div>
+			<div class="float-right">
+				<button class="btn btn-link" mat-dialog-close>Close</button>
+			</div>
+		</div>
+		<a class="hide" #downloadLink></a>
+	</div>

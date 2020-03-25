@@ -21,7 +21,7 @@ import {
 	OnInit,
 	Input
 } from "@angular/core";
-import { MatDialog } from "@angular/material";
+import { MatDialog } from "@angular/material/dialog";
 
 
 import { UserService } from "../user/user.service";

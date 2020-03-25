@@ -19,7 +19,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from "@angular/core";
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
-import { MatDatepicker } from "@angular/material";
+import { MatDatepicker } from "@angular/material/datepicker";
 
 import { Placement, User } from "../../core/dtos";
 import { PlacementsService } from "../placements.service";
@@ -47,7 +47,9 @@ export class PlacementEditorComponent implements OnInit {
 	savePending: boolean = false;
 	autoSaveEnabled: boolean = true; // autosave can be disabled if an error occurs.
   touchUi = false; // Used for the mat-datepicker to load in a mobile friendly format.
-    
+
+  get title() { return this.placementForm.get('title'); }
+
   constructor(
 	  private placementsService: PlacementsService,
 	  private notificationService: NotificationService,
@@ -79,7 +81,7 @@ export class PlacementEditorComponent implements OnInit {
 		if(!this.touchUi) picker.open();
 	}
 
-	autoSave() {
+  autoSave() {
 		// Save the entry if we are editing.
 		if(this.isEdit && this.autoSaveEnabled) {
 			this.savePlacement();
@@ -95,7 +97,8 @@ export class PlacementEditorComponent implements OnInit {
 	  return this.placement.id !== undefined;
   }
 
-	private savePlacement() {
+  private savePlacement() {
+    if (!this.placementForm.valid) return;
 		const formValues = this.placementForm.value;
 
 		// Only save if there are any changes.
@@ -136,13 +139,13 @@ export class PlacementEditorComponent implements OnInit {
   }
     
   private initialiseFormControls() {
-	   this.placementForm = this.formBuilder.group({
-		  title: [this.placement.title, Validators.required],
+    this.placementForm = this.formBuilder.group({
+      title: [this.placement.title, Validators.compose([Validators.required, Validators.maxLength(1000)])],
 		  start: [this.placement.start, Validators.required],
 		  end: [this.placement.end, Validators.required]
 	  });
-		this.placementForm.valueChanges.subscribe(changes => {
-      if(this.isEdit && this.hasFormModelUpdates()) { this.savePending = true }
+    this.placementForm.valueChanges.subscribe(changes => {
+      if (this.isEdit && this.hasFormModelUpdates() && this.placementForm.valid) { this.savePending = true }
     });
   }
   
@@ -156,6 +159,7 @@ export class PlacementEditorComponent implements OnInit {
     placement.end = this.getUTCDate(formValues.end);
     placement.entryCount = this.placement.entryCount;
     placement.lastUpdatedAt = this.placement.lastUpdatedAt;
+    placement.createdBy = this.user.id;
 
 		return placement;
   }

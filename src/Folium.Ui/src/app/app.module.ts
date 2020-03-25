@@ -18,7 +18,8 @@
 */
 import { NgModule, APP_INITIALIZER, ErrorHandler }from "@angular/core";
 import { BrowserModule  } from "@angular/platform-browser";
-import { MatDialogModule, MAT_DATE_FORMATS } from "@angular/material";
+import { MAT_DATE_FORMATS } from "@angular/material/core";
+import { MatDialogModule } from "@angular/material/dialog";
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
@@ -55,6 +56,7 @@ import { FmPlacementsModule } from "./placements/placements.module";
 import { FmSkillsModule } from "./skills/skills.module";
 import { FmTuteesModule } from "./tutees/tutees.module";
 import { FmReportsModule } from "./reports/reports.module";
+import { UppyModule } from "./uppy/uppy.module";
 
 export function onInitApp(securityService: SecurityService) {
 	// NOTE: this factory needs to return a function (that then returns a promise)
@@ -76,6 +78,8 @@ export function onInitApp(securityService: SecurityService) {
         FmSkillsModule,
         FmTuteesModule,
         FmUserModule,
+
+        UppyModule,
 
         AppRoutingModule
     ],

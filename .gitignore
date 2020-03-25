@@ -27,10 +27,6 @@ bld/
 wwwroot/
 logs/
 
-# JS Typings
-
-typings/
-
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -121,9 +117,6 @@ nCrunchTemp_*
 *.mm.*
 AutoTest.Net/
 
-# Web workbench (sass)
-.sass-cache/
-
 # Installshield output folder
 [Ee]xpress/
 
@@ -186,7 +179,6 @@ ClientBin/
 *.dbproj.schemaview
 *.pfx
 *.publishsettings
-node_modules/
 orleans.codegen.cs
 
 # RIA/Silverlight projects
@@ -238,8 +230,45 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 
-# Ignore appsettings, these are install specific.
-appsettings.json
+# compiled output
+dist/
+tmp/
+out-tsc/
 
-# Ignore RVC folder.
-RVC-private/
+# dependencies
+node_modules/
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# misc
+.sass-cache
+connect.lock
+coverage/
+libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+typings/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Ignore appsettings and environment, these are install specific.
+appsettings.json
+environment.ts
+src/Folium.Api/file-uploads

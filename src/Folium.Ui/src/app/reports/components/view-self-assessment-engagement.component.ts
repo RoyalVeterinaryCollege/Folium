@@ -20,12 +20,17 @@ import { Component, OnInit, ViewChild, ElementRef } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
-import { MatAutocompleteSelectedEvent, MatDatepicker, MatDialog, MatTable, MatPaginator, MatSort, MatTableDataSource } from "@angular/material";
+import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
+import { MatDatepicker } from "@angular/material/datepicker";
+import { MatDialog } from "@angular/material/dialog";
+import { MatPaginator } from "@angular/material/paginator";
+import { MatSort } from "@angular/material/sort";
+import { MatTable, MatTableDataSource } from "@angular/material/table";
 
 import { Observable } from "rxjs";
 import { startWith, map } from "rxjs/operators";
 
-import { Angular5Csv } from "angular5-csv/Angular5-csv";
+import { AngularCsv } from "angular-csv-ext/dist/Angular-csv";
 
 import { User, ReportOnOption, SkillSet, SelfAssessmentEngagementReportCriteria, SelfAssessmentEngagementReportResultSet, SelfAssessmentEngagementReportResult, SelfAssessmentEngagementUser, SkillGrouping, SkillGroup, SelfAssessment } from "../../core/dtos";
 import { ReportsService } from "../reports.service";
@@ -63,28 +68,28 @@ export class ViewSelfAssessmentEngagementComponent implements OnInit {
   userList: MatTableDataSource<SelfAssessmentEngagementUser>;
   userToView: number; // The user to view in more detail.
   
-	@ViewChild("reportOnInput")
+	@ViewChild("reportOnInput", { static: true })
   reportOnInput: ElementRef;
   
-	@ViewChild("skillSetInput")
+	@ViewChild("skillSetInput", { static: true })
   skillSetsInput: ElementRef;
 
-	@ViewChild("userListTable")
+	@ViewChild("userListTable", { static: false })
   userListTable: MatTable<SelfAssessmentEngagementUser>;
   
-	@ViewChild("scrollToUserList")
+	@ViewChild("scrollToUserList", { static: false })
   scrollToUserList: ElementRef;
   
   private userListPaginator: MatPaginator;
   
-  @ViewChild(MatSort) 
+  @ViewChild(MatSort, { static: false }) 
   set matSort(matSort: MatSort) {
     if(this.userList) {
       this.userList.sort = matSort;
     }
   }
 
-  @ViewChild(MatPaginator) 
+  @ViewChild(MatPaginator, { static: false }) 
   set matPaginator(matPaginator: MatPaginator) {
     this.userListPaginator = matPaginator;
     if(this.userList) {
@@ -255,15 +260,15 @@ export class ViewSelfAssessmentEngagementComponent implements OnInit {
   downloadUsers(){
     var options = { 
       showLabels: true, 
-      headers: ['id', 'First Name', 'Surname', 'Email', 'Average Assessment']
+      headers: ['id', 'Email', 'First Name', 'Surname', 'Average Assessment', 'Tutors']
     };
-    let users = Utils.deepClone(this.userList.data);
-    // Delete the enagagement array.
-    users.forEach(user => {
-      delete user.engagement;
+    let users = Utils.deepClone(this.userList.data) as SelfAssessmentEngagementUser[];
+    users.forEach((user:SelfAssessmentEngagementUser) => {
+      user.averageAssessment = user.averageAssessment ? user.averageAssessment : 0;
+      user = this.reportsService.removeUserFieldsForCsvDownload(user);
     });
     
-    new Angular5Csv(users, 'Self Assessment Engagement', options);
+    new AngularCsv(users, 'Self Assessment Engagement', options);
   }
 
 	private canAddToReportOnList(reportOn: ReportOnOption): boolean {

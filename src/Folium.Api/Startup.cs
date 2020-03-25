@@ -17,23 +17,31 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-using System;
-using System.IO;
+
 using Autofac;
+using Autofac.Extensions.DependencyInjection;
 using EventSaucing;
 using EventSaucing.DependencyInjection.Autofac;
+using Folium.Api.Extensions;
+using Folium.Api.FileHandlers;
+using Folium.Api.Infrastructure;
+using Folium.Api.Services;
+using Hangfire;
+using Hangfire.SqlServer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Folium.Api.Services;
-using Autofac.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
-using Hangfire;
-using Hangfire.Common;
+using System;
+using System.IO;
+using tusdotnet;
+using tusdotnet.Models;
+using tusdotnet.Stores;
 
 namespace Folium.Api {
     public class Startup {
@@ -45,30 +53,35 @@ namespace Folium.Api {
             if (env.IsDevelopment()) {
                 // For more details on using the user secret store see https://go.microsoft.com/fwlink/?LinkID=532709
                 builder.AddUserSecrets<Startup>();
-			}
-			builder.AddEnvironmentVariables();
+            }
+            builder.AddEnvironmentVariables();
             Configuration = builder.Build();
-			Log.Logger = new LoggerConfiguration()
-				.ReadFrom.Configuration(Configuration)
-				.WriteTo.RollingFile(Path.Combine(env.ContentRootPath, "logs", Configuration.GetValue<string>("Serilog:LogFilePattern")))
-				.CreateLogger();
-		}
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(Configuration)
+                .CreateLogger();
+        }
 
         public IConfigurationRoot Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public IServiceProvider ConfigureServices(IServiceCollection services) {            
+        public IServiceProvider ConfigureServices(IServiceCollection services) {
             // Add framework services.
             services.AddMvc().AddJsonOptions(options => {
-	            options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc; // Use UTC datetimes.
+                options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc; // Use UTC datetimes.
             });
-            
+
             // Add functionality to inject IOptions<T>
             services.AddOptions();
+
+            services.AddCors();
             
             // Add our Config object so it can be injected
             services.Configure<ConnectionStrings>(Configuration.GetSection("ConnectionStrings"));
-            services.Configure<Configuration>(Configuration.GetSection("ApplicationConfiguration"));
+
+            var sectionName = "ApplicationConfiguration";
+            var applicationConfiguration = new Configuration();
+            Configuration.GetSection(sectionName).Bind(applicationConfiguration);
+            services.Configure<Configuration>(Configuration.GetSection(sectionName));
 
             // Add application services.
             services.AddSingleton<IDbService, SqlDbService>();
@@ -79,59 +92,77 @@ namespace Folium.Api {
             services.AddSingleton<IUserService, UserService>();
             services.AddSingleton<ITutorGroupService, TutorGroupService>();
             services.AddSingleton<IEntryService, EntryService>();
-			services.AddSingleton<IPlacementService, PlacementService>();
+            services.AddSingleton<IPlacementService, PlacementService>();
             services.AddSingleton<IReportService, ReportService>();
             services.AddTransient<IEmailService, EmailService>();
             services.AddSingleton<IViewRenderService, ViewRenderService>();
             services.AddSingleton<IMessagingService, MessagingService>();
+            services.AddSingleton<ITusEventHandler, TusEventHandler>();
+            services.AddSingleton<IFileService, FileService>();
             services.AddSingleton<IConfigurationRoot>(Configuration);
+            services.AddSingleton<IFileHandler, DefaultFileHandler>();
+            services.AddSingleton<IFileHandler, EntryFileHandler>();
+            services.AddSingleton<IFileHandler, EntryImageThumbnailFileHandler>();
+            services.AddSingleton<IFileHandler, TinyMceFileHandler>();
+            services.AddSingleton<IFileHandler, EntryAudioVideoFileHandler>();
+
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options => {
+                options.Authority = applicationConfiguration.OidcAuthority;
+                options.Audience = "folium_app_api";
+                options.RequireHttpsMetadata = applicationConfiguration.OidcRequireHttpsMetadata;
+            });
+
+            // https://docs.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/use-httpclientfactory-to-implement-resilient-http-requests 
+            services.AddHttpClient<ICoconutService, CoconutService>();
 
             var connectionString = Configuration.GetConnectionString("SqlConnectionString");
-            
+
             // Add hangfire.
             services.AddHangfire(x => x.UseSqlServerStorage(connectionString));
 
             var builder = new ContainerBuilder();
-	        builder.RegisterEventSaucingModules(new EventSaucingConfiguration {
-		        ConnectionString = connectionString
+            builder.RegisterEventSaucingModules(new EventSaucingConfiguration {
+                ConnectionString = connectionString
             });
-			builder.Populate(services);
-			var container = builder.Build();
+            builder.Populate(services);
+            var container = builder.Build();
 
-			container.StartEventSaucing();
+            container.StartEventSaucing();
 
-			// Initialise the collaborator options.
-	        container.Resolve<IUserService>().RefreshCollaboratorOptionsAsync();
+            // Initialise the collaborator options.
+            container.Resolve<IUserService>().RefreshCollaboratorOptionsAsync();
 
-			return container.Resolve<IServiceProvider>();
-		}
+            return container.Resolve<IServiceProvider>();
+        }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IOptions<Configuration> applicationConfiguration) {
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IOptions<Configuration> applicationConfiguration, ITusEventHandler tusEventHandler) {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
-	        loggerFactory.AddSerilog();
+            loggerFactory.AddSerilog();
 
-			if (env.IsDevelopment()) {
+            if (env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
-            } else {
+            }
+            else {
                 app.UseExceptionHandler();
             }
 
-			app.UseCors(builder => builder
-				.AllowAnyOrigin()
-				.AllowAnyHeader()
-				.AllowAnyMethod()
-				.AllowCredentials());
-                
+            app.UseCors(builder => builder
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                .WithExposedHeaders(tusdotnet.Helpers.CorsHelper.GetExposedHeaders()));
+
             app.UseStaticFiles();
-           
-            app.UseIdentityServerAuthentication(
-                new IdentityServerAuthenticationOptions {
-                    Authority = applicationConfiguration.Value.OidcAuthority,
-                    RequireHttpsMetadata = applicationConfiguration.Value.OidcRequireHttpsMetadata,
-                    ApiName = "folium_app_api"
-                });
+
+            app.UseAuthentication();
 
             app.UseMvc(routes => {
                 routes.MapRoute(
@@ -145,6 +176,17 @@ namespace Folium.Api {
 
             app.UseHangfireServer(options);
             app.UseHangfireDashboard();
+
+            // Path to where to store the file attachments.
+            var path = Path.Combine(env.ContentRootPath, applicationConfiguration.Value.TusFiles);
+            app.UseTus(httpContext => new DefaultTusConfiguration {
+                Store = new TusDiskStore(path, deletePartialFilesOnConcat: true),
+                // On what url should we listen for uploads?
+                UrlPath = applicationConfiguration.Value.TusUrlPath,
+                Events = tusEventHandler.Events,
+            });
+            app.UseFileStore();
         }
+
     }
 }

@@ -1,0 +1,28 @@
+
+<section class="title">
+  <div class="container">
+    <div class="d-flex justify-content-start">
+      <h1 class="text-uppercase p-1 m-0"> <span class="folium-entires small"></span> Entries </h1>					
+    </div>
+  </div>
+</section>
+<section class="content-main">
+  <div class="container" *ngIf="user">
+
+  <mat-tab-group dynamicHeight mat-stretch-tabs class="entry-tabs">
+    <mat-tab label="MY ENTRIES">
+      <div>
+        <!-- List My Entries... -->
+        <entries-viewer [user]="user"></entries-viewer>
+      </div>
+    </mat-tab>
+    <mat-tab label="SHARED WITH ME">
+      <div>
+        <!-- List Shared Entries... -->
+        <entries-viewer [user]="user" [sharedEntriesOnly]="true"></entries-viewer>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+    
+  </div>
+</section>

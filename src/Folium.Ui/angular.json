@@ -26,12 +26,28 @@
               "src/assets",
               "src/html",
               "src/web.config",
-              {"glob": "*.min.js", "input": "node_modules/oidc-client/dist", "output": "lib/oidc-client/dist"},
-              {"glob": "**/*", "input": "node_modules/tinymce/skins", "output": "lib/tinymce/skins/"}
+              {
+                "glob": "**/*",
+                "input": "lib/fontawesome",
+                "output": "lib/fontawesome"
+              },
+              {
+                "glob": "*.min.js",
+                "input": "node_modules/oidc-client/dist",
+                "output": "lib/oidc-client/dist"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/tinymce/skins",
+                "output": "lib/tinymce/skins/"
+              }
             ],
             "styles": [
               "src/styles/mat-folium-theme.scss",
-              "src/styles/import.scss"
+              "src/styles/import.scss",
+              "node_modules/@uppy/core/dist/style.min.css",
+              "node_modules/@uppy/dashboard/dist/style.min.css",
+              "node_modules/plyr/dist/plyr.css"
             ],
             "scripts": [
             ]

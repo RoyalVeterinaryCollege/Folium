@@ -20,22 +20,19 @@ import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
-import { 
-    MatInputModule, 
-    MatDatepickerModule, 
-    MatNativeDateModule, 
-    DateAdapter,  
-    MatButtonModule,
-    MatMenuModule,
-    MatChipsModule, 
-    MatAutocompleteModule,
-    MatIconModule,
-    MatTableModule, 
-    MatSortModule,
-    MatPaginatorModule,
-    MatDialogModule,
-    MatSelectModule
-} from "@angular/material";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
+import { MatButtonModule } from "@angular/material/button";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatNativeDateModule, DateAdapter } from "@angular/material/core";
+import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatDialogModule } from "@angular/material/dialog";
+import { MatIconModule } from "@angular/material/icon";
+import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatPaginatorModule } from "@angular/material/paginator";
+import { MatSelectModule } from "@angular/material/select";
+import { MatSortModule } from "@angular/material/sort";
+import { MatTableModule } from "@angular/material/table";
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { ScrollToModule } from "@nicky-lenaers/ngx-scroll-to";
 import { ModalModule } from "ngx-bootstrap/modal";

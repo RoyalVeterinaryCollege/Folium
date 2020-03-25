@@ -20,14 +20,19 @@ import { Component, OnInit, ViewChild, ElementRef } from "@angular/core";
 import { ActivatedRoute } from "@angular/router";
 import { FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
-import { MatAutocompleteSelectedEvent, MatDatepicker, MatTable, MatTableDataSource, MatSort, MatPaginator, MatDialog } from "@angular/material";
+import { MatAutocompleteSelectedEvent } from "@angular/material/autocomplete";
+import { MatDatepicker } from "@angular/material/datepicker";
+import { MatDialog } from "@angular/material/dialog";
+import { MatPaginator } from "@angular/material/paginator";
+import { MatSort } from "@angular/material/sort";
+import { MatTable, MatTableDataSource } from "@angular/material/table";
 
 import { Observable } from "rxjs";
 import { startWith, map } from "rxjs/operators";
 
 import { ScrollToService } from '@nicky-lenaers/ngx-scroll-to';
 
-import { Angular5Csv } from 'angular5-csv/Angular5-csv';
+import { AngularCsv } from 'angular-csv-ext/dist/Angular-csv';
 
 import { User, ReportOnOption, SkillSet, EntryType, EntryEngagementReportCriteria, EntryEngagementReportResultSet, EntryEngagementUser } from "../../core/dtos";
 import { ReportsService } from "../reports.service";
@@ -45,7 +50,11 @@ enum EntryEngagementTypes {
   TutorSharedEntry_Engaged = 'Tutor Shared Entry Engaged',
   TutorSharedEntry_NonEngaged = 'Tutor Shared Entry Non Engagued',
   CommentedEntry_Engaged = 'Commented Entry Engaged',
-  CommentedEntry_NonEngaged = 'Commented Entry Non Engagued'
+  CommentedEntry_NonEngaged = 'Commented Entry Non Engagued',
+  RequestedSignOffAllEntries_Engaged = 'Requested sign-off All Entries Engaged',
+  RequestedSignOffAllEntries_NonEngaged = 'Requested sign-off All Entries Non Engaged',
+  SignedOffAllEntries_Engaged = 'Signed Off All Entries Engaged',
+  SignedOffAllEntries_NonEngaged = 'Signed Off All Entries Non Engaged'
 }
 
 @Component({
@@ -75,31 +84,38 @@ export class ViewEntryEngagementComponent implements OnInit {
   entryEngagementTypes = EntryEngagementTypes; // Used to reference enum from the template. 
   userToView: number; // The user to view in more detail.
 
-	@ViewChild("reportOnInput")
+  basicEntryType: EntryType = {
+    name: "Basic",
+    id: -1,
+    template: null,
+    skillSetId: -1
+  };
+
+	@ViewChild("reportOnInput", { static: true })
   reportOnInput: ElementRef;
   
-	@ViewChild("skillSetInput")
+	@ViewChild("skillSetInput", { static: true })
   skillSetsInput: ElementRef;
 
-	@ViewChild("entryTypesInput")
+	@ViewChild("entryTypesInput", { static: false })
   entryTypesInput: ElementRef;
 
-  @ViewChild("userListTable")
+  @ViewChild("userListTable", { static: false })
   userListTable: MatTable<EntryEngagementUser>;
   
-	@ViewChild("scrollToUserList")
+	@ViewChild("scrollToUserList", { static: false })
   scrollToUserList: ElementRef;
   
   private userListPaginator: MatPaginator;
   
-  @ViewChild(MatSort) 
+  @ViewChild(MatSort, { static: false }) 
   set matSort(matSort: MatSort) {
     if(this.userList) {
       this.userList.sort = matSort;
     }
   }
 
-  @ViewChild(MatPaginator) 
+  @ViewChild(MatPaginator, { static: false }) 
   set matPaginator(matPaginator: MatPaginator) {
     this.userListPaginator = matPaginator;
     if(this.userList) {
@@ -309,39 +325,57 @@ export class ViewEntryEngagementComponent implements OnInit {
     } else {
       switch(chart) {
         case 'entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.totalEntries > 0) 
             : this.resultSet.users.filter(u => !u.totalEntries || u.totalEntries === 0);
-          this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
             ? EntryEngagementTypes.Entry_Engaged
             : EntryEngagementTypes.Entry_NonEngaged;
           break;
         }
         case 'shared_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.totalShares > 0)
             : this.resultSet.users.filter(u => !u.totalShares || u.totalShares === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? EntryEngagementTypes.SharedEntry_Engaged
               : EntryEngagementTypes.SharedEntry_NonEngaged;
           break;
         }
         case 'tutor_shared_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.totalShareWithTutor > 0)
             : this.resultSet.users.filter(u => !u.totalShareWithTutor || u.totalShareWithTutor === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? EntryEngagementTypes.TutorSharedEntry_Engaged
               : EntryEngagementTypes.TutorSharedEntry_NonEngaged;
           break;
         }
         case 'commented_entry': {
-          this.userList.data = (data.name === "Engaged")
+          this.userList.data = (data.name === "Yes")
             ? this.resultSet.users.filter(u => u.totalComments > 0)
             : this.resultSet.users.filter(u => !u.totalComments || u.totalEntries === 0);
-            this.resultSummary.activeEngagementType = (data.name === "Engaged")
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
               ? EntryEngagementTypes.CommentedEntry_Engaged
               : EntryEngagementTypes.CommentedEntry_NonEngaged;
+          break;
+        }
+        case 'requested_sign_off': {
+          this.userList.data = (data.name === "Yes")
+            ? this.resultSet.users.filter(u => u.totalSignedOffRequestedEntries > 0)
+            : this.resultSet.users.filter(u => !u.totalSignedOffRequestedEntries || u.totalSignedOffRequestedEntries === 0);
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
+            ? EntryEngagementTypes.RequestedSignOffAllEntries_Engaged
+            : EntryEngagementTypes.RequestedSignOffAllEntries_NonEngaged;
+          break;
+        }
+        case 'signed_off': {
+          this.userList.data = (data.name === "Yes")
+            ? this.resultSet.users.filter(u => u.totalSignedOffEntries > 0)
+            : this.resultSet.users.filter(u => !u.totalSignedOffEntries || u.totalSignedOffEntries === 0);
+          this.resultSummary.activeEngagementType = (data.name === "Yes")
+            ? EntryEngagementTypes.SignedOffAllEntries_Engaged
+            : EntryEngagementTypes.SignedOffAllEntries_Engaged;
           break;
         }
       }
@@ -364,10 +398,15 @@ export class ViewEntryEngagementComponent implements OnInit {
   downloadUsers(){
     var options = { 
       showLabels: true, 
-      headers: ['id', 'First Name', 'Surname', 'Email', 'Entries', 'Shared', 'Shared With Tutor', 'Have Comments']
+      headers: ['Id', 'Email', 'First Name', 'Surname', 'Entries', 'Can sign-off', 'Requested sign-off', 'Signed off', 'Shared', 'Shared with Tutor', 'Have comments', 'Tutors']
     };
+
+    let users = Utils.deepClone(this.userList.data) as EntryEngagementUser[];
+    users.forEach((user: EntryEngagementUser) => {
+      user = this.reportsService.removeUserFieldsForCsvDownload(user);
+    });
   
-    new Angular5Csv(this.userList.data, 'Entry Engagement', options);
+    new AngularCsv(users, 'Entry Engagement', options);
   }
 
 	private canAddToReportOnList(reportOn: ReportOnOption): boolean {
@@ -382,8 +421,9 @@ export class ViewEntryEngagementComponent implements OnInit {
   
   private getEntryTypes() {    
     this.entryTypes = [];
-    this.entriesService.getEntryTypes(this.reportForm.value.skillSet.id).subscribe(results => {
-      this.entryTypes = results;
+    this.reportsService.getEntryTypes(this.reportForm.value.skillSet.id).subscribe(results => {
+      this.entryTypes = [...results];
+      this.entryTypes.unshift(this.basicEntryType);
       this.filteredEntryTypes = this.reportForm.get("entryTypeQuery").valueChanges.pipe(
         startWith(null),  
         map((name) => {
@@ -402,7 +442,8 @@ export class ViewEntryEngagementComponent implements OnInit {
 		// Transfer from the form.
     const criteria = new EntryEngagementReportCriteria();
     criteria.who = formValues.who;
-    criteria.entryTypeIds = formValues.entryTypes ? formValues.entryTypes.map(e => e.id) : null;
+    criteria.entryTypeIds = formValues.entryTypes ? formValues.entryTypes.filter(e => e.id != this.basicEntryType.id).map(e => e.id) : null;
+    criteria.basicEntryType = formValues.entryTypes ? formValues.entryTypes.some(e => e.id == this.basicEntryType.id) : false;
     criteria.from = formValues.from;
     criteria.to = formValues.to;
 
@@ -436,6 +477,9 @@ export class ViewEntryEngagementComponent implements OnInit {
       // Record the stats for the user.
       let user = userIndex[item.userId];
       user.totalEntries = (user.totalEntries ? user.totalEntries : 0) + 1;
+      user.totalPossibleSignOffEntries = (user.totalPossibleSignOffEntries ? user.totalPossibleSignOffEntries : 0) + (item.isSignOffCompatible ? 1 : 0);
+      user.totalSignedOffRequestedEntries = (user.totalSignedOffRequestedEntries ? user.totalSignedOffRequestedEntries : 0) + (item.signOffRequestCount > 0 ? 1 : 0);
+      user.totalSignedOffEntries = (user.totalSignedOffEntries ? user.totalSignedOffEntries : 0) + (item.signedOff ? 1 : 0);
       user.totalShares = (user.totalShares ? user.totalShares : 0) + (item.sharedCount > 0 ? 1 : 0);
       user.totalShareWithTutor = (user.totalShareWithTutor ? user.totalShareWithTutor : 0) + (item.sharedWithTutorCount > 0 ? 1 : 0);
       user.totalComments = (user.totalComments ? user.totalComments : 0) + (item.commentCount > 0 ? 1 : 0);
@@ -498,18 +542,25 @@ export class ViewEntryEngagementComponent implements OnInit {
     let totalUsersEngagedWithSharing = 0;
     let totalUsersEngagedSharingWithTutor = 0;
     let totalUsersHaveComments = 0;
+    let totalUsersAllEntriesRequestedSignOff = 0;
+    let totalUsersAllEntriesSignedOff = 0;
     this.resultSet.users.forEach(u => {
       // Set any undefined fields to 0.
       u.totalEntries = u.totalEntries ? u.totalEntries : 0; 
       u.totalShares = u.totalShares ? u.totalShares : 0; 
       u.totalShareWithTutor = u.totalShareWithTutor ? u.totalShareWithTutor : 0; 
-      u.totalComments = u.totalComments ? u.totalComments : 0; 
+      u.totalComments = u.totalComments ? u.totalComments : 0;
+      u.totalSignedOffRequestedEntries = u.totalSignedOffRequestedEntries ? u.totalSignedOffRequestedEntries : 0;
+      u.totalSignedOffEntries = u.totalSignedOffEntries ? u.totalSignedOffEntries : 0;
+      u.totalPossibleSignOffEntries = u.totalPossibleSignOffEntries ? u.totalPossibleSignOffEntries : 0;
       totalUsersEngagedWithSharing = totalUsersEngagedWithSharing + (u.totalShares > 0 ? 1 : 0);
       totalUsersEngagedSharingWithTutor = totalUsersEngagedSharingWithTutor + (u.totalShareWithTutor > 0 ? 1 : 0);
       totalUsersHaveComments = totalUsersHaveComments + (u.totalComments > 0 ? 1 : 0);
+      totalUsersAllEntriesRequestedSignOff = totalUsersAllEntriesRequestedSignOff + ((u.totalPossibleSignOffEntries > 0 && (u.totalPossibleSignOffEntries == u.totalSignedOffRequestedEntries)) ? 1 : 0);
+      totalUsersAllEntriesSignedOff = totalUsersAllEntriesSignedOff + ((u.totalPossibleSignOffEntries > 0 && (u.totalPossibleSignOffEntries == u.totalSignedOffEntries)) ? 1 : 0);
     });
     
-    return [new EntryEngagementSummary(this.resultSet.users.length, engagedUsers.size, totalUsersEngagedWithSharing, totalUsersEngagedSharingWithTutor, totalUsersHaveComments), timelines];
+    return [new EntryEngagementSummary(this.resultSet.users.length, engagedUsers.size, totalUsersEngagedWithSharing, totalUsersEngagedSharingWithTutor, totalUsersHaveComments, totalUsersAllEntriesRequestedSignOff, totalUsersAllEntriesSignedOff), timelines];
   }
 
   private sortUsersBySurname() {
@@ -534,21 +585,29 @@ class EntryEngagementSummary {
   shared: DataPoint[];
   sharedWithTutor: DataPoint[];
   commented: DataPoint[];
+  allRequestedSignOff: DataPoint[];
+  allSignedOff: DataPoint[];
   public activeEngagementType: EntryEngagementTypes;
 
-  constructor(totalUsers: number, totalEngagedUsers: number, totalUsersEngagedWithSharing: number, totalUsersEngagedSharingWithTutor: number, totalUsersHaveComments: number) {
+  constructor(totalUsers: number, totalEngagedUsers: number, totalUsersEngagedWithSharing: number, totalUsersEngagedSharingWithTutor: number, totalUsersHaveComments: number, totalUsersAllEntriesRequestedSignOff: number, totalUsersAllEntriesSignedOff: number) {
     this.engagement = new Array<DataPoint>();
-    this.engagement.push(new DataPoint("Engaged", totalEngagedUsers, EntryEngagementTypes.Entry_Engaged));
-    this.engagement.push(new DataPoint("Non-Engaged", totalUsers - totalEngagedUsers, EntryEngagementTypes.Entry_NonEngaged));
+    this.engagement.push(new DataPoint("Yes", totalEngagedUsers, EntryEngagementTypes.Entry_Engaged));
+    this.engagement.push(new DataPoint("No", totalUsers - totalEngagedUsers, EntryEngagementTypes.Entry_NonEngaged));
     this.shared = new Array<DataPoint>();
-    this.shared.push(new DataPoint("Engaged", totalUsersEngagedWithSharing, EntryEngagementTypes.SharedEntry_Engaged));
-    this.shared.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedWithSharing, EntryEngagementTypes.SharedEntry_NonEngaged));
+    this.shared.push(new DataPoint("Yes", totalUsersEngagedWithSharing, EntryEngagementTypes.SharedEntry_Engaged));
+    this.shared.push(new DataPoint("No", totalUsers - totalUsersEngagedWithSharing, EntryEngagementTypes.SharedEntry_NonEngaged));
     this.sharedWithTutor = new Array<DataPoint>();
-    this.sharedWithTutor.push(new DataPoint("Engaged", totalUsersEngagedSharingWithTutor, EntryEngagementTypes.TutorSharedEntry_Engaged));
-    this.sharedWithTutor.push(new DataPoint("Non-Engaged", totalUsers - totalUsersEngagedSharingWithTutor, EntryEngagementTypes.TutorSharedEntry_NonEngaged));
+    this.sharedWithTutor.push(new DataPoint("Yes", totalUsersEngagedSharingWithTutor, EntryEngagementTypes.TutorSharedEntry_Engaged));
+    this.sharedWithTutor.push(new DataPoint("No", totalUsers - totalUsersEngagedSharingWithTutor, EntryEngagementTypes.TutorSharedEntry_NonEngaged));
     this.commented = new Array<DataPoint>();
-    this.commented.push(new DataPoint("Engaged", totalUsersHaveComments, EntryEngagementTypes.CommentedEntry_Engaged));
-    this.commented.push(new DataPoint("Non-Engaged", totalUsers - totalUsersHaveComments, EntryEngagementTypes.CommentedEntry_NonEngaged));
+    this.commented.push(new DataPoint("Yes", totalUsersHaveComments, EntryEngagementTypes.CommentedEntry_Engaged));
+    this.commented.push(new DataPoint("No", totalUsers - totalUsersHaveComments, EntryEngagementTypes.CommentedEntry_NonEngaged));
+    this.allRequestedSignOff = new Array<DataPoint>();
+    this.allRequestedSignOff.push(new DataPoint("Yes", totalUsersAllEntriesRequestedSignOff, EntryEngagementTypes.RequestedSignOffAllEntries_Engaged));
+    this.allRequestedSignOff.push(new DataPoint("No", totalUsers - totalUsersAllEntriesRequestedSignOff, EntryEngagementTypes.RequestedSignOffAllEntries_NonEngaged));
+    this.allSignedOff = new Array<DataPoint>();
+    this.allSignedOff.push(new DataPoint("Yes", totalUsersAllEntriesSignedOff, EntryEngagementTypes.SignedOffAllEntries_Engaged));
+    this.allSignedOff.push(new DataPoint("No", totalUsers - totalUsersAllEntriesSignedOff, EntryEngagementTypes.SignedOffAllEntries_NonEngaged));
   }
 }
 class DataPoint {

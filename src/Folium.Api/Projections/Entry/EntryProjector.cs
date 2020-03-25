@@ -30,6 +30,9 @@ using Folium.Api.Models.Placement.Events;
 using Folium.Api.Models.SelfAssessing.Events;
 using Microsoft.Extensions.Logging;
 using System;
+using Folium.Api.Models.File.Events;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Folium.Api.Projections.Entry {
 	[Projector(1)]
@@ -43,8 +46,8 @@ namespace Folium.Api.Projections.Entry {
 			   .FirstProject<EntryCreated>(OnEntryCreated)
 			   .ThenProject<EntryCreatedWithType>(OnEntryCreatedWithType)
 			   .ThenProject<EntryUpdated>(OnEntryUpdated)
-               .ThenProject<EntrySkillGroupingChanged>(OnEntrySkillGroupingChanged)
-               .ThenProject<EntryRemoved>(OnEntryRemoved)
+			   .ThenProject<EntrySkillGroupingChanged>(OnEntrySkillGroupingChanged)
+			   .ThenProject<EntryRemoved>(OnEntryRemoved)
 			   .ThenProject<EntrySelfAssessmentCreated>(OnEntrySelfAssessmentCreated)
 			   .ThenProject<EntrySelfAssessmentAdded>(OnEntrySelfAssessmentAdded)
 			   .ThenProject<EntrySelfAssessmentUpdated>(OnEntrySelfAssessmentUpdated)
@@ -52,7 +55,14 @@ namespace Folium.Api.Projections.Entry {
 			   .ThenProject<PlacementNameUpdated>(OnPlacementNameUpdated)
 			   .ThenProject<EntryShared>(OnEntryShared)
 			   .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
-			   .ThenProject<EntryCommentCreated>(OnEntryCommentCreated);
+			   .ThenProject<EntrySignOffRequested>(OnEntrySignOffRequested)
+			   .ThenProject<EntrySignOffUserRemoved>(OnEntrySignOffUserRemoved)
+			   .ThenProject<EntrySignedOff>(OnEntrySignedOff)
+			   .ThenProject<EntryCommentCreated>(OnEntryCommentCreated)
+			   .ThenProject<EntryCommentCreatedWithFiles>(OnEntryCommentCreatedWithFiles)
+			   .ThenProject<EntryFileCreated>(OnFileCreated)
+			   .ThenProject<EntryFileRemoved>(OnFileRemoved)
+			   .ThenProject<EntryAudioVideoFileEncoded>(OnAudioVideoFileEncoded);
 
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
 		}
@@ -101,9 +111,10 @@ namespace Folium.Api.Projections.Entry {
 			const string sql = @"
 			UPDATE [EntryProjector.Entry]
 			SET	[TypeId] = [EntryType].[Id],
-				[TypeName] = [EntryType].[Name]
+				[TypeName] = [EntryType].[Name],
+				[IsSignOffCompatible] = [EntryType].[IsSignOffCompatible]
 			FROM (
-				SELECT [Id], [Name]
+				SELECT [Id], [Name], CASE WHEN Template LIKE '%""signOff"":%' THEN 1 ELSE 0 END AS [IsSignOffCompatible]
 				FROM [dbo].[EntryType]) AS EntryType
 			WHERE
 				[EntryType].[Id] = @TypeId
@@ -273,6 +284,146 @@ namespace Folium.Api.Projections.Entry {
 				WHERE [Id] = @EntryId;";
 				tx.Connection.Execute(sql, (object)sqlParams, tx);
 			}
+		}
+
+		private void OnEntrySignOffUserRemoved(IDbTransaction tx, ICommit commit, EntrySignOffUserRemoved @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				UserId = @event.RemoveUserId
+			};
+
+			const string sql = @"
+				DELETE FROM [dbo].[EntryProjector.SignOffRequest]
+				WHERE [EntryId] = @EntryId
+					  AND [UserId] = @UserId;
+
+				UPDATE [EntryProjector.Entry]
+				SET	[SignOffRequested] = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[EntryProjector.SignOffRequest] WHERE [EntryId] = @EntryId) THEN 1 ELSE 0 END
+				WHERE [Id] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntrySignOffRequested(IDbTransaction tx, ICommit commit, EntrySignOffRequested @event) {
+			foreach (var authorisedUserIds in @event.AuthorisedUserIds) {
+				var sqlParams = new {
+					EntryId = commit.AggregateId(),
+					UserId = authorisedUserIds,
+					@event.When
+				};
+				const string sql = @"
+				INSERT INTO [dbo].[EntryProjector.SignOffRequest]
+					   ([EntryId]
+					   ,[UserId]
+					   ,[When])
+				 SELECT
+					   @EntryId
+					   ,@UserId
+					   ,@When
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.SignOffRequest] WHERE EntryId = @EntryId AND UserId = @UserId);
+				
+				UPDATE [EntryProjector.Entry]
+				SET	[SignOffRequested] = 1
+				WHERE [Id] = @EntryId;";
+				tx.Connection.Execute(sql, (object)sqlParams, tx);
+			}
+		}
+
+		private void OnEntrySignedOff(IDbTransaction tx, ICommit commit, EntrySignedOff @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				UserId = @event.AuthorisedUserId,
+				@event.When,
+				@event.CommentId
+			};
+			const string sql = @"
+			UPDATE [EntryProjector.Entry]
+			SET	[SignedOffAt] = @When,
+				[SignedOffBy] = @UserId,
+				[SignedOff] = 1
+			WHERE [Id] = @EntryId;
+
+			UPDATE [EntryProjector.EntryComment]
+			SET	[ForSignOff] = 1
+			WHERE [Id] = @CommentId
+			AND [EntryId] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntryCommentCreatedWithFiles(IDbTransaction tx, ICommit commit, EntryCommentCreatedWithFiles @event) {
+			foreach (var fileId in @event.FileIds) {
+				var sqlParams = new {
+					@event.CommentId,
+					EntryId = commit.AggregateId(),
+					FileId = fileId
+				};
+				const string sql = @"
+				INSERT INTO [dbo].[EntryProjector.EntryCommentFile]
+					   ([CommentId]
+					   ,[EntryId]
+					   ,[FileId])
+				 SELECT
+					   @CommentId
+					   ,@EntryId
+					   ,@FileId
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.EntryCommentFile] WHERE CommentId = @CommentId AND EntryId = @EntryId AND FileId = @FileId);";
+				tx.Connection.Execute(sql, (object)sqlParams, tx);
+			}
+		}
+
+		private void OnFileCreated(IDbTransaction tx, ICommit commit, EntryFileCreated @event) {
+			var sqlParams = @event.ToDynamic();
+			sqlParams.EntryId = commit.AggregateId();
+
+			const string sql = @"
+				INSERT INTO [dbo].[EntryProjector.EntryFile]
+					   ([EntryId]
+					   ,[FileId]
+					   ,[OnComment]
+					   ,[CreatedBy]
+					   ,[CreatedAt]
+					   ,[FileName]
+					   ,[FilePath]
+                       ,[Type]
+					   ,[Size]
+				       ,[IsAudioVideoEncoded])
+				 SELECT
+					   @EntryId
+					   ,@FileId
+					   ,@OnComment
+					   ,@CreatedBy
+					   ,@CreatedAt
+					   ,@FileName
+					   ,@FilePath
+                       ,@Type
+					   ,@Size
+					   ,0
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[EntryProjector.EntryFile] WHERE EntryId = @EntryId AND FileId = @FileId);";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnFileRemoved(IDbTransaction tx, ICommit commit, EntryFileRemoved @event) {
+			var sqlParams = @event.ToDynamic();
+			sqlParams.EntryId = commit.AggregateId();
+
+			const string sql = @"
+				DELETE FROM [dbo].[EntryProjector.EntryFile]
+				WHERE EntryId = @EntryId AND FileId = @FileId;
+
+				DELETE FROM [dbo].[EntryProjector.EntryCommentFile]
+				WHERE EntryId = @EntryId AND FileId = @FileId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnAudioVideoFileEncoded(IDbTransaction tx, ICommit commit, EntryAudioVideoFileEncoded @event) {
+			var sqlParams = @event.ToDynamic();
+			sqlParams.EntryId = commit.AggregateId();
+
+			const string sql = @"
+				UPDATE [dbo].[EntryProjector.EntryFile]
+				SET [IsAudioVideoEncoded] = 1,
+					[EncodedAudioVideoDirectoryPath] = @EncodedAudioVideoDirectoryPath
+				WHERE EntryId = @EntryId AND FileId = @FileId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
 		}
 	}
 }

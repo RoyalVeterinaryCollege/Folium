@@ -14,7 +14,7 @@ import { ViewChild, Component, Input, ElementRef } from "@angular/core";
 
 export class Slim {
 
-  @ViewChild("root")
+  @ViewChild("root", { static: true })
   element: ElementRef;
 
   @Input()

@@ -60,6 +60,7 @@ namespace Folium.Api.Services {
                     LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
                             ON [User].[Id] = [ActivitySummary].[UserId]
 					WHERE [CourseEnrolment].[Active] = 1
+					    AND [Tutee].[Removed] = 0
                         AND [TuteeGroup].[Removed] = 0
                         AND [TuteeGroup].[TutorId] = @UserId;",
                     (tuteeGroup, user, activitySummary) => {
@@ -103,6 +104,7 @@ namespace Folium.Api.Services {
                     LEFT JOIN [dbo].[ActivityProjector.ActivitySummary] [ActivitySummary]
                             ON [User].[Id] = [ActivitySummary].[UserId]
 					WHERE [CourseEnrolment].[Active] = 1
+					    AND [Tutee].[Removed] = 0
                         AND [TuteeGroup].[Id] = @TuteeGroupId;",
                     (tuteeGroup, user, activitySummary) => {
                         var group = tutorGroups.FirstOrDefault(t => t.Id == tuteeGroup.Id);
@@ -144,6 +146,7 @@ namespace Folium.Api.Services {
 					WHERE [CourseEnrolment].[UserId] = @userId
 					AND [CourseEnrolment].[CourseId] = @courseId 
 					AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0
 					AND [TuteeGroup].[Removed] = 0;",
 					new {
 						userId = user.Id,
@@ -177,6 +180,7 @@ namespace Folium.Api.Services {
 						ON [TuteeGroup].[TutorId] = [User].[Id]
 					WHERE [CourseEnrolment].[UserId] = @userId
 					AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0
 					AND [TuteeGroup].[Removed] = 0;",
                     new {
                         userId = user.Id
@@ -202,7 +206,8 @@ namespace Folium.Api.Services {
 						ON [Tutee].[TuteeGroupId] = [TuteeGroup].[Id]
 					WHERE  [TuteeGroup].[TutorId] = @tutorId
                     AND [CourseEnrolment].[UserId] = @userId
-                    AND [CourseEnrolment].[Active] = 1;",
+                    AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0;",
                     new
                     {
                         userId = userId,

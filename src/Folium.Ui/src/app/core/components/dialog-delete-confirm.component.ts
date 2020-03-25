@@ -26,8 +26,8 @@ import { Component } from "@angular/core"
     </div>
     <div mat-dialog-content class="pt-3">Are you sure you want to delete this?</div>
     <div mat-dialog-actions class="justify-content-between">
-        <button class="btn btn-secondary btn-shadow" mat-dialog-close="true">Yes</button>
         <button class="btn btn-primary btn-shadow" mat-dialog-close="false">No</button>
+        <button class="btn btn-secondary btn-shadow" mat-dialog-close="true">Yes</button>
     </div>`
 })
 export class DialogDeleteConfirmComponent { }

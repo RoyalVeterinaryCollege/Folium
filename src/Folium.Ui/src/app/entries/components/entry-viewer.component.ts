@@ -17,11 +17,11 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, OnDestroy, Input, EventEmitter, Output } from "@angular/core";
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Subscription } from "rxjs";
 
-import { Entry, SkillGroup, EntrySummary, User } from "../../core/dtos";
+import { Entry, SkillGroup, EntrySummary, User, EntryFile } from "../../core/dtos";
 import { EntriesService } from "../entries.service";
 import { SkillService } from "../../skills/skill.service";
 import { NotificationService } from "../../core/notification.service"
@@ -30,6 +30,8 @@ import { SkillAssessmentService } from "../../skills/skill-assessment.service";
 import { SkillBundleService } from "../../skills/skill-bundle.service";
 import { DialogShareEntryComponent } from "./dialog-share-entry.component";
 import { UserService } from "../../user/user.service";
+import { DialogSignOffComponent } from "./dialog-sign-off.component";
+import { DialogRequestSignOffComponent } from "./dialog-request-sign-off.component";
 
 @Component({
 	selector: "entry-viewer",
@@ -39,7 +41,9 @@ import { UserService } from "../../user/user.service";
 export class EntryViewerComponent implements OnInit, OnDestroy {
   skillGroups: SkillGroup[];
 	bundleSize: number;
-	entry: Entry;
+  entry: Entry;
+  entryFiles: EntryFile[];
+  commentFiles: EntryFile[];
 	
   private signedInUser$: Subscription;
   private signedInUser: User;
@@ -93,7 +97,8 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 		this.entriesService.getEntry(this.entrySummary.id)
 			.subscribe((entry: Entry) => {
 				this.entry = entry;
-				this.loadSkills();
+        this.loadSkills();
+        this.loadEntryFiles();
 			},
 			(error: any) => this.notificationService.addDanger(`There was an error trying to load the entry, please try again.
 				${error}`));  
@@ -122,7 +127,16 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 				(error: any) => this.notificationService.addDanger(`There was an error trying to load the skill groupings, please try again.
 					${error}`));		
 	}
-	
+
+  private loadEntryFiles() {
+    this.entriesService.getEntryFiles(this.entry.id)
+      .subscribe(entryFiles => {
+        this.entryFiles = entryFiles;
+      },
+        (error: any) => this.notificationService.addDanger(`There was an error trying to load the entry files, please try again.
+			${error}`));
+  }
+
 	onCloseClick(event: Event) {		
 		event.preventDefault();
 		this.onClose.emit(this.entrySummary);
@@ -134,17 +148,50 @@ export class EntryViewerComponent implements OnInit, OnDestroy {
 
 	shareEntry() {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-  		data: { entryId: this.entry.id, user: this.user },
+  		data: { entry: this.entry, user: this.user },
 		});
 		dialogRef.afterClosed().subscribe((result: boolean) => {
 			this.entry.shared = result;
 			this.entrySummary.shared = result;
 		});
 	}
-	
-	get canModifyEntry(): boolean {
-		return this.entry.author.id === this.signedInUser.id
-	}
+
+  requestSignOff() {
+    let dialogRef = this.dialog.open(DialogRequestSignOffComponent, {
+      data: { entry: this.entry, user: this.user },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      this.entry.signOffRequested = result;
+      this.entrySummary.signOffRequested = result;
+      if (result) {
+        // If there is a signoff request then it must be shared.
+        this.entry.shared = result;
+        this.entrySummary.shared = result;
+      }
+    });
+  }
+
+  signOff() {
+    let dialogRef = this.dialog.open(DialogSignOffComponent, {
+      data: { entry: this.entry, files: this.entryFiles },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      this.entry.signedOff = result;
+      this.entrySummary.signedOff = result;
+    });
+  }
+
+  get canSignOffEntry(): boolean {
+    return this.entry.signOffRequested && !this.entry.signedOff && this.entry.isAuthorisedToSignOff;
+  }
+
+  get canModifyEntry(): boolean {
+    return this.entry.author.id === this.signedInUser.id && !this.entry.signedOff;
+  }
+
+  get isMyEntry(): boolean {
+    return this.entry.author.id === this.signedInUser.id;
+  }
 	
   ngOnDestroy() {
 		this.onClose.emit(this.entrySummary);

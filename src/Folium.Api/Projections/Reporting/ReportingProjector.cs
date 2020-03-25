@@ -71,7 +71,10 @@ namespace Folium.Api.Projections.Reporting {
                 .ThenProject<SkillSelfAssessmentRemoved>(OnSelfAssessmentRemoved)
                 .ThenProject<EntryShared>(OnEntryShared)
                 .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
-                .ThenProject<EntryCommentCreated>(OnEntryCommentCreated);
+                .ThenProject<EntryCommentCreated>(OnEntryCommentCreated)
+                .ThenProject<EntrySignOffUserRemoved>(OnEntrySignOffUserRemoved)
+                .ThenProject<EntrySignOffRequested>(OnEntrySignOffRequested)
+                .ThenProject<EntrySignedOff>(OnEntrySignedOff);
 
             _conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
             _entryService = entryService;
@@ -123,11 +126,42 @@ namespace Folium.Api.Projections.Reporting {
             var sqlParams = @event.ToDynamic();
             sqlParams.Id = commit.AggregateId();
 
-            tx.Connection.Execute(@"
+            // Get whether the entry type is 'sign-off' compatable.
+            var isSignOffCompatible = tx.Connection.ExecuteScalar<bool>(@"
+                SELECT CASE WHEN Template LIKE '%""signOff"":%' THEN 1 ELSE 0 END AS [IsSignOffCompatible]
+				FROM [dbo].[EntryType]
+                WHERE [Id] = @TypeId;",
+                (object)sqlParams, tx);
+
+            if (isSignOffCompatible) {
+                // Get the entry 'where' and userId value for use on updating the placement data.
+                var result = tx.Connection.QueryFirstOrDefault(@"
+                SELECT [UserId], [Where]
+                FROM [dbo].[ReportingProjector.EntryEngagement]
+				WHERE [EntryId] = @Id;",
+                    (object)sqlParams, tx);
+
+                sqlParams.UserId = result.UserId;
+                sqlParams.Where = result.Where;
+                
+                tx.Connection.Execute(@"
+                UPDATE [dbo].[ReportingProjector.EntryEngagement]
+		        SET [EntryTypeId] = @TypeId,
+				    [IsSignOffCompatible] = 1
+				WHERE [EntryId] = @Id;
+
+                UPDATE [dbo].[ReportingProjector.PlacementEngagement]
+		        SET [EntrySignOffCompatibleCount] = [EntrySignOffCompatibleCount] + 1
+				WHERE [FullyQualifiedTitle] = @Where 
+                AND [UserId] = @UserId;",
+                (object)sqlParams, tx);
+            } else {
+                tx.Connection.Execute(@"
                 UPDATE [dbo].[ReportingProjector.EntryEngagement]
 		        SET [EntryTypeId] = @TypeId
 				WHERE [EntryId] = @Id;",
                 (object)sqlParams, tx);
+            }
         }
 
         private void OnEntryUpdated(IDbTransaction tx, ICommit commit, EntryUpdated @event) {            
@@ -166,15 +200,18 @@ namespace Folium.Api.Projections.Reporting {
 			var sqlParams = @event.ToDynamic();
 			sqlParams.Id = commit.AggregateId();
 
-            // Get the userid and old 'where' value.
+            // Get the userid, old 'where' value and the sign-off statuses.
             var result = tx.Connection.QueryFirstOrDefault(@"
-                SELECT [UserId], [Where]
+                SELECT [UserId], [Where], [IsSignOffCompatible], [SignOffRequestCount], [SignedOff]
                 FROM [dbo].[ReportingProjector.EntryEngagement]
 				WHERE [EntryId] = @Id;",
                 (object)sqlParams, tx);
 
             sqlParams.UserId = result.UserId;
             sqlParams.OldWhere = result.Where;
+            sqlParams.SignOffCompatible = result.IsSignOffCompatible == true ? 1 : 0;
+            sqlParams.SignOffRequested = result.SignOffRequestCount > 0 ? 1 : 0;
+            sqlParams.SignedOff = result.SignedOff == true ? 1 : 0;
 
             // Remove the entry and update the entry count on the placement report.
             tx.Connection.Execute(@"
@@ -182,7 +219,10 @@ namespace Folium.Api.Projections.Reporting {
 				WHERE [EntryId] = @Id;
 
                 UPDATE [dbo].[ReportingProjector.PlacementEngagement]
-				SET [EntryCount] = [EntryCount] - 1
+				SET [EntryCount] = [EntryCount] - 1,
+                    [EntrySignOffCompatibleCount] = [EntrySignOffCompatibleCount] - @SignOffCompatible,
+                    [EntrySignOffRequestCount] = [EntrySignOffRequestCount] - @SignOffRequested,
+                    [EntrySignedOffCount] = [EntrySignedOffCount] - @SignedOff
 				WHERE [FullyQualifiedTitle] = @OldWhere 
                 AND [UserId] = @UserId;",
                 (object)sqlParams, tx);
@@ -290,6 +330,90 @@ namespace Folium.Api.Projections.Reporting {
                         (object)sqlParams, tx);
                 }
             }
+        }
+
+        private void OnEntrySignOffRequested(IDbTransaction tx, ICommit commit, EntrySignOffRequested @event) {
+            var sqlParams = @event.ToDynamic();
+            sqlParams.Id = commit.AggregateId();
+            sqlParams.NewUsers = @event.AuthorisedUserIds.Count;
+
+            // Get the entry 'where' and SignOffRequestCount value for use on updating the placement data.
+            var result = tx.Connection.QueryFirstOrDefault(@"
+                SELECT [Where], [UserId], [SignOffRequestCount]
+                FROM [dbo].[ReportingProjector.EntryEngagement]
+				WHERE [EntryId] = @Id;",
+                (object)sqlParams, tx);
+
+            sqlParams.Where = result.Where;
+            sqlParams.UserId = result.UserId;
+            sqlParams.SignOffRequestCount = result.SignOffRequestCount == 0 ? 1 : 0; // Only increase the count on the placement stats by 1 if they have not already requested a sign-off.
+
+            tx.Connection.Execute(
+                @"
+                UPDATE [dbo].[ReportingProjector.EntryEngagement]
+		        SET [SignOffRequestCount] = [SignOffRequestCount] + @NewUsers
+				WHERE [EntryId] = @Id;
+
+                UPDATE [dbo].[ReportingProjector.PlacementEngagement]
+				SET [EntrySignOffRequestCount] = [EntrySignOffRequestCount] + @SignOffRequestCount
+				WHERE [FullyQualifiedTitle] = @Where 
+                AND [UserId] = @UserId;",
+                (object)sqlParams, tx);
+        }
+
+        private void OnEntrySignOffUserRemoved(IDbTransaction tx, ICommit commit, EntrySignOffUserRemoved @event) {
+            var sqlParams = @event.ToDynamic();
+            sqlParams.Id = commit.AggregateId();
+
+            // Get the entry 'where', UserId and SignOffRequestCount value for use on updating the placement data.
+            var result = tx.Connection.QueryFirstOrDefault(@"
+                SELECT [Where], [SignOffRequestCount]
+                FROM [dbo].[ReportingProjector.EntryEngagement]
+				WHERE [EntryId] = @Id;",
+                (object)sqlParams, tx);
+
+            sqlParams.Where = result.Where;
+            sqlParams.UserId = result.UserId;
+            sqlParams.SignOffRequestCount = result.SignOffRequestCount == 1 ? 1 : 0; // Only decrease the count on the placement stats by 1 if they will no longer have any users being requested to sign-off.
+
+            tx.Connection.Execute(
+                @"
+                UPDATE [dbo].[ReportingProjector.EntryEngagement]
+		        SET [SignOffRequestCount] = [SignOffRequestCount] - 1
+				WHERE [EntryId] = @Id;
+
+                UPDATE [dbo].[ReportingProjector.PlacementEngagement]
+				SET [EntrySignOffRequestCount] = [EntrySignOffRequestCount] - @SignOffRequestCount
+				WHERE [FullyQualifiedTitle] = @Where 
+                AND [UserId] = @UserId;",
+                (object)sqlParams, tx);
+        }
+
+        private void OnEntrySignedOff(IDbTransaction tx, ICommit commit, EntrySignedOff @event) {
+            var sqlParams = @event.ToDynamic();
+            sqlParams.Id = commit.AggregateId();
+
+            // Get the entry 'where' and UserId value for use on updating the placement data.
+            var result = tx.Connection.QueryFirstOrDefault(@"
+                SELECT [Where], [SignOffRequestCount]
+                FROM [dbo].[ReportingProjector.EntryEngagement]
+				WHERE [EntryId] = @Id;",
+                (object)sqlParams, tx);
+
+            sqlParams.Where = result.Where;
+            sqlParams.UserId = result.UserId;
+
+            tx.Connection.Execute(
+                @"
+                UPDATE [dbo].[ReportingProjector.EntryEngagement]
+		        SET [SignedOff] = 1
+				WHERE [EntryId] = @Id;
+
+                UPDATE [dbo].[ReportingProjector.PlacementEngagement]
+		        SET [EntrySignedOffCount] = [EntrySignedOffCount] + 1
+				WHERE [FullyQualifiedTitle] = @Where 
+                AND [UserId] = @UserId;",
+                (object)sqlParams, tx);
         }
 
         private void OnPlacementCreated(IDbTransaction tx, ICommit commit, PlacementCreated @event) {

@@ -22,7 +22,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, ReplaySubject } from "rxjs";
 import { tap, map, publishReplay, refCount } from 'rxjs/operators';
 
-import { User, CollaboratorOption, SkillSet, TuteeGroup } from "../core/dtos";
+import { User, UserOption, SkillSet, TuteeGroup } from "../core/dtos";
 
 @Injectable()
 export class UserService {
@@ -51,8 +51,8 @@ export class UserService {
         return this.http.get<User>(`${this.userUrl}/${id}`);
     }
 
-	getUsers(query: string): Observable<CollaboratorOption[]> {
-		return this.http.get<CollaboratorOption[]>(`${this.userUrl}?q=${query}`);
+	getUsers(query: string): Observable<UserOption[]> {
+		return this.http.get<UserOption[]>(`${this.userUrl}?q=${query}`);
 	}
 
     getUsersTutors(userId: number, courseId: number): Observable<User[]> {

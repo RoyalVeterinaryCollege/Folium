@@ -18,6 +18,7 @@
 */
 .mat-chip {
     margin-bottom: 4px;
+    font-weight:300;
     &:not(.mat-basic-chip) {
         &:hover {
             background-color: $light-blue;
@@ -56,7 +57,6 @@
 
 .mat-chip-small {
     @extend .mat-chip;
-    padding: 4px 6px 4px 6px !important;
     margin-bottom: 0;
 }
 .modal-body {

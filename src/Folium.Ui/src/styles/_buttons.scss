@@ -78,6 +78,15 @@
         }
     }
 }
+.btn-link {
+    font-weight:normal;
+}
+button.btn-anchor {
+  @extend .btn-link;
+  padding: 0;
+  border: none;
+  font-family: inherit;
+}
 .btn-link-icon {
     @extend .btn-link;
     border:none;

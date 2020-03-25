@@ -46,11 +46,10 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 										*ngFor="let who of reportForm.value.who" 
 										[removable]="true" 
 										[selectable]="false" 
-										(click)="onRemoveReportOnOptionClick(who)" 
-										(remove)="onRemoveReportOnOptionClick(who)">
+										(removed)="onRemoveReportOnOptionClick(who)">
 										<span [innerHTML]='who.name'></span>
 										<mat-icon matChipRemove>
-											<i class="fa fa-times" aria-hidden="true"></i>
+											<i class="fas fa-times" aria-hidden="true"></i>
 											<span class="sr-only">Remove</span>
 										</mat-icon>
 									</mat-chip>
@@ -91,11 +90,10 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 										*ngIf="reportForm.value.skillSet" 
 										[removable]="true" 
 										[selectable]="false" 
-										(click)="onRemoveSkillSetClick()" 
-										(remove)="onRemoveSkillSetClick()">
+										(removed)="onRemoveSkillSetClick()">
 										{{reportForm.value.skillSet.name}}
 										<mat-icon matChipRemove>
-											<i class="fa fa-times" aria-hidden="true"></i>
+											<i class="fas fa-times" aria-hidden="true"></i>
 											<span class="sr-only">Remove</span>
 										</mat-icon>
 									</mat-chip>

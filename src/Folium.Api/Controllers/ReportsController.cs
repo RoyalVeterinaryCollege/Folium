@@ -24,6 +24,7 @@ using Folium.Api.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Folium.Api.Dtos.Reporting;
+using System.Collections.Generic;
 
 namespace Folium.Api.Controllers {
     [Route("[controller]")]
@@ -31,17 +32,20 @@ namespace Folium.Api.Controllers {
     public class ReportsController : Controller {
         private readonly IReportService _reportService;
         private readonly IUserService _userService;
+        private readonly IEntryService _entryService;
         private readonly ILogger<ReportsController> _logger;
 
         public ReportsController(
             ILogger<ReportsController> logger,
             IReportService reportService,
             ISkillService skillService,
+            IEntryService entryService,
             ISelfAssessmentService selfAssessmentService,
             IUserService userService) {
             _logger = logger;
             _reportService = reportService;
             _userService = userService;
+            _entryService = entryService;
         }
 
         [HttpGet("user-options")]
@@ -53,6 +57,16 @@ namespace Folium.Api.Controllers {
             var options = await _reportService.GetReportOnOptionsAsync(currentUser);
 
             return Json(options);
+        }
+        
+        [HttpGet("entry-types")]
+        // GET types
+        // Gets all the entry types for the specified skillset.
+        public async Task<ActionResult> EntryTypes(List<int> skillSetIds) {
+            // Get the entry types.
+            var types = await _entryService.GetEntryTypesAsync(skillSetIds);
+
+            return Json(types);
         }
 
         [HttpPost("self-assessment-engagement")]

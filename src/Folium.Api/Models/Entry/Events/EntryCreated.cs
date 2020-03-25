@@ -23,9 +23,9 @@ namespace Folium.Api.Models.Entry.Events {
 		public EntryCreated(int skillSetId, string title, string description, int userId, string where, DateTime when, DateTime createdAt, DateTime lastUpdatedAt, int? skillGroupingId) {
 			SkillSetId = skillSetId;
 			Description = description;
-			Title = title;
+			Title = title.Substring(0, title.Length > 1000 ? 1000 : title.Length);
 			UserId = userId;
-			Where = where;
+			Where = where.Substring(0, where.Length > 1050 ? 1050 : where.Length);
 			When = when;
 			CreatedAt = createdAt;
 			LastUpdatedAt = lastUpdatedAt;

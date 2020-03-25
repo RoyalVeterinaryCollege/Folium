@@ -27,6 +27,7 @@
 @import "cards";
 @import "charts";
 @import "chips";
+@import "comment";
 @import "dropdown";
 @import "entry";
 @import "fades";
@@ -38,14 +39,19 @@
 @import "mat-chips";
 @import "mat-datepicker";
 @import "mat-dialog";
+@import "mat-menu";
 @import "mat-form-field";
+@import "mat-select";
 @import "mat-table";
+@import "mat-tabs";
 @import "modals";
 @import "notifications";
 @import "placement";
+@import "plyr";
 @import "print";
 @import "profiles";
 @import "shadows";
 @import "../../lib/slim/slim";
 @import "tinymce";
 @import "typography";
+@import "_utility";

@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, OnDestroy, ViewChild } from "@angular/core";
-import { MatDialogRef } from "@angular/material";
+import { MatDialogRef } from "@angular/material/dialog";
 import { ModalDirective } from "ngx-bootstrap/modal";
 import { Subscription } from "rxjs";
 
@@ -35,7 +35,7 @@ enum UserEditView {
   templateUrl: "dialog-user-editor.component.html",
 })
 export class DialogUserEditorComponent implements OnInit, OnDestroy {
-  @ViewChild("editUserModal")
+  @ViewChild("editUserModal", { static: false })
   editUserModal: ModalDirective;
 
   user: User;

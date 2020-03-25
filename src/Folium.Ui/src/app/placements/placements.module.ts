@@ -20,15 +20,13 @@ import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { RouterModule } from "@angular/router";
-import { 
-    MatInputModule, 
-    MatDatepickerModule, 
-    MatNativeDateModule, 
-    DateAdapter,  
-    MatButtonModule,
-    MatMenuModule,
-    MatChipsModule, 
-    MatIconModule} from "@angular/material";
+import { MatButtonModule } from "@angular/material/button";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatNativeDateModule, DateAdapter } from "@angular/material/core";
+import { MatDatepickerModule } from "@angular/material/datepicker";
+import { MatIconModule } from "@angular/material/icon";
+import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
 
 import { FmPlacementsRoutingModule } from "./placements-routing.module";
 import { PlacementsViewerComponent, OrderByPlacementDatePipe } from "./components/placements-viewer.component";

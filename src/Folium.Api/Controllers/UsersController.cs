@@ -100,7 +100,6 @@ namespace Folium.Api.Controllers {
                 var newUser = await _userService.CreateUserAsync(new User(){
                     Email = User.Email(),
                     FirstName = User.FirstName(),
-                    MiddleNames = User.MiddleNames(),
                     LastName = User.LastName()                    
                 });
 
@@ -112,7 +111,6 @@ namespace Folium.Api.Controllers {
                 await _userService.UpdateUserAsync(new User(){
                     Email = User.Email(),
                     FirstName = User.FirstName(),
-                    MiddleNames = User.MiddleNames(),
                     LastName = User.LastName()            
                 });
             }
@@ -150,7 +148,7 @@ namespace Folium.Api.Controllers {
                 await _userService.RemoveUserImage(currentUser);
             }
 
-            return Json(GetCurrentUser());
+            return Json(await GetCurrentUser());
 		}
 
 		[NoCache, Authorize, HttpGet("{userId}/courses/{courseId}/tutors")]

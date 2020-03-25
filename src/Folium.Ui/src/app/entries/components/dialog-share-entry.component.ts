@@ -18,12 +18,13 @@
 */
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Component, OnInit, ViewChild, ElementRef, Inject, OnDestroy } from "@angular/core"
-import { MAT_DIALOG_DATA, MatDialogRef, MatAutocompleteSelectedEvent } from '@angular/material';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
-import { CollaboratorOption, User, ShareEntry } from "../../core/dtos";
+import { UserOption, User, ShareEntry, EntrySummary, Entry } from "../../core/dtos";
 import { UserService } from "../../user/user.service";
 import { EntriesService } from "../entries.service";
 import { NotificationService } from "../../core/notification.service";
@@ -33,19 +34,20 @@ import { NotificationService } from "../../core/notification.service";
 	templateUrl: "dialog-share-entry.component.html"
 })
 export class DialogShareEntryComponent implements OnInit, OnDestroy {
-	previousCollaboratorOptions: CollaboratorOption[] = []; // Store the previous options when the user has no search content as if they type the same letter again the distinctUntilChanged option on the observable means it will not fire.
-	collaboratorOptions: CollaboratorOption[] = [];
+	previousCollaboratorOptions: UserOption[] = []; // Store the previous options when the user has no search content as if they type the same letter again the distinctUntilChanged option on the observable means it will not fire.
+	collaboratorOptions: UserOption[] = [];
 	collaboratorsToInvite: User[] = [];
-	collaborators: User[] = [];
+  collaborators: User[] = [];
+  signOffUsers: User[] = [];
 	searchRequest$ = new Subject<string>();
 	message: string;	
 	collaboratorToInviteQuery: string = "";
 	
-	@ViewChild("collaboratorToInviteInput")
+	@ViewChild("collaboratorToInviteInput", { static: true })
 	collaboratorToInviteInput: ElementRef;
 	
 	private cachedQuery: string;
-	private entryId: string;
+	private entry: Entry | EntrySummary;
 	private user: User;
 	private allTutors: User[] = [];
 
@@ -57,7 +59,7 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		@Inject(MAT_DIALOG_DATA) private data: any,
 		private dialogRef: MatDialogRef<DialogShareEntryComponent>) { 
 			this.user = data.user;
-			this.entryId = data.entryId;
+			this.entry = data.entry;
 			this.search(this.searchRequest$.asObservable())
 				.subscribe(results => {
 					this.previousCollaboratorOptions = [...results];
@@ -85,7 +87,7 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 	}
 	
 	onCollaboratorSelected(event: MatAutocompleteSelectedEvent) {		
-		let selectedCollaborator = event.option.value as CollaboratorOption;
+		let selectedCollaborator = event.option.value as UserOption;
 		if(selectedCollaborator.isGroup) {
 			selectedCollaborator.group.forEach(user => {				
 				if(this.canAddUserToInviteList(user)) {
@@ -119,8 +121,12 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		return collaborator.firstName ? `${collaborator.firstName} ${collaborator.lastName}` : collaborator.email;
 	}
 	
-	onRemoveCollaboratorClick(collaborator: User) {
-		this.entriesService.removeCollaborator(this.entryId, collaborator.id)
+  onRemoveCollaboratorClick(collaborator: User) {
+    if (!this.entry.signedOff && this.signOffUsers.some(u => u.id == collaborator.id)) {
+      this.notificationService.addWarning(`You cannot remove this user as you have requested them to sign-off this entry.`);
+      return;
+    }
+		this.entriesService.removeCollaborator(this.entry.id, collaborator.id)
 			.subscribe((response: any) => {
 				this.collaborators = this.collaborators.filter(c => c.id !== collaborator.id);
 			},
@@ -134,15 +140,15 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		}
 	}
 	
-	onRemoveCollaboratorToInviteClick(collaborator: User) {
-		if(this.collaboratorsToInvite.includes(collaborator)){
+  onRemoveCollaboratorToInviteClick(collaborator: User) {
+    if (this.collaboratorsToInvite.some(u => u.id == collaborator.id)) {
 			this.collaboratorsToInvite.splice(this.collaboratorsToInvite.indexOf(collaborator), 1);
 		}
 	}
 	
 	onSendInvites() {
 		let shareEntryDto = new ShareEntry();
-		shareEntryDto.entryId = this.entryId;
+		shareEntryDto.entryId = this.entry.id;
 		shareEntryDto.message = this.message;
 		shareEntryDto.collaboratorIds = this.collaboratorsToInvite.map(c => c.id);
 
@@ -180,10 +186,13 @@ export class DialogShareEntryComponent implements OnInit, OnDestroy {
 		);;
 	}
 
-	private loadCollaborators() {
-		this.entriesService.getCollaborators(this.entryId)
-			.subscribe((collaborators: User[]) => {
-				this.collaborators = collaborators;
+  private loadCollaborators() {
+    forkJoin(
+      this.entriesService.getCollaborators(this.entry.id),
+      this.entriesService.getSignOffUsers(this.entry.id)
+    ).subscribe((data: [User[], User[]]) => {
+        this.collaborators = data[0];
+        this.signOffUsers = data[1];
 			},
 			(error: any) => this.notificationService.addDanger(`There was an error trying to load the collaborators, please try again.
 				${error}`));

@@ -120,7 +120,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 CREATE TABLE [dbo].[PlacementProjector.Entry](
 	[Id] [uniqueidentifier] NOT NULL,
-	[PlacementId] [uniqueidentifier] NOT NULL,
+	[PlacementId] [uniqueidentifier] NULL,
 	[SkillSetId] [int] NOT NULL,
 	[Description] [nvarchar](max) NULL,
 	[Title] [nvarchar](1000) NOT NULL,
@@ -336,6 +336,10 @@ CREATE TABLE [dbo].[Tutee](
 	[TuteeGroupId] [int] NOT NULL,
 	[CourseEnrolmentId] [int] NOT NULL,
 	[Removed] [bit] NOT NULL,
+	[CreatedAt] [datetime] NOT NULL,
+	[CreatedBy] [int] NOT NULL,
+	[LastUpdatedAt] [datetime] NOT NULL,
+	[LastUpdatedBy] [int] NOT NULL,
  CONSTRAINT [PK_Tutee] PRIMARY KEY CLUSTERED 
 (
 	[Id] ASC
@@ -460,14 +464,15 @@ CREATE TABLE [dbo].[WhereProjector.Where](
 	[UserId] [int] NOT NULL,
 	[Name] [nvarchar](200) NOT NULL,
 	[UsageCount] [int] NOT NULL,
- CONSTRAINT [PK_WhereProjector.Where] PRIMARY KEY CLUSTERED 
+	[Hash]  AS (hashbytes('SHA2_512',CONVERT([nvarchar](12),[UserId])+[Name])),
+ CONSTRAINT [Hash_Unique] UNIQUE NONCLUSTERED 
 (
-	[UserId] ASC,
-	[Name] ASC
+	[Hash] ASC
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 ) ON [PRIMARY]
 
 GO
+
 ALTER TABLE [dbo].[User] ADD  CONSTRAINT [DF_User_HasProfilePic]  DEFAULT ((0)) FOR [HasProfilePic]
 GO
 ALTER TABLE [dbo].[User] ADD  CONSTRAINT [DF_User_ProfilePicVersion]  DEFAULT ((0)) FOR [ProfilePicVersion]

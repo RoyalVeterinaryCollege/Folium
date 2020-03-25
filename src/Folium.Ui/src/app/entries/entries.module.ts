@@ -20,14 +20,15 @@ import { NgModule }       from "@angular/core";
 import { CommonModule }       from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { 
-    MatInputModule, 
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatMenuModule,
-    MatChipsModule,
-    MatDialogModule,  
-    MatIconModule} from "@angular/material";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
+import { MatButtonModule } from "@angular/material/button";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatDialogModule } from "@angular/material/dialog";
+import { MatIconModule } from "@angular/material/icon";
+import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
+import { MatTabsModule } from "@angular/material/tabs";
+import { MatSelectModule } from "@angular/material/select";
 
 import { ButtonsModule } from "ngx-bootstrap/buttons";
 import { ModalModule } from "ngx-bootstrap/modal";
@@ -43,6 +44,13 @@ import { FmCoreModule } from "../core/core.module";
 import { FmUserModule } from "../user/user.module";
 import { CommentsComponent, OrderByCommentDatePipe } from "./components/comments.component";
 import { ViewEntryComponent } from "./components/view-entry.component";
+import { UppyModule } from "../uppy/uppy.module";
+import { EntryFilesComponent } from "./components/entry-files.component";
+import { DialogFilePreviewComponent } from "./components/dialog-file-preview.component";
+import { PlyrModule } from 'ngx-plyr';
+import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { DialogRequestSignOffComponent } from "./components/dialog-request-sign-off.component";
+import { DialogSignOffComponent } from "./components/dialog-sign-off.component";
 
 @NgModule({
     imports: [
@@ -57,31 +65,47 @@ import { ViewEntryComponent } from "./components/view-entry.component";
         MatDialogModule,
         MatIconModule,
 		MatInputModule,
-        MatMenuModule,
+    MatMenuModule,
+    MatSelectModule,
+    MatTabsModule,
+
+    BrowserAnimationsModule,
+    PlyrModule,
         
         ButtonsModule.forRoot(),
         ModalModule.forRoot(),
 
         FmCoreModule,
         FmUserModule,
-        FmSkillsCoreModule
+        FmSkillsCoreModule,
+
+        UppyModule
     ],
     declarations: [
-        CommentsComponent,
-		DialogShareEntryComponent,
+      CommentsComponent,
+      DialogFilePreviewComponent,
+      DialogRequestSignOffComponent,
+      DialogShareEntryComponent,
+      DialogSignOffComponent,
         EntriesViewerComponent,
         EntryEditorComponent,
         EntryViewerComponent,
         OrderByCommentDatePipe,
         ViewEntriesComponent,
-        ViewEntryComponent
+      ViewEntryComponent,
+        EntryFilesComponent
     ],
     providers: [
     ],
     exports: [
         EntriesViewerComponent
 	],
-	entryComponents: [DialogShareEntryComponent]
+  entryComponents: [
+    DialogFilePreviewComponent,
+    DialogRequestSignOffComponent,
+    DialogShareEntryComponent,
+    DialogSignOffComponent
+  ]
 })
 export class FmEntriesCoreModule { }
 

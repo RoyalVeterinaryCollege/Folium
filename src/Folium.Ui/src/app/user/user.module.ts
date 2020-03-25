@@ -18,7 +18,9 @@
 */
 import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { MatCheckboxModule, MatDialogModule, MatExpansionModule } from "@angular/material";
+import { MatCheckboxModule } from "@angular/material/checkbox";
+import { MatDialogModule } from "@angular/material/dialog";
+import { MatExpansionModule } from "@angular/material/expansion";
 
 import { ModalModule, BsDropdownModule } from "ngx-bootstrap";
 

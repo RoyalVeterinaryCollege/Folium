@@ -18,7 +18,7 @@
 */
 import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { MatDialogModule } from "@angular/material";
+import { MatDialogModule } from "@angular/material/dialog";
 
 import { AlertModule } from "ngx-bootstrap/alert";
 import { ModalModule } from "ngx-bootstrap/modal";
@@ -30,11 +30,18 @@ import { NotificationsComponent } from "./components/notifications.component";
 import { ModalSignInComponent } from "./components/modal-sign-in.component";
 import { ActiveElementComponent } from "./components/active-element.component";
 import { TinyMceDirective } from "./directives/tinymce.directive";
+import { SecureImagePipe } from "./pipes/secure-image.pipe";
+import { HttpClientModule } from "@angular/common/http";
+import { FormatBytesPipe } from "./pipes/format-bytes.pipe";
+import { SafeHtmlPipe } from "./pipes/safe-html.pipe";
+import { NlToBrPipe } from "./pipes/nl-to-br.pipe";
+import { DialogConfirmComponent } from "./components/dialog-confirm.component";
 
 
 @NgModule({
     imports: [        
-        AlertModule.forRoot(),        
+        AlertModule.forRoot(),
+        HttpClientModule,
         ModalModule.forRoot(),
         MatDialogModule,
 
@@ -42,23 +49,33 @@ import { TinyMceDirective } from "./directives/tinymce.directive";
     ],
     declarations: [
         ActiveElementComponent,
+        DialogConfirmComponent,
         DialogDeleteConfirmComponent,
         DialogHelpComponent,
+        FormatBytesPipe,
         FormAutoSaveDirective,
         ModalSignInComponent,
+        NlToBrPipe,
         NotificationsComponent,
+        SafeHtmlPipe,
+        SecureImagePipe,
         TinyMceDirective
     ],
     exports: [
         ActiveElementComponent,
+        DialogConfirmComponent,
         DialogDeleteConfirmComponent,
         DialogHelpComponent,
+        FormatBytesPipe,
         FormAutoSaveDirective,
         ModalSignInComponent,
+        NlToBrPipe,
         NotificationsComponent,
+        SafeHtmlPipe,
+        SecureImagePipe,
         TinyMceDirective
     ],
-    entryComponents: [ DialogDeleteConfirmComponent, DialogHelpComponent ]
+    entryComponents: [ DialogConfirmComponent, DialogDeleteConfirmComponent, DialogHelpComponent ]
 })
 
 export class FmCoreModule {}

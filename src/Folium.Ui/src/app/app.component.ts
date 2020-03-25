@@ -18,7 +18,7 @@
 */
 import { Component, OnInit, OnDestroy, ViewContainerRef }       from "@angular/core";
 import { Router, NavigationEnd } from "@angular/router";
-import { MatDialog, MatDialogRef } from "@angular/material";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 
 import { Subscription } from "rxjs";
 

@@ -21,11 +21,15 @@ import { HttpClient } from "@angular/common/http";
 
 import { Observable } from 'rxjs';
 
-import { ReportOnOption, SelfAssessmentEngagementReportCriteria, SelfAssessmentEngagementReportResultSet, EntryEngagementReportCriteria, EntryEngagementReportResultSet, PlacementEngagementReportResultSet, PlacementEngagementReportCriteria } from "../core/dtos";
+import { ReportOnOption, SelfAssessmentEngagementReportCriteria, SelfAssessmentEngagementReportResultSet, EntryEngagementReportCriteria, EntryEngagementReportResultSet, PlacementEngagementReportResultSet, PlacementEngagementReportCriteria, SelfAssessmentEngagementUser, EntryEngagementUser, PlacementEngagementUser, EntryType } from "../core/dtos";
+import { publishReplay, refCount } from "rxjs/operators";
 
 @Injectable()
 export class ReportsService {
-    private reportsUrl = "reports";
+  private reportsUrl = "reports";
+
+  // Local cache.
+  private entryTypes: { [ids: string]: Observable<EntryType[]>; } = {};
 
 	public colorScheme = {
 	  domain: ['#607D8B', '#FF5722', '#CFD8DC', '#AAAAAA']
@@ -63,9 +67,56 @@ export class ReportsService {
 
 	getPlacementTypes(): Observable<string[]> {
 		return this.http.get<string[]>(this.reportsUrl + "/placement-engagement/placement-types");
-	}
+  }
+
+  getEntryTypes(skillSetIds: number[]): Observable<EntryType[]>;
+  getEntryTypes(skillSetId: number): Observable<EntryType[]>;
+  getEntryTypes(value: number[] | number): Observable<EntryType[]> {
+    let ids = [];
+    if (typeof value === "number") {
+      ids.push(value);
+    }
+    if (value instanceof Array) {
+      ids = value.sort(function (a, b) {
+        return a - b;
+      });
+    }
+    let querystring = `?skillSetIds=${ids.join("&skillSetIds=")}`;
+    let index = ids.join(",");
+    // Return the cached value if available.
+    if (!this.entryTypes[index]) {
+      this.entryTypes[index] = this.http.get<EntryType[]>(`${this.reportsUrl}/entry-types${querystring}`).pipe(
+        publishReplay(1),
+        refCount()
+      );
+    }
+    return this.entryTypes[index];
+  }
 
 	sendMessage(toUserIds: number[], body: string): Observable<string> {
 		return this.http.post<string>(`messaging/send-to-many`, { to: toUserIds, body });
+	}
+
+	removeUserFieldsForCsvDownload(user): any {
+		if(user.hasOwnProperty('engagement')) {
+			delete user.engagement;
+		}
+		delete user.courses;
+		delete user.hasTutees;
+		delete user.hasTutor;
+		delete user.lastSignIn;
+		delete user.pic;
+		delete user.hasProfilePic;
+		delete user.profilePicVersion;
+		if(!user.hasOwnProperty('totalComments')) {
+			delete user.totalEntries; // Only delete this if this is not a EntryEngagementUser (i.e. has totalComments property)
+		}
+		delete user.totalEntriesSharedWithYou;
+		delete user.totalPlacements;
+		delete user.totalSelfAssessments;
+		let tutors = user.tutors && user.tutors.length > 0 ? user.tutors.join(",") : "";
+		delete user.tutors;
+		user.tutors = tutors;
+		return user;
 	}
 }

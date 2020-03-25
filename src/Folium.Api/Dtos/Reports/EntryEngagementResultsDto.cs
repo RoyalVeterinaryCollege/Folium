@@ -32,5 +32,8 @@ namespace Folium.Api.Dtos.Reporting {
         public int SharedCount { get; set; }
         public int SharedWithTutorCount { get; set; }
         public int CommentCount { get; set; }
+        public bool IsSignOffCompatible { get; set; }
+        public int SignOffRequestCount { get; set; }
+        public bool SignedOff { get; set; }
     }
 }

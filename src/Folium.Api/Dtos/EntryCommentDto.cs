@@ -17,6 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using System;
+using System.Collections.Generic;
 
 namespace Folium.Api.Dtos {
     public class EntryCommentDto {
@@ -25,5 +26,7 @@ namespace Folium.Api.Dtos {
 		public string Comment { get; set; }
 		public UserDto Author { get; set; }
 		public DateTime CreatedAt { get; set; }
-	}
+        public List<Guid> FileIds { get; set; }
+        public bool ForSignOff { get; set; }
+    }
 }

@@ -17,13 +17,13 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild } from "@angular/core";
-import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
-import { MatDialog } from '@angular/material';
+import { FormBuilder, FormGroup, FormControl, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Subscription, Observable, Subject, forkJoin } from "rxjs";
 import { debounceTime, startWith, flatMap, tap, map } from "rxjs/operators";
 
-import { Entry, Skill, Where, EntryType, EntrySummary, SkillGroup, Placement, User, SkillSet, SkillGrouping, SelfAssessments } from "../../core/dtos";
+import { Entry, Skill, Where, EntryType, EntrySummary, SkillGroup, Placement, User, SkillSet, SkillGrouping, SelfAssessments, EntryFile } from "../../core/dtos";
 import { EntriesService } from "../entries.service";
 import { SkillBundleService } from "../../skills/skill-bundle.service";
 import { SkillService } from "../../skills/skill.service";
@@ -37,6 +37,7 @@ import { DialogManageUserSkillSetsComponent } from "../../user/components/dialog
 import { UserService } from "../../user/user.service";
 import { SkillFiltersService } from "../../skills/skill-filters.service";
 import { DialogChangeSkillGroupingComponent } from "../../skills/components/dialog-change-skill-grouping.component";
+import { DialogRequestSignOffComponent } from "./dialog-request-sign-off.component";
 
 @Component({
 	selector: "entry-editor",
@@ -71,7 +72,8 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 	entryTypeSet: boolean; // An undefined EntryType is valid, so we need to track if one has been selected.
 	skillSets: SkillSet[];
 	skillGroupings: SkillGrouping[];
-	skillGrouping: SkillGrouping;
+  skillGrouping: SkillGrouping;
+  entryFiles: EntryFile[];
 	
 	selectedSkillSet: SkillSet;
 	skillGroups: SkillGroup[];
@@ -80,6 +82,12 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 	savePending: boolean = false;
 	autoSaveEnabled: boolean = true; // autosave can be disabled if an error occurs.
 	removed: boolean = false;
+
+	onDestroy$ = new Subject<void>()
+
+	get title() { return this.entryForm.get('title'); }
+
+	get where() { return this.entryForm.get('where'); }
 
 	private saveRequested$: Subject<any> = new Subject<any>();
 
@@ -94,18 +102,18 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 		private skillAssessmentService: SkillAssessmentService,
 		private notificationService: NotificationService,
 		private formBuilder: FormBuilder,
-    	private dialog: MatDialog) {
+    private dialog: MatDialog) {
 		this.autoSave = this.autoSave.bind(this); //autoSave can be called from a child component.
 	}
 
-	@ViewChild("skillsModal")
+	@ViewChild("skillsModal", { static: false })
 	skillsModal: ModalDirective;
 	
 	ngOnInit() {
 		this.loadEntry();
 		this.skillsBundleChanges$ = this.skillBundleService.onBundleChange.subscribe(_ => this.onBundleChange());
 		this.skillsBundleChanges$ = this.skillBundleService.onSkillAssessmentChange.subscribe(skill => this.onSelfAssessmentChange(skill));
-		// We want to debounce the save requests fo we don't send too many.
+		// We want to debounce the save requests so we don't send too many.
 		this.saveRequested$.pipe(
 			debounceTime(500)
 		).subscribe(request => {
@@ -165,7 +173,9 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 		});
 	}
 
-	onEntryTypeClick(entryType: EntryType){
+  onEntryTypeClick(entryType: EntryType) {
+    if (!this.entryForm.valid || this.savePending) return;
+
 		let getSkillGroupsComplete = function(skillsGroup: SkillGroup[], scope) {
 			scope.entry.entryType = entryType;
 			scope.entryTypeSet = true;
@@ -183,8 +193,8 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 			entryType.template.skillBundleIds.forEach(skillBundleId => {
 				task$.push(this.skillService.getSkillBundle(this.entry.skillSetId, skillBundleId));
 			});
-			forkJoin<Observable<number[]>>(...task$).subscribe(results => { 
-				results.forEach(result => skillIds = skillIds.concat());
+			forkJoin<number[]>(...task$).subscribe(results => { 
+				results.forEach(result => skillIds = skillIds.concat(result));
 				// Make sure the skill ids are unique.
 				skillIds = skillIds.filter((v, i, a) => a.indexOf(v) === i);
 				// Load the skill groups.
@@ -249,20 +259,37 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 	
 	shareEntry() {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-			data: { entryId: this.entry.id, user: this.user },
+			data: { entry: this.entry, user: this.user },
 		});
 		dialogRef.afterClosed().subscribe((result: boolean) => {
 			this.entry.shared = result;
 			this.entrySummary.shared = result;
 		});
-	}
+  }
 
+  requestSignOff() {
+    let dialogRef = this.dialog.open(DialogRequestSignOffComponent, {
+      data: { entry: this.entry, user: this.user },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      this.entry.signOffRequested = result;
+      this.entrySummary.signOffRequested = result;
+      if (result) {
+        // If there is a signoff request then it must be shared.
+        this.entry.shared = result;
+        this.entrySummary.shared = result;
+      }
+    });
+  }
+  
 	ngOnDestroy() {
 		this.skillsBundleChanges$.unsubscribe();
 		if(!this.removed) {
 			this.autoSave();
 			this.close();
 		}
+		this.onDestroy$.next()
+		this.onDestroy$.complete()
 	}
 
 	private loadEntry() {
@@ -272,16 +299,31 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 					this.entry = entry;
 					this.entryTypeSet = true;
 					this.loadSkillSets();
-					this.initialiseForm();
+          this.initialiseForm();
+          this.loadEntryFiles();
 				},
 				(error: any) => this.notificationService.addDanger(`There was an error trying to load the entry, please try again.
 				${error}`));
 		} else {
 			this.loadSkillSets();
-			this.initialiseForm();
+      this.initialiseForm();
+      this.loadEntryFiles();
 		}
 	}
-	
+
+  private loadEntryFiles() {
+    if (this.entry.id == undefined) {
+      this.entryFiles = [];
+    } else {
+      this.entriesService.getEntryFiles(this.entry.id)
+        .subscribe(entryFiles => {
+          this.entryFiles = entryFiles.filter(f => f.onComment == false); // don't include comment files.
+        },
+          (error: any) => this.notificationService.addDanger(`There was an error trying to load the entry files, please try again.
+				${error}`));
+    }
+  }
+
 	private loadSkillSets() {
 		this.skillSets = undefined;
 		this.userService.getSkillSets(this.user)
@@ -360,7 +402,8 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 			});
 	}
 
-	private saveEntry() {
+  private saveEntry() {
+    if (!this.entryForm.valid) return;
 		this.saveRequested$.next(); // Just request a save, we want to throttle them.
 	}
 
@@ -375,13 +418,16 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 		
 		let response = this.isEdit ? this.entriesService.updateEntry(entry) : this.entriesService.createEntry(entry);
 		response.subscribe((updatedEntry: Entry) => {
-			updatedEntry.entryType = this.entry.entryType;
+      updatedEntry.entryType = this.entry.entryType;
+      if (!this.isEdit) {
+        updatedEntry.isSignOffCompatible = this.entry.entryType && this.entry.entryType.template.signOff != undefined;
+      }
 			this.entry = updatedEntry;
 			this.onSaved.emit(this.entry);
 			this.initialiseFormControls();
 			this.entry.lastUpdatedAt = new Date();
 			this.savePending = false;
-			this.entrySaved = true;
+      this.entrySaved = true;
 			if(!this.entrySummary) {
 				this.entrySummary = new EntrySummary(this.entry);
 			}
@@ -453,9 +499,9 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 				where: this.entry.where
 			})
 		} else {
-			this.entryForm = this.formBuilder.group({
-				title: this.entry.title,
-				where: this.placement ? this.placement.fullyQualifiedTitle : this.entry.where
+          this.entryForm = this.formBuilder.group({
+            title: [this.entry.title, Validators.maxLength(1000)],
+            where: [this.placement ? this.placement.fullyQualifiedTitle : this.entry.where, Validators.maxLength(1050)]
 			});
 			// The rest of the form is dynamic, made up from the template, initialise it.
 			this.initialiseDynamicFormControls();
@@ -472,8 +518,12 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 			}); 
 		} else {			
 			this.entryForm.addControl("description", new FormControl(this.entry.description ? this.entry.description : ""));
-		}
-		this.entryForm.valueChanges.subscribe(changes => this.savePending = true);
+      }
+      this.entryForm.valueChanges.subscribe(changes => {
+        if (this.entryForm.valid) {
+          this.savePending = true;
+        }
+      });
 	}
 
 	private extractEntryFromForm(formValues: any): Entry {		
@@ -486,11 +536,15 @@ export class EntryEditorComponent implements OnInit, OnDestroy {
 		entry.skillSetId = this.isEdit ? this.entry.skillSetId : this.selectedSkillSet.id;
 		entry.skillGroupingId = this.skillGrouping.id;
 		entry.author = this.user;
-		entry.shared = this.entry.shared;
+    entry.shared = this.entry.shared;
+    entry.isSignOffCompatible = this.entry.isSignOffCompatible;
+    entry.signedOff = false;
+    entry.signOffRequested = this.entry.signOffRequested;
 		if(this.entry.entryType) {
 			entry.entryType = new EntryType();
 			entry.entryType.id = this.entry.entryType.id;
-			entry.entryType.name = this.entry.entryType.name;
+      entry.entryType.name = this.entry.entryType.name;
+      entry.entryType.template = this.entry.entryType.template;
 		}
 
 		// Assign the dynamic values.

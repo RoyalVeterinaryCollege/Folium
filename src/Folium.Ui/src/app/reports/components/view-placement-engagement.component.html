@@ -46,11 +46,10 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 										*ngFor="let who of reportForm.value.who" 
 										[removable]="true" 
 										[selectable]="false" 
-										(click)="onRemoveReportOnOptionClick(who)" 
-										(remove)="onRemoveReportOnOptionClick(who)">
+										(removed)="onRemoveReportOnOptionClick(who)">
 										<span [innerHTML]='who.name'></span>
 										<mat-icon matChipRemove>
-											<i class="fa fa-times" aria-hidden="true"></i>
+											<i class="fas fa-times" aria-hidden="true"></i>
 											<span class="sr-only">Remove</span>
 										</mat-icon>
 									</mat-chip>
@@ -141,49 +140,67 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 							<div class="col-md-6">
 								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('placement', $event.target, resultSummary)">
 									<h4>Have a placement</h4>
-									<ngx-charts-advanced-pie-chart
-										[results]="resultSummary.placements"
-										[label]="'Total Users'"
-										[scheme]="reportsService.colorScheme"
-										(select)="onPieChartClick('placement', $event, resultSummary)">
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.placements"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('placement', $event, resultSummary)">
 									</ngx-charts-advanced-pie-chart>
 								</div>
-							</div>								
+							</div>
 							<div class="col-md-6">
 								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('placement_entry', $event.target, resultSummary)">
 									<h4>Placements with an Entry</h4>
-									<ngx-charts-advanced-pie-chart
-										[results]="resultSummary.placementEntry"
-										[label]="'Total Users'"
-										[scheme]="reportsService.colorScheme"
-										(select)="onPieChartClick('placement_entry', $event, resultSummary)">
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.placementEntry"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('placement_entry', $event, resultSummary)">
 									</ngx-charts-advanced-pie-chart>
 								</div>
 							</div>
 						</div>
-						<div class="row mb-4">							
+						<div class="row mb-4">
 							<div class="col-md-6">
 								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('shared_placement_entry', $event.target, resultSummary)">
 									<h4>Placements with an Entry shared</h4>
-									<ngx-charts-advanced-pie-chart
-										[results]="resultSummary.shared"
-										[label]="'Total Users'"
-										[scheme]="reportsService.colorScheme"
-										(select)="onPieChartClick('shared_placement_entry', $event, resultSummary)">
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.shared"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('shared_placement_entry', $event, resultSummary)">
 									</ngx-charts-advanced-pie-chart>
 								</div>
-							</div>							
+							</div>
 							<div class="col-md-6">
 								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('tutor_shared_placement_entry', $event.target, resultSummary)">
 									<h4>Placements with an Entry shared with Tutor</h4>
-									<ngx-charts-advanced-pie-chart
-										[results]="resultSummary.sharedWithTutor"
-										[label]="'Total Users'"
-										[scheme]="reportsService.colorScheme"
-										(select)="onPieChartClick('tutor_shared_placement_entry', $event, resultSummary)">
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.sharedWithTutor"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('tutor_shared_placement_entry', $event, resultSummary)">
 									</ngx-charts-advanced-pie-chart>
 								</div>
-							</div>		
+							</div>
+						</div>
+						<div class="row mb-4">
+							<div class="col-md-6">
+								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('placement_requested_sign_off_entries', $event.target, resultSummary)">
+									<h4>Placements with all Entries having requested sign-off</h4>
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.requestSignOffEntries"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('placement_requested_sign_off_entries', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('placement_signed_off_entries', $event.target, resultSummary)">
+									<h4>Placements with all Entries signed off</h4>
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.signedOffEntries"
+																								 [label]="'Total Users'"
+																								 [scheme]="reportsService.colorScheme"
+																								 (select)="onPieChartClick('placement_signed_off_entries', $event, resultSummary)">
+									</ngx-charts-advanced-pie-chart>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -202,13 +219,17 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 							<span *ngSwitchCase="placementEngagementTypes.SharedPlacementEntry_NonEngaged">users have not shared a placement entry</span>
 							<span *ngSwitchCase="placementEngagementTypes.TutorSharedPlacementEntry_Engaged">users have shared a placement entry with their tutor</span>
 							<span *ngSwitchCase="placementEngagementTypes.TutorSharedPlacementEntry_NonEngaged">users have not shared a placement entry with their tutor</span>
+							<span *ngSwitchCase="placementEngagementTypes.AllEntriesRequestedSignOff_Engaged">users have placements where all entries have a sign-off request</span>
+							<span *ngSwitchCase="placementEngagementTypes.AllEntriesRequestedSignOff_NonEngaged">users have placements where not all entries have a sign-off request</span>
+							<span *ngSwitchCase="placementEngagementTypes.AllEntriesSignedOff_Engaged">users have placements where all entries have been signed Off</span>
+							<span *ngSwitchCase="placementEngagementTypes.AllEntriesSignedOff_NonEngaged">users have placements where not all entries have been signed Off</span>
 							<span *ngSwitchDefault>total users</span>
 						</span>
 						&nbsp;<button class="btn btn-secondary" *ngIf="userList.data.length > 0" (click)="emailUsers()">Send E-mail</button>
 						&nbsp;<button class="btn btn-secondary" *ngIf="userList.data.length > 0" (click)="downloadUsers()">Export</button>
 					</div>
 					<div class="col-12">
-						<table mat-table matSort  matSortActive="lastName" matSortDirection="asc" #userListTable [dataSource]="userList" style="width:100%;">
+						<table mat-table matSort matSortActive="lastName" matSortDirection="asc" #userListTable [dataSource]="userList" style="width:100%;">
 							<ng-container matColumnDef="firstName">
 								<th mat-header-cell *matHeaderCellDef mat-sort-header="firstName">First Name</th>
 								<td mat-cell *matCellDef="let user">
@@ -228,6 +249,18 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 								<th mat-header-cell *matHeaderCellDef mat-sort-header="placementsWithEntries">With Entries</th>
 								<td mat-cell *matCellDef="let user"> {{user.placementsWithEntries}} </td>
 							</ng-container>
+							<ng-container matColumnDef="canSignOffEntries">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="placementsWithEntriesCanBeSignOff">With Entries that can be signed off</th>
+								<td mat-cell *matCellDef="let user"> {{user.placementsWithEntriesCanBeSignOff}} </td>
+							</ng-container>
+							<ng-container matColumnDef="requestSignOffEntries">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="placementsWithAllEntriesRequestedSignOff">With sign-off requested for all Entries</th>
+								<td mat-cell *matCellDef="let user"> {{user.placementsWithAllEntriesRequestedSignOff}} </td>
+							</ng-container>
+							<ng-container matColumnDef="signedOffEntries">
+								<th mat-header-cell *matHeaderCellDef mat-sort-header="placementsWithAllEntriesSignedOff">With all Entries signed off</th>
+								<td mat-cell *matCellDef="let user"> {{user.placementsWithAllEntriesSignedOff}} </td>
+							</ng-container>
 							<ng-container matColumnDef="shared">
 								<th mat-header-cell *matHeaderCellDef mat-sort-header="placementsWithSharedEntries">Shared</th>
 								<td mat-cell *matCellDef="let user"> {{user.placementsWithSharedEntries}} </td>
@@ -240,8 +273,8 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 								<th mat-header-cell *matHeaderCellDef>Tutor(s)</th>
 								<td mat-cell *matCellDef="let user"> {{user.tutors.join(', ')}} </td>
 							</ng-container>
-							<tr mat-header-row *matHeaderRowDef="['firstName', 'lastName', 'placements', 'entries', 'shared', 'sharedWithTutor', 'tutors']"></tr>
-							<tr mat-row *matRowDef="let row; columns: ['firstName', 'lastName', 'placements', 'entries', 'shared', 'sharedWithTutor', 'tutors'];"></tr>
+							<tr mat-header-row *matHeaderRowDef="['firstName', 'lastName', 'placements', 'entries', 'canSignOffEntries', 'requestSignOffEntries', 'signedOffEntries', 'shared', 'sharedWithTutor', 'tutors']"></tr>
+							<tr mat-row *matRowDef="let row; columns: ['firstName', 'lastName', 'placements', 'entries', 'canSignOffEntries', 'requestSignOffEntries', 'signedOffEntries', 'shared', 'sharedWithTutor', 'tutors'];"></tr>
 						</table>
 						<mat-paginator #userListPaginator [pageSizeOptions]="[50, 100, 250, 500]" showFirstLastButtons></mat-paginator>
 					</div>
@@ -269,4 +302,3 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		</div>
 	</div>
 </div>
-	

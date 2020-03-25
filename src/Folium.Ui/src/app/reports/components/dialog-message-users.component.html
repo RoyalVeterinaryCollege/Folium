@@ -27,11 +27,11 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
       <div *ngIf="toUsers.length > 0" class="mb-2">
           To: <span *ngIf="toUsers.length > 1">(recipients will not be able to see this list)</span>
           <mat-chip-list>
-            <mat-chip *ngFor="let user of toUsers.slice(0, summaryUserCount)" [removable]="toUsers.length > 1 ? true : false" [selectable]="false" (click)="onRemoveUserClick(user)" (remove)="onRemoveUserClick(user)">
+            <mat-chip *ngFor="let user of toUsers.slice(0, summaryUserCount)" [removable]="toUsers.length > 1 ? true : false" [selectable]="false" (removed)="onRemoveUserClick(user)">
               <img [fmUserPic]="user" class="profile-pic img-fluid" alt="Profile picture">
               {{getUserLabel(user)}}
               <mat-icon *ngIf="toUsers.length > 1" matChipRemove>
-                <i class="fa fa-times" aria-hidden="true"></i>
+                <i class="fas fa-times" aria-hidden="true"></i>
                 <span class="sr-only">Remove</span>
               </mat-icon>
             </mat-chip>
@@ -39,11 +39,11 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
                 + {{ toUsers.length - summaryUserCount }} more
             </mat-chip>
             <ng-container *ngIf="!summaryUsersOnly">
-              <mat-chip *ngFor="let user of toUsers.slice(summaryUserCount)" [removable]="true" [selectable]="false" (click)="onRemoveUserClick(user)" (remove)="onRemoveUserClick(user)">
+              <mat-chip *ngFor="let user of toUsers.slice(summaryUserCount)" [removable]="true" [selectable]="false" (removed)="onRemoveUserClick(user)">
                 <img [fmUserPic]="user" class="profile-pic img-fluid" alt="Profile picture">
                 {{getUserLabel(user)}}
                 <mat-icon matChipRemove>
-                  <i class="fa fa-times" aria-hidden="true"></i>
+                  <i class="fas fa-times" aria-hidden="true"></i>
                   <span class="sr-only">Remove</span>
                 </mat-icon>
               </mat-chip>

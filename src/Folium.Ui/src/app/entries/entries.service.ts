@@ -22,8 +22,9 @@ import { HttpClient } from "@angular/common/http";
 import { Observable } from 'rxjs';
 import { publishReplay, refCount, tap, map } from "rxjs/operators";
 
-import { Entry, SelfAssessment, Where, EntryType, EntrySummary, ShareEntry, EntryComment, User, SelfAssessments } from "../core/dtos";
+import { Entry, SelfAssessment, Where, EntryType, EntrySummary, ShareEntry, EntryComment, User, SelfAssessments, EntryFile, EntrySignOffRequest } from "../core/dtos";
 import { SkillAssessmentService } from "../skills/skill-assessment.service";
+import { EntryFilter } from "./entry-filters";
 
 @Injectable()
 export class EntriesService {
@@ -67,10 +68,21 @@ export class EntriesService {
 		}
 		return this.entryTypes[index];
     }
-	
-	getEntries(userId: number, page: number, pageSize: number): Observable<EntrySummary[]> {
-		return this.http.get<EntrySummary[]>(`${this.entriesUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}&userId=${userId}`);
-	}
+
+  getEntries(page: number, pageSize: number): Observable<EntrySummary[]> {
+    return this.http.get<EntrySummary[]>(`${this.entriesUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}`);
+  }
+	getMyEntries(page: number, pageSize: number, filter: EntryFilter): Observable<EntrySummary[]> {
+    let filterQuery = filter ? `&filter=${filter}` : '';
+    return this.http.get<EntrySummary[]>(`${this.entriesUrl}/my?skip=${((page - 1) * pageSize)}&take=${pageSize}${filterQuery}`);
+  }
+  getEntriesSharedWithMe(page: number, pageSize: number, filter: EntryFilter): Observable<EntrySummary[]> {
+    let filterQuery = filter ? `&filter=${filter}` : '';
+    return this.http.get<EntrySummary[]>(`${this.entriesUrl}/shared?skip=${((page - 1) * pageSize)}&take=${pageSize}${filterQuery}`);
+  }
+  getEntriesSharedWithMeBy(userId: number, page: number, pageSize: number): Observable<EntrySummary[]> {
+    return this.http.get<EntrySummary[]>(`${this.entriesUrl}/shared/${userId}?skip=${((page - 1) * pageSize)}&take=${pageSize}`);
+  }
 
 	createEntry(entry: Entry): Observable<Entry> {
 		return this.http.post<Entry>(this.entriesUrl + "/create", entry);
@@ -119,6 +131,28 @@ export class EntriesService {
 		return this.http.get<User[]>(`${this.entriesUrl}/${entryId}/collaborators`);
 	}
 
+  requestEntrySignOff(entrySignOffRequestDto: EntrySignOffRequest): Observable<string> {
+    return this.http.post<string>(`${this.entriesUrl}/${entrySignOffRequestDto.entryId}/request-sign-off`, entrySignOffRequestDto);
+  }
+
+  removeSignOffUser(entryId: any, userId: number): Observable<string> {
+    return this.http.post<string>(`${this.entriesUrl}/${entryId}/request-sign-off/users/${userId}/remove`, {});
+  }
+
+  getSignOffUsers(entryId: any): Observable<User[]> {
+    return this.http.get<User[]>(`${this.entriesUrl}/${entryId}/request-sign-off/users`);
+  }
+
+  signOff(entryCommentDto: EntryComment): Observable<EntryComment> {
+    return this.http.post<number>(`${this.entriesUrl}/${entryCommentDto.entryId}/sign-off`, entryCommentDto).pipe(
+      map((commentId: number) => {
+        entryCommentDto.id = +commentId;
+        return entryCommentDto;
+      })
+    );
+  }
+
+
 	comment(entryCommentDto: EntryComment): Observable<EntryComment> {
 		return this.http.post<number>(`${this.entriesUrl}/${entryCommentDto.entryId}/comment`, entryCommentDto).pipe(
 			map((commentId: number) => {
@@ -130,5 +164,13 @@ export class EntriesService {
 
 	getUserPlaces(): Observable<Where[]> {
 		return this.http.get<Where[]>(`${this.entriesUrl}/where`);
-	}
+  }
+
+  getEntryFiles(entryId: any): Observable<EntryFile[]> {
+    return this.http.get<EntryFile[]>(`${this.entriesUrl}/${entryId}/files`);
+  }
+
+  deleteEntryFile(entryId: any, fileId: any): Observable<string> {
+    return this.http.delete<string>(`file-uploads/entries/${entryId}/${fileId}`);
+  }
 }

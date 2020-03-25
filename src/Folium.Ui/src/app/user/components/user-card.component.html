@@ -24,6 +24,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
   <img [fmUserPic]="user" class="profile-pic img-fluid" alt="Profile picture">
   <div class="card-body">
     <h3 class="card-title">{{user?.firstName}} {{user?.lastName}}</h3>
+    <h3 class="card-title">{{user?.email}}</h3>
     <div *ngIf="tutors && tutors.length > 0">
       <hr>
       <mat-expansion-panel>

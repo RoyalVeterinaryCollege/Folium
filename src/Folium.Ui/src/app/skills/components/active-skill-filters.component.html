@@ -23,12 +23,12 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
   <div class="d-flex justify-content-start flex-wrap">
     <mat-chip-list>
       <mat-chip *ngFor="let filter of filters" [attr.aria-label]='"remove " + filter.name + " filter"' (click)="onRemoveFilterFacetClick(filter)">
-        {{filter.name}} <i class="fa fa-fw fa-times-circle" aria-hidden="true"></i>
+        {{filter.name}} <i class="fas fa-fw fa-times-circle" aria-hidden="true"></i>
       </mat-chip>
     </mat-chip-list>
     <mat-chip-list class="ml-auto">
       <mat-basic-chip [attr.aria-label]='"clear all filters"' (click)="onRemoveAllFilterFacetsClick()">
-        <i class="fa fa-fw fa-times-circle" aria-hidden="true"></i> Clear Filters
+        <i class="fas fa-fw fa-times-circle" aria-hidden="true"></i> Clear Filters
       </mat-basic-chip>
     </mat-chip-list>
   </div>

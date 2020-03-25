@@ -22,5 +22,6 @@ using System;
 namespace Folium.Api.Dtos.Reporting {
     public class EntryEngagementCriteriaDto : CriteriaDto {
         public List<int> EntryTypeIds { get; set; }
+        public bool BasicEntryType { get; set; }
     }
 }

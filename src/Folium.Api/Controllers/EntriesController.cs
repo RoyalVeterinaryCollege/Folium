@@ -37,6 +37,8 @@ namespace Folium.Api.Controllers {
 		private readonly IUserService _userService;
 		private readonly ISkillService _skillService;
 		private readonly ISelfAssessmentService _selfAssessmentService;
+		private readonly IFileService _fileService;
+		private readonly ITutorGroupService _tutorGroupService;
 		private readonly ILogger<EntriesController> _logger;
 
 		public EntriesController(
@@ -44,12 +46,16 @@ namespace Folium.Api.Controllers {
 			IEntryService entryService, 
 			ISkillService skillService,
 			ISelfAssessmentService selfAssessmentService,
-			IUserService userService) {
+			IUserService userService,
+			IFileService fileService,
+			ITutorGroupService tutorGroupService) {
 			_logger = logger;
 			_entryService = entryService;
             _skillService = skillService;
 			_selfAssessmentService = selfAssessmentService;
 			_userService = userService;
+			_fileService = fileService;
+			_tutorGroupService = tutorGroupService;
 		}
 
 		[HttpPost("create")]
@@ -93,16 +99,7 @@ namespace Folium.Api.Controllers {
 				return new BadRequestResult();
 			}
 			// Validate the dto.
-			if (entryCommentDto.Author == null) {
-				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty author");
-				return new BadRequestResult();
-			}
-			if (entryCommentDto.Author.Id != currentUser.Id) {
-				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with a different author id of {entryCommentDto.Author.Id}");
-				return new BadRequestResult();
-			}
-			if (string.IsNullOrWhiteSpace(entryCommentDto.Comment)) {
-				_logger.LogInformation($"Comment action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty comment");
+			if (!IsValidComment("Comment", currentUser, entryCommentDto)) {
 				return new BadRequestResult();
 			}
 			entryCommentDto.CreatedAt = DateTime.UtcNow;
@@ -122,6 +119,15 @@ namespace Folium.Api.Controllers {
 
 			// Update any self assessments.
 			var currentEntry = await _entryService.GetEntryAsync(currentUser, entryDto.Id);
+			if (!(await IsValidEntry("UpdateEntry", currentUser, entryDto))) {
+				return new BadRequestResult();
+			}
+
+			if (currentEntry.SignedOff) {
+				// Can't edit a signed off entry.
+				return new BadRequestResult();
+			}
+
 			var removedSelfAssessments = currentEntry.AssessmentBundle
 				.Where(p => !entryDto.AssessmentBundle.ContainsKey(p.Key))
 				.ToDictionary(p => p.Key, p => p.Value);
@@ -174,6 +180,9 @@ namespace Folium.Api.Controllers {
 
 			// Remove any self assessments.
 			var latestSelfAssessments = _selfAssessmentService.RemoveSelfAssessments(currentUser, entryDto.SkillSetId, entryDto.AssessmentBundle, entryDto);
+
+			// Remove any files.
+			await _fileService.DeleteAllEntryFilesAsync(entryId);
 
 			// Remove the entry.
 			_entryService.RemoveEntry(entryId);
@@ -238,6 +247,15 @@ namespace Folium.Api.Controllers {
 				return new BadRequestResult();
 			}
 
+			// Ensure they are not on the list for signing off the entry, as the entry also needs to be shared with them
+			if (entry.IsSignOffCompatible && !entry.SignedOff) {
+				var existingAuthorisedSignOffUsers = await _entryService.GetEntrySignOffUsersAsync(entryId);
+				if (existingAuthorisedSignOffUsers.Any(u => u.Id == userId)) {
+					_logger.LogInformation($"RemoveCollaborator action called with entry id of {entryId} by user id of {currentUser.Id}, wishing to remove user id {userId}, which needs the entry shared with them as they are authorised to sign-off");
+					return new BadRequestResult();
+				}
+			}
+
 			// Remove the collaborator.
 			_entryService.RemoveCollaborator(currentUser, entryId, userId);
 
@@ -260,6 +278,162 @@ namespace Folium.Api.Controllers {
 			var existingCollaborators = await _entryService.GetCollaboratorsAsync(entryId);
 
 			return Json(existingCollaborators);
+		}
+
+		[HttpPost("{entryId}/request-sign-off")]
+		// POST entries/{entryId}/request-sign-off
+		// Request the entry to be signed off.
+		public async Task<ActionResult> RequestSignOff([FromBody]EntrySignOffRequestDto signOffRequestDto) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, signOffRequestDto.EntryId);
+			if (entry == null) {
+				_logger.LogInformation($"RequestSignOff action called with entry id of {signOffRequestDto.EntryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			if (entry.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"RequestSignOff action called with entry id of {signOffRequestDto.EntryId} by user id of {currentUser.Id}, which was not the creator of the entry, which is user id {entry.Author.Id}");
+				return new BadRequestResult();
+			}
+
+			// Check only valid users have been requested to sign-off the entry.
+			if(entry.EntryType.Template.signOff == null) {
+				_logger.LogInformation($"RequestSignOff action called with entry id of {signOffRequestDto.EntryId} by user id of {currentUser.Id}, but the entry type {entry.EntryType.Name} does not allow sign-off.");
+				return new BadRequestResult();
+			}
+			if (entry.EntryType.Template.signOff.allowedBy == "tutor") {
+				// Only allow sign-off by tutor.
+				var tutors = _tutorGroupService.GetAllTutors(currentUser);
+				if (signOffRequestDto.AuthorisedUserIds.Any(userId => !tutors.Any(t => t.Id == userId))) {
+					_logger.LogInformation($"RequestSignOff action called with entry id of {signOffRequestDto.EntryId} by user id of {currentUser.Id}, but the sign-off list contained users who are not tutors.");
+					return new BadRequestResult();
+				}
+			}
+
+			var existingAuthorisedSignOffUsers = await _entryService.GetEntrySignOffUsersAsync(signOffRequestDto.EntryId);
+
+			// Just in case the list contains any existing authorised users, remove them.
+			foreach (var user in existingAuthorisedSignOffUsers) {
+				signOffRequestDto.AuthorisedUserIds.Remove(user.Id);
+			}
+
+			// Request sign-off.
+			_entryService.RequestSignOff(currentUser, signOffRequestDto);
+
+			return new OkResult();
+		}
+
+		[HttpPost("{entryId}/request-sign-off/users/{userId}/remove")]
+		// POST entries/{entryId}/request-sign-off/users/{userId}/remove
+		// Removes an entry sign-off user.
+		public async Task<ActionResult> RemoveSignOffUser(Guid entryId, int userId) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
+			if (entry == null) {
+				_logger.LogInformation($"RemoveSignOffUser action called with entry id of {entryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			if (entry.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"RemoveSignOffUser action called with entry id of {entryId} by user {currentUser.Id}, which was not the creator of the entry, which is user id {entry.Author.Id}");
+				return new BadRequestResult();
+			}
+
+			if (!entry.SignOffRequested) {
+				_logger.LogInformation($"RemoveSignOffUser action called with entry id of {entryId} by user {currentUser.Id}, when the entry is not set to require sign-off.");
+				return new BadRequestResult();
+			}
+
+			var existingSignOffUsers = (await _entryService.GetEntrySignOffUsersAsync(entryId)).ToList();
+
+			if (existingSignOffUsers.All(u => u.Id != userId)) {
+				_logger.LogInformation($"RemoveSignOffUser action called with entry id of {entryId} by user id of {currentUser.Id}, wishing to remove user id {userId}, which doesn't exist in the list of existing sign-off users");
+				return new BadRequestResult();
+			}
+
+			// Remove the collaborator.
+			_entryService.RemoveEntrySignOffUser(entryId, userId);
+
+			return new OkResult();
+		}
+
+		[HttpGet("{entryId}/request-sign-off/users")]
+		// GET entries/{entryId}/request-sign-off/users
+		// Gets the entry sign-off users.
+		public async Task<ActionResult> SignOffUsers(Guid entryId) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
+			if (entry == null) {
+				_logger.LogInformation($"SignOffUsers action called with entry id of {entryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			var existingSignOffUsers = await _entryService.GetEntrySignOffUsersAsync(entryId);
+
+			return Json(existingSignOffUsers);
+		}
+
+		[HttpPost("{entryId}/sign-off")]
+		// POST entries/{entryId}/sign-off
+		// Sign-off the entry.
+		public async Task<ActionResult> SignOff([FromBody]EntryCommentDto entryCommentDto) {
+			var currentUser = await _userService.GetUserAsync(User);
+
+			// Get the entry.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryCommentDto.EntryId);
+			if(entry == null) {
+				_logger.LogInformation($"SignOff action called with entry id of {entryCommentDto.EntryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+			if (entry.SignedOff) {
+				_logger.LogInformation($"SignOff action called with entry id of {entryCommentDto.EntryId} which is already signed off.");
+				return new BadRequestResult();
+			}
+			if (!entry.SignOffRequested) {
+				_logger.LogInformation($"SignOff action called with entry id of {entryCommentDto.EntryId} by user {currentUser.Id}, when the entry is not set to require sign-off.");
+				return new BadRequestResult();
+			}
+
+			// Validate the user is authorised to sign-off.
+			var existingSignOffUser = await _entryService.GetEntrySignOffUsersAsync(entryCommentDto.EntryId, includeCourseAdmins: true);
+
+			if (!existingSignOffUser.Any(u => u.Id == currentUser.Id)) {
+				_logger.LogInformation($"SignOff action called with entry id of {entryCommentDto.EntryId} by user {currentUser.Id}, who is not in the list of authorised users to sign-off this entry.");
+				return new BadRequestResult();
+			}
+
+			// Validate the dto.
+			if (!IsValidComment("SignOff", currentUser, entryCommentDto)) {
+				return new BadRequestResult();
+			}
+
+			entryCommentDto.CreatedAt = DateTime.UtcNow;
+			var newId = _entryService.SignOffEntry(entryCommentDto);
+
+			return Json(newId);
+		}
+
+		private bool IsValidComment(string caller, User currentUser, EntryCommentDto entryCommentDto) {
+			// Validate the dto.
+			if (entryCommentDto.Author == null) {
+				_logger.LogInformation($"{caller} action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty author");
+				return false;
+			}
+			if (entryCommentDto.Author.Id != currentUser.Id) {
+				_logger.LogInformation($"{caller} action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with a different author id of {entryCommentDto.Author.Id}");
+				return false;
+			}
+			if (string.IsNullOrWhiteSpace(entryCommentDto.Comment)) {
+				_logger.LogInformation($"{caller} action called with entry id of {entryCommentDto.EntryId} by user id {currentUser.Id} with an empty comment");
+				return false;
+			}
+			return true;
 		}
 
 		private async Task<bool> IsValidEntry(string caller, User currentUser, EntryDto entryDto) {
@@ -299,32 +473,73 @@ namespace Folium.Api.Controllers {
 			}
 			if (string.IsNullOrWhiteSpace(entryDto.Title)) {
 				entryDto.Title = "Untitled Entry";
-			}
+			} else {
+                if(entryDto.Title.Length > 1000) {
+                    _logger.LogInformation($"{caller} called with title of length {entryDto.Title.Length}");
+                    return false;
+                }
+            }
 			if (string.IsNullOrWhiteSpace(entryDto.Where)) {
 				entryDto.Where = "Unknown";
-			}
-			return true;
+            }
+            else {
+                if (entryDto.Where.Length > 1050) {
+                    _logger.LogInformation($"{caller} called with where of length {entryDto.Where.Length}");
+                    return false;
+                }
+            }
+            return true;
 		}
 
 		[HttpGet]
 		// GET entries
-		// Gets all the entries for the current user or all entries by the specified user that are shared with the current user.
-		public async Task<ActionResult> Entries(int? userId = null, int skip = 0, int take = 20) {
+		// Gets all the entries the current user can see.
+		public async Task<ActionResult> Entries(int skip = 0, int take = 20) {
+			var currentUser = await _userService.GetUserAsync(User);
+			// Get the entries.
+			var entries = await _entryService.GetAllEntriesAsync(currentUser, skip, take);
+
+			return Json(entries);
+		}
+
+		[HttpGet("my")]
+		// GET entries
+		// Gets all the entries created by the current users.
+		public async Task<ActionResult> MyEntries(int skip = 0, int take = 20, EntryService.EntriesFilter? filter = null) {
             var currentUser = await _userService.GetUserAsync(User);
-            var user = await _userService.GetUserAsync(User);
-            if (userId.HasValue && user.Id != userId.Value) {
-                var userToView = _userService.GetUser(userId.Value);
-                if (userToView == null) return Json(null);
-                if (await _userService.CanViewUserDataAsync(user, userToView)) {
-                    user = userToView;
-                }
-                else {
-                    return Json(null);
-                }
-            }
+			// Get the entries.
+			var entries = await _entryService.GetMyEntriesAsync(currentUser, skip, take, filter);
+
+			return Json(entries);
+		}
+
+		[HttpGet("shared")]
+		// GET entries
+		// Gets all the entries that are shared with the current user.
+		public async Task<ActionResult> EntriesSharedWithMe(int skip = 0, int take = 20, EntryService.EntriesFilter? filter = null) {
+			var currentUser = await _userService.GetUserAsync(User);
+			// Get the entries.
+			var entries = await _entryService.GetEntriesSharedWithMeAsync(currentUser, skip, take, filter);
+
+			return Json(entries);
+		}
+
+		[HttpGet("shared/{userId}")]
+		// GET entries
+		// Gets just the entries by the specified user that are shared with the current user.
+		public async Task<ActionResult> EntriesSharedWithMeByUser(int userId, int skip = 0, int take = 20) {
+			var currentUser = await _userService.GetUserAsync(User);
+			User user;
+			var userToView = _userService.GetUser(userId);
+			if (userToView == null) return Json(null);
+			if (await _userService.CanViewUserDataAsync(currentUser, userToView)) {
+				user = userToView;
+			} else {
+				return Json(null);
+			}
 
 			// Get the entries.
-			var entries = await _entryService.GetEntriesAsync(currentUser, skip, take, (userId.HasValue && currentUser.Id != userId.Value) ? user : null);
+			var entries = await _entryService.GetEntriesSharedWithMeByUserAsync(currentUser, skip, take, sharedByUser: user);
 
 			return Json(entries);
 		}
@@ -385,6 +600,30 @@ namespace Folium.Api.Controllers {
 			var wheres = await _entryService.GetPlacesAsync(currentUser, startsWith);
 
 			return Json(wheres);
+		}
+
+		[HttpGet("{entryId}/files")]
+		// GET entries/{entryId}/files
+		// Gets the files attached to the entry.
+		public async Task<ActionResult> Files(Guid entryId) {
+			var currentUser = await _userService.GetUserAsync(User);
+			if (currentUser == null) {
+				_logger.LogInformation($"Files called with invalid user {User.Email()}");
+				return new BadRequestResult();
+			}
+
+			// Get the entry to ensure the current user is able to access it.
+			var entry = await _entryService.GetEntryAsync(currentUser, entryId);
+			if (entry == null)
+			{
+				_logger.LogInformation($"Files action called with entry id of {entryId} which was not valid when being requested by user id of {currentUser.Id}");
+				return new BadRequestResult();
+			}
+
+			// Get the files on the entry.
+			var files = await _entryService.GetEntryFilesAsync(entry.Id);
+
+			return Json(files);
 		}
 	}
 }

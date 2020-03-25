@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, Input, Output, EventEmitter } from "@angular/core"
-import { MatCheckboxChange } from '@angular/material';
+import { MatCheckboxChange } from '@angular/material/checkbox';
 
 import { User, SkillSet } from "../../core/dtos";
 import { UserService } from "../user.service";

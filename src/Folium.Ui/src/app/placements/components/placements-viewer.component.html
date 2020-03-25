@@ -26,7 +26,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 <div *ngIf="signedInUser" [ngClass]="{'has-active-element': hasActiveElement}">		
 	<div *ngIf="viewingOwnPlacements" class="row pb-2">
 		<div class="col">
-			<button *ngIf="!isNewPlacementOpen" class="btn btn-primary btn-shadow float-right" (click)="onNewPlacementClick()"><i class="fa fa-plus" aria-hidden="true"></i> Create placement</button>
+			<button *ngIf="!isNewPlacementOpen" class="btn btn-primary btn-shadow float-right" (click)="onNewPlacementClick()"><i class="fas fa-plus" aria-hidden="true"></i> Create placement</button>
 		</div>
 	</div>
 	<active-element (backgroundClick)="onNewPlacementClose()" *ngIf="isNewPlacementOpen">
@@ -68,16 +68,16 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 							</div>
 							<div *ngIf="viewingOwnPlacements" class="col-2 col-sm-1 pl-0 pr-0 text-right">
 								<button mat-icon-button [matMenuTriggerFor]="placementMenu" class="kebab-menu-button">
-									<i class="fa fa-ellipsis-v" aria-hidden="true"></i>
+									<i class="fas fa-ellipsis-v" aria-hidden="true"></i>
 								</button>
 								<mat-menu #placementMenu="matMenu" [overlapTrigger]="false">
 									<div class="btn-group-vertical">
 										<button class="btn btn-link" [disabled]="!canModifyPlacement(placement)" (click)="onEditPlacementClick(placement)">
-											<i class="fa fa-pencil" aria-hidden="true"></i>
+											<i class="fas fa-pencil-alt pr-1" aria-hidden="true"></i>
 											<span>Edit</span>
 										</button>
 										<button class="btn btn-link" [disabled]="!canModifyPlacement(placement)" (click)="onDeletePlacementClick(placement)">
-											<i class="fa fa-trash" aria-hidden="true"></i>
+											<i class="fas fa-trash-alt pr-1" aria-hidden="true"></i>
 											<span>Delete</span>
 										</button>
 									</div>

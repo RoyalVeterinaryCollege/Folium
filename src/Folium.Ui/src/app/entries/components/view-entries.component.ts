@@ -21,23 +21,11 @@ import { ActivatedRoute } from "@angular/router";
 import { User } from "../../core/dtos";
 
 @Component({
-  template: `
-  <section class="title">
-    <div class="container">
-      <div class="d-flex justify-content-start">
-        <h1 class="text-uppercase p-1 m-0"> <span class="folium-entires small"></span> Entries </h1>					
-      </div>
-    </div>
-  </section>
-  <section class="content-main">
-    <div class="container" *ngIf="user">		
-      <!-- List Entries... -->
-      <entries-viewer [user]="user"></entries-viewer>
-    </div>
-  </section>`
+  templateUrl: "view-entries.component.html",
 })
 export class ViewEntriesComponent implements OnInit {
   user: User;
+  showNewEntryElement: boolean;
 
   constructor(
     private route: ActivatedRoute) { }

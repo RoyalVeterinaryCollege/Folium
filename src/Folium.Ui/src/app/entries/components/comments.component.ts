@@ -20,7 +20,7 @@ import { Component, Input, PipeTransform, Pipe, OnDestroy, OnInit } from "@angul
 
 import { Subscription } from "rxjs";
 
-import { Entry, User, EntryComment } from "../../core/dtos";
+import { Entry, User, EntryComment, EntryFile } from "../../core/dtos";
 import { EntriesService } from "../entries.service";
 import { NotificationService } from "../../core/notification.service";
 import { UserService } from "../../user/user.service";
@@ -33,7 +33,11 @@ export class CommentsComponent implements OnInit, OnDestroy {
   @Input()
   entry: Entry;
 
+  @Input()
+  files: EntryFile[];
+
   newComment: string;
+  newCommentFiles: EntryFile[] = [];
   signedInUser: User;
 
   private signedInUser$: Subscription;
@@ -53,9 +57,13 @@ export class CommentsComponent implements OnInit, OnDestroy {
     comment.createdAt = new Date();
     comment.author = this.signedInUser;
     comment.comment = this.newComment;
+    comment.fileIds = this.newCommentFiles.map(f => f.fileId);
     this.entriesService.comment(comment)
       .subscribe((newComment: EntryComment) => {
         this.entry.comments.push(newComment);
+        this.newCommentFiles.forEach(f => f.commentId = newComment.id);
+        this.files.push(...this.newCommentFiles);
+        this.newCommentFiles = [];
         this.newComment = undefined;
       },
       (error: any) => this.notificationService.addDanger(`There was an error trying to create the comment, please try again.
@@ -64,6 +72,12 @@ export class CommentsComponent implements OnInit, OnDestroy {
 
   isMyComment(comment: EntryComment){
     return comment.author.id == this.signedInUser.id;
+  }
+
+  getCommentFiles(commentId: number) {
+    if (this.files) {
+      return this.files.filter(f => f.commentId == commentId);
+    } else return null;
   }
 
   ngOnDestroy() {

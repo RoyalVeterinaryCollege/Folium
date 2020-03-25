@@ -49,7 +49,7 @@ export class PlacementsService {
 		return this.http.post<Placement>(`${this.placementsUrl}/${placement.id}/remove`, placement);
 	}
 
-	getEntries(placement: Placement, page: number, pageSize: number): Observable<EntrySummary[]> {
+	getPlacementEntries(placement: Placement, page: number, pageSize: number): Observable<EntrySummary[]> {
 		return this.http.get<EntrySummary[]>(`${this.placementsUrl}/${placement.id}/entries?skip=${((page - 1) * pageSize)}&take=${pageSize}`);
 	}
 }

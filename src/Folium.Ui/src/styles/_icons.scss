@@ -54,7 +54,7 @@
         margin-top:75%;
     }
 }
-.share-icon {
+.entry-status-icon {
     color: $light-blue;
     font-size:1.6rem;
 }
@@ -64,6 +64,25 @@
     &:hover {
         color: $link-hover-color;
     }      
+}
+.video-thumbnail {
+  position: relative;
+  text-align: center;
+  color: $orange;
+
+  .fa-layers {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    .fa-circle {
+        color: white;
+    }
+  }
+
+  &:hover:before {
+    color: #eee;
+  }
 }
 
 @include media-breakpoint-up(sm) {

@@ -21,42 +21,59 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 <!-- List Comments... -->
 <div class="row">
 	<div class="col-12">
-		<h3 class="mt-3"> Comments</h3>
+		<h3 class="mt-3">COMMENTS</h3>
+		<hr class="d-print-none">
 	</div>
 </div>
-<div *ngFor="let comment of (entry.comments | orderByCommentDate)" class="row justify-content-end" id="comment-{{comment.id}}">
-	<div class="col-2 col-lg-1 text-center">
-		<div class="pt-3">
-			<img [fmUserPic]="comment.author" class="img-fluid profile-pic-thumb" [attr.alt]="comment.author.firstName + ' ' + comment.author.lastName + ' profile picture'" [attr.title]="comment.author.firstName + ' ' + comment.author.lastName" >
+<div *ngFor="let comment of (entry.comments | orderByCommentDate)" id="comment-{{comment.id}}" [ngClass]="{'sign-off-comment': comment.forSignOff==true}">
+	<div class="row justify-content-end">
+		<div class="col-2 col-lg-1 text-center">
+			<div class="pt-3">
+				<img [fmUserPic]="comment.author" class="img-fluid profile-pic-thumb" [attr.alt]="comment.author.firstName + ' ' + comment.author.lastName + ' profile picture'" [attr.title]="comment.author.firstName + ' ' + comment.author.lastName">
+			</div>
+			<div *ngIf="comment.forSignOff">
+				<i class="fas fa-check-square pr-1 entry-status-icon" aria-hidden="true"></i>
+				<span class="sr-only">Sign-off comment</span>
+			</div>
+		</div>
+		<div class="col-2 d-none d-lg-block">
+			<div class="card-body">
+				{{comment.author.firstName}} {{comment.author.lastName}}<br />
+				<span class="small"> {{comment.createdAt | date: 'd MMM yyyy HH:mm'}} </span>
+			</div>
+		</div>
+		<div class="col-10 col-lg-9">
+			<div class="card-body">
+				<div class="d-lg-none mb-2">
+					{{comment.author.firstName}} {{comment.author.lastName}}
+					<span class="small">{{comment.createdAt | date: 'd MMM'}}</span>
+				</div>
+				<div [innerHTML]="comment.comment | nlToBr"></div>
+			</div>
 		</div>
 	</div>
-	<div class="col-2 d-none d-lg-block">
-		<div class="card-body">
-			{{comment.author.firstName}} {{comment.author.lastName}}<br/>
-			<span class="small"> {{comment.createdAt | date: 'd MMM yyyy HH:mm'}} </span>
-		</div>
-	</div>
-	<div class="col-10 col-lg-9">
-		<div class="card-body">
-			<span class="d-lg-none">	{{comment.author.firstName}} {{comment.author.lastName}} <span class="small">	{{comment.createdAt | date: 'd MMM'}} </span> <br/> </span>
-			{{comment.comment}}
-			<hr>
-		</div>
-	</div>
-
+	<!-- Files -->
+	<entry-files [user]="signedInUser" [forComment]="true" [isEdit]="false" [files]="getCommentFiles(comment.id)" [entryId]="entry.id"></entry-files>
 </div>
 <!-- New Comment... -->
-<div class="row d-print-none">
+<div class="row d-print-none mt-2">
 	<div class="col-2 col-lg-1 text-center">
-		<img [fmUserPic]="signedInUser" class="img-fluid profile-pic-thumb" [attr.alt]="signedInUser.firstName + ' ' + signedInUser.lastName + ' profile picture'" >
+		<img [fmUserPic]="signedInUser" class="img-fluid profile-pic-thumb" [attr.alt]="signedInUser.firstName + ' ' + signedInUser.lastName + ' profile picture'">
 	</div>
 	<div class="col-10 col-lg-11">
 		<div class="card-body">
 			<form #commentForm="ngForm" (ngSubmit)="onCommentClick()">
-				<mat-form-field>
-					<textarea required matInput placeholder="New Comment" [(ngModel)]="newComment" name="newComment"></textarea>
+				<mat-form-field hideRequiredMarker>
+					<textarea required
+										matInput
+										placeholder="Write a comment..."
+										[(ngModel)]="newComment"
+										name="newComment"
+										cdkTextareaAutosize></textarea>
 				</mat-form-field>
-				<button type="submit" class="btn btn-primary btn-shadow" [disabled]="!commentForm.form.valid">Comment</button>
+				<!-- Files -->
+				<entry-files [user]="signedInUser" [forComment]="true" [isEdit]="true" [files]="newCommentFiles" [entryId]="entry.id"></entry-files>
+				<button type="submit" class="btn btn-primary btn-shadow" [disabled]="!commentForm.form.valid">Post</button>
 			</form>
 		</div>
 	</div>

@@ -27,7 +27,10 @@ import { CollapseModule } from "ngx-bootstrap/collapse";
 import { BsDropdownModule } from "ngx-bootstrap/dropdown";
 import { ModalModule } from "ngx-bootstrap/modal";
 
-import { MatCheckboxModule, MatChipsModule, MatDialogModule, MatRadioModule } from "@angular/material";
+import { MatCheckboxModule } from "@angular/material/checkbox";
+import { MatChipsModule } from "@angular/material/chips";
+import { MatDialogModule } from "@angular/material/dialog";
+import { MatRadioModule } from "@angular/material/radio";
 
 import { ViewSkillsComponent } from "./components/view-skills.component";
 import { SkillFiltersPipe } from "./skill-filters.pipe";

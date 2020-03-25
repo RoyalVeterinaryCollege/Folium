@@ -3,17 +3,18 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: true,
-  apiRootUri: 'https://server.address/api/',
+  production: false,
+  apiRootUri: 'http://hhsrvmars.rvc.ac.uk:5003/',
   oidcConfig: {
-      authority: "https://identity.server.address/",
-      client_id: "folium_app",
-      redirect_uri: "https://server.address/html/callback.html",
-      post_logout_redirect_uri: "https://server.address",
+      authority: "http://hhsrvmars.rvc.ac.uk:5001/",
+      client_id: "folium_app_dev",
+      redirect_uri: "http://localhost:8080/html/callback.html",
+      post_logout_redirect_uri: "http://localhost:8080",
       response_type: "token id_token",
       scope: "openid profile email folium_app_api",
-      silent_redirect_uri: "https://server.address/html/sign-in-silent.html",
-      automaticSilentRenew: true
+      silent_redirect_uri: "http://localhost:8080/html/sign-in-silent.html",
+      automaticSilentRenew: true,
+      accessTokenExpiringNotificationTime: 1000
   }
 };
 

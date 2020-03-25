@@ -17,7 +17,8 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, Inject, OnInit } from "@angular/core"
-import { MAT_DIALOG_DATA, MatDialogRef, MatRadioChange } from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatRadioChange } from '@angular/material/radio';
 
 import { SkillGrouping } from "../../core/dtos";
 

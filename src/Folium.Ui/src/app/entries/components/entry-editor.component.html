@@ -19,213 +19,237 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
 <div class="card app-card mt-2 mb-4 shadow-level-5">
-	<!-- Loading... -->
-	<div *ngIf="!entryForm" class="loader-container">
-		<div class="loader primary">Loading...</div>
-	</div>
-	<!-- Entry... -->
-	<div *ngIf="entryForm" class="card-body">
-		<form [formGroup]="entryForm" [fmAutoSave]="autoSave">
-			<div *ngIf="isEdit"  class="row entry-header">
-				<div class="col">
-					<div class="d-flex justify-content-end pb-2">
-						<span class="col-2 col-sm-1 pr-0 mr-auto" [ngSwitch]="entry.shared">
-							<span *ngSwitchCase="false"></span>
-							<ng-container *ngSwitchCase="true">
-								<i class="fa fa-share-alt share-icon" aria-hidden="true"></i>
-							</ng-container>
-						</span>
-						<button class="btn btn-link-icon mt-2 mt-sm-0 p-2" (click)="shareEntry()" title="Share">
-							<i class="fa fa-share-alt" aria-hidden="true"></i>
-						</button>
-						<button class="btn btn-link-icon mt-2 mt-sm-0" (click)="removeEntry()" title="Delete">
-							<span class="sr-only">Delete</span>
-							<i class="fa fa-trash" aria-hidden="true"></i>
-						</button>
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<div class="col">
-					<mat-form-field class="large">
-						<input matInput placeholder="Title" formControlName="title" name="title" autocomplete="off" (focus)="onTitleFocus()" (blur)="onTitleBlur()">
-					</mat-form-field>
-				</div>
-			</div>
-			<div *ngIf="!placement" class="row">
-				<div class="col">
-					<mat-form-field class="large">
-						<input matInput placeholder="Where" [matAutocomplete]="auto" formControlName="where" name="where" autocomplete="off" onfocus="this.select()" >
-					</mat-form-field>
-					<mat-autocomplete #auto="matAutocomplete">
-						<mat-option *ngFor="let whereData of filteredWhereData | async" [value]="whereData.name">
-							{{ whereData.name }}
-						</mat-option>
-					</mat-autocomplete>
-				</div>
-			</div>
-			<div *ngIf="placement" class="row">
-				<div class="col">
-					<mat-form-field class="large">
-						<input matInput placeholder="Where" disabled [value]="placement.fullyQualifiedTitle" name="where" autocomplete="off">
-					</mat-form-field>
-				</div>
-			</div>
-			<div class="row" *ngIf="isEdit ? false : (!skillSets || skillSets.length === 0 || skillSets.length > 1)">
-				<div class="col">
-					<div class="entry-chip-list-container">
-						<div class="float-left mr-2 mt-1"><h2 class="faded">Skill Set</h2></div>									
-						<!-- Loading... -->
-						<div *ngIf="!skillSets" class="loader-container">
-							<div class="loader primary">Loading...</div>
-						</div>
-						<mat-chip-list *ngIf="skillSets && skillSets.length > 0">							
-							<mat-chip *ngFor="let skillSet of skillSets" (click)="onSkillSetClick(skillSet)" [selected]="skillSet.selected">
-								{{skillSet.name}}
-							</mat-chip>
-						</mat-chip-list>						
-						<span *ngIf="skillSets && skillSets.length == 0">							
-							Looks like you don't have any skill sets, please <a [routerLink]="" (click)="onSelectUserSkillSetClick()">select one</a>.
-						</span>
-						<div class="entry-chip-list-underline">
-						</div>
-					</div>
-				</div>
-			</div>
-			<div *ngIf="!entryTypeSet && selectedSkillSet" class="row">
-				<div class="col">
-					<div class="entry-chip-list-container">
-						<div class="float-left mr-2 mt-1"><h2 class="faded">Type</h2></div>									
-						<!-- Loading... -->
-						<div *ngIf="!entryTypes" class="loader-container">
-							<div class="loader primary">Loading...</div>
-						</div>
-						<mat-chip-list *ngIf="entryTypes">
-							<mat-basic-chip (click)="onEntryTypeClick()">
-								Basic
-							</mat-basic-chip>
-							<mat-chip  *ngFor="let entryType of entryTypes" (click)="onEntryTypeClick(entryType)">
-								{{entryType.name}}
-							</mat-chip>
-						</mat-chip-list>
-						<div class="entry-chip-list-underline">
-						</div>
-					</div>
-				</div>
-			</div>
-			<div *ngIf="entryTypeSet">
-				<div *ngIf="entry.entryType">
-					<div class="row">
-						<div class="col">
-							<mat-form-field class="large">
-								<input matInput placeholder="Type" disabled [value]="entry.entryType.name" name="type" autocomplete="off">
-							</mat-form-field>
-						</div>
-					</div>
-				</div>				
-				<div class="row">
-					<div class="col">
-						<div *ngIf="!savePending" class="small text-sm-right pb-4">
-							<span *ngIf="!entrySaved">Last saved at {{entry.lastUpdatedAt | date: 'd MMM yyyy h:mm:ss a'}}</span>
-							<span *ngIf="entrySaved">All changes saved</span>
-						</div>
-						<div *ngIf="savePending" class="small text-sm-right pb-4">Saving entry...</div>
-					</div>
-				</div>	
-				<div *ngIf="!entry.entryType" class="row">
-					<div class="col">
-						<fieldset class="form-group">
-							<label class="sr-only">Textarea</label>
-							<textarea tinyMceEditor class="form-control" formControlName="description" name="description"></textarea>
-						</fieldset>
-					</div>
-				</div>
-				<div *ngIf="entry.entryType">
-					<div *ngIf="entry.entryType.template.summary" class="row">
-						<div class="col" [innerHtml]="entry.entryType.template.summary">
-						</div>
-					</div>
-					<div *ngFor="let input of entry.entryType.template.inputs; index as i" class="row">
-						<div class="col">
-							<fieldset class="form-group">
-								<label [innerHtml]="input.title"> <i *ngIf="input.help" class="fa fa-question-circle link-icon" aria-label="help" (click)="onHelpClick(input.help)"></i></label>
-								<textarea tinyMceEditor class="form-control" [formControlName]="'template_control_'+i" [name]="'template_control_'+i"></textarea>
-							</fieldset>
-						</div>
-					</div>
-				</div>
-				<div *ngIf="skillGroups" class="row">
-					<div class="col">
-						<div class="d-flex justify-content-start">
-							<h2>
-								Skills
-								<button type="button" (click)="showSkillsModal()" class="btn btn-secondary ml-2"><i class="fa fa-plus" aria-label="Add skills"></i></button>
-							</h2>
-							<div *ngIf="bundleSize > 0 && skillGroupings && skillGroupings.length > 1 && skillGrouping" class="ml-auto p-2"><span (click)="onChangeSkillGroupingClick()">{{skillGrouping.name}} <i class="folium-group" aria-hidden="true" role="button" aria-label="Change Skill Grouping" title="Change Skill Grouping"></i></span></div>							
-						</div>
-					</div>
-				</div>						
-				<!-- Loading... -->
-				<div *ngIf="!skillGroups" class="loader-container">
-					<div class="loader primary">Loading...</div>
-				</div>
-				<skill-group-list *ngIf="skillGroups && bundleSize > 0 && !isSkillsModalShown" [bundleView]="true" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [user]="user"></skill-group-list>
-				<div class="row" *ngIf="skillGroups && bundleSize == 0">
-					<div class="col">
-						<p>There are no skills associated with this entry.</p>
-					</div>
-				</div>
-			</div>
-			<div class="row text-right">
-				<div class="col">
-					<a *ngIf="autoSaveEnabled && !isEdit" [routerLink]="" (click)="onCloseClick()" class="btn">Cancel</a>
-					<a *ngIf="autoSaveEnabled && isEdit" [routerLink]="" (click)="onCloseClick()" class="btn">Close</a>
-					<button *ngIf="!autoSaveEnabled" type="submit" class="btn btn-primary btn-shadow mt-2 mt-sm-0" (click)="onSaveClick()">Save</button>
-				</div>
-			</div>
-		</form>
-	</div>
+  <!-- Loading... -->
+  <div *ngIf="!entryForm" class="loader-container">
+    <div class="loader primary">Loading...</div>
+  </div>
+  <!-- Entry... -->
+  <div *ngIf="entryForm" class="card-body">
+    <form [formGroup]="entryForm" [fmAutoSave]="autoSave">
+      <div *ngIf="isEdit" class="row entry-header">
+        <div class="col">
+          <div class="d-flex justify-content-end pb-2">
+            <span class="col-2 col-sm-1 pr-0 mr-auto">
+              <span *ngIf="entry.shared">
+                <i class="fas fa-share-alt entry-status-icon mr-1" aria-hidden="true"></i>
+              </span>
+              <span *ngIf="entry.signOffRequested && !entry.signedOff">
+                <i class="fas fa-external-link-alt entry-status-icon" aria-hidden="true"></i>
+              </span>
+              <span *ngIf="entry.signedOff">
+                <i class="fas fa-check-square entry-status-icon" aria-hidden="true"></i>
+              </span>
+            </span>
+            <button class="btn btn-link-icon mt-2 mt-sm-0 p-2" (click)="shareEntry()" title="Share">
+              <i class="fas fa-share-alt" aria-hidden="true"></i>
+            </button>
+            <button class="btn btn-link-icon mt-2 mt-sm-0 p-2" *ngIf="entry.isSignOffCompatible" (click)="requestSignOff()" title="Request sign-off">
+              <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            </button>
+            <button class="btn btn-link-icon mt-2 mt-sm-0" (click)="removeEntry()" title="Delete">
+              <span class="sr-only">Delete</span>
+              <i class="fas fa-trash-alt" aria-hidden="true"></i>
+            </button>
+            <button *ngIf="autoSaveEnabled && isEdit" class="btn btn-link-icon mt-2 mt-sm-0" (click)="onCloseClick($event)" title="Close">
+              <span class="sr-only">Close</span>
+              <i class="fas fa-window-close fa-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <mat-form-field class="large">
+            <input matInput placeholder="Title" formControlName="title" name="title" autocomplete="off" (focus)="onTitleFocus()" (blur)="onTitleBlur()">
+          </mat-form-field>
+          <div *ngIf="title && title.errors && title.errors.maxlength" class="alert alert-danger">
+            Title cannot be more than 1000 characters.
+          </div>
+        </div>
+      </div>
+      <div *ngIf="!placement" class="row">
+        <div class="col">
+          <mat-form-field class="large">
+            <input matInput placeholder="Where" [matAutocomplete]="auto" formControlName="where" name="where" autocomplete="off" onfocus="this.select()">
+          </mat-form-field>
+          <mat-autocomplete #auto="matAutocomplete">
+            <mat-option *ngFor="let whereData of filteredWhereData | async" [value]="whereData.name">
+              {{ whereData.name }}
+            </mat-option>
+          </mat-autocomplete>
+          <div *ngIf="where && where.errors && where.errors.maxlength" class="alert alert-danger">
+            Where cannot be more than 1050 characters.
+          </div>
+        </div>
+      </div>
+      <div *ngIf="placement" class="row">
+        <div class="col">
+          <mat-form-field class="large">
+            <input matInput placeholder="Where" disabled [value]="placement.fullyQualifiedTitle" name="where" autocomplete="off">
+          </mat-form-field>
+        </div>
+      </div>
+      <div class="row" *ngIf="isEdit ? false : (!skillSets || skillSets.length === 0 || skillSets.length > 1)">
+        <div class="col">
+          <div class="entry-chip-list-container">
+            <div class="float-left mr-2 mt-1"><h2 class="faded">Skill Set</h2></div>
+            <!-- Loading... -->
+            <div *ngIf="!skillSets" class="loader-container">
+              <div class="loader primary">Loading...</div>
+            </div>
+            <mat-chip-list *ngIf="skillSets && skillSets.length > 0">
+              <mat-chip *ngFor="let skillSet of skillSets" (click)="onSkillSetClick(skillSet)" [selected]="skillSet.selected">
+                {{skillSet.name}}
+              </mat-chip>
+            </mat-chip-list>
+            <span *ngIf="skillSets && skillSets.length == 0">
+              Looks like you don't have any skill sets, please <a [routerLink]="" (click)="onSelectUserSkillSetClick()">select one</a>.
+            </span>
+            <div class="entry-chip-list-underline">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="!entryTypeSet && selectedSkillSet" class="row">
+        <div class="col">
+          <div class="entry-chip-list-container">
+            <div class="float-left mr-2 mt-1"><h2 class="faded">Type</h2></div>
+            <!-- Loading... -->
+            <div *ngIf="!entryTypes" class="loader-container">
+              <div class="loader primary">Loading...</div>
+            </div>
+            <mat-chip-list *ngIf="entryTypes">
+              <mat-basic-chip (click)="onEntryTypeClick()">
+                Basic
+              </mat-basic-chip>
+              <mat-chip *ngFor="let entryType of entryTypes" (click)="onEntryTypeClick(entryType)">
+                <i *ngIf="entryType.template.signOff" class="fas fa-check-square mr-1" aria-hidden="true" title="Sign-off compatible"></i><span class="sr-only">Sign-off compatible</span> {{entryType.name}}
+              </mat-chip>
+            </mat-chip-list>
+            <div class="entry-chip-list-underline">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="entryTypeSet">
+        <div *ngIf="entry.entryType">
+          <div class="row">
+            <div class="col">
+              <mat-form-field class="large">
+                <input matInput placeholder="Type" disabled [value]="entry.entryType.name" name="type" autocomplete="off">
+              </mat-form-field>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div *ngIf="!savePending" class="small text-sm-right pb-4">
+              <span *ngIf="!entrySaved">Last saved at {{entry.lastUpdatedAt | date: 'd MMM yyyy h:mm:ss a'}}</span>
+              <span *ngIf="entrySaved">All changes saved</span>
+            </div>
+            <div *ngIf="savePending" class="small text-sm-right pb-4">Saving entry...</div>
+          </div>
+        </div>
+        <div *ngIf="!entry.entryType" class="row">
+          <div class="col">
+            <fieldset class="form-group">
+              <label class="sr-only">Textarea</label>
+              <textarea tinyMceEditor class="form-control" formControlName="description" name="description"></textarea>
+            </fieldset>
+          </div>
+        </div>
+        <div *ngIf="entry.entryType">
+          <div *ngIf="entry.entryType.template.summary" class="row">
+            <div class="col" [innerHtml]="entry.entryType.template.summary">
+            </div>
+          </div>
+          <div *ngFor="let input of entry.entryType.template.inputs; index as i" class="row">
+            <div class="col">
+              <fieldset class="form-group">
+                <label [innerHtml]="input.title"> <i *ngIf="input.help" class="far fa-question-circle link-icon" aria-label="help" (click)="onHelpClick(input.help)"></i></label>
+                <textarea tinyMceEditor class="form-control" [formControlName]="'template_control_'+i" [name]="'template_control_'+i"></textarea>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+        <!-- Skills -->
+        <div *ngIf="skillGroups" class="row">
+          <div class="col">
+            <div>
+              <h3>
+                <button type="button" (click)="showSkillsModal()" class="btn btn-secondary mr-2"><i class="fas fa-plus" aria-label="Add skills"></i></button>
+                SKILLS
+              </h3>
+              <div *ngIf="bundleSize > 0 && skillGroupings && skillGroupings.length > 1 && skillGrouping" class="ml-auto p-2"><span (click)="onChangeSkillGroupingClick()">{{skillGrouping.name}} <i class="folium-group" aria-hidden="true" role="button" aria-label="Change Skill Grouping" title="Change Skill Grouping"></i></span></div>
+            </div>
+            <hr class="d-print-none" />
+          </div>
+        </div>
+        <!-- Loading skills... -->
+        <div *ngIf="!skillGroups" class="loader-container">
+          <div class="loader primary">Loading...</div>
+        </div>
+        <skill-group-list *ngIf="skillGroups && bundleSize > 0 && !isSkillsModalShown" [bundleView]="true" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [user]="user"></skill-group-list>
+        <div class="row" *ngIf="skillGroups && bundleSize == 0">
+          <div class="col">
+            <p>There are no skills associated with this entry.</p>
+          </div>
+        </div>
+        <!-- Files -->
+        <entry-files [user]="user" [forComment]="false" [isEdit]="true" [files]="entryFiles" [entryId]="entry.id"></entry-files>
+      </div>
+
+      
+      <div class="row" [ngClass]="{'text-right': !autoSaveEnabled}">
+        <div class="col">
+          <button *ngIf="autoSaveEnabled && !isEdit" (click)="onCloseClick()" class="btn btn-link">Cancel</button>
+          <button *ngIf="autoSaveEnabled && isEdit" (click)="onCloseClick()" class="btn btn-link">Close</button>
+          <button *ngIf="!autoSaveEnabled" type="submit" class="btn btn-primary btn-shadow mt-2 mt-sm-0" (click)="onSaveClick()">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 <!--Add Skills-->
 <div bsModal [config]="{show: true, backdrop: false, keyboard: false}" #skillsModal="bs-modal" *ngIf="isSkillsModalShown" (onHidden)="onSkillsModalHidden()" class="modal fade" tabindex="-1" role="dialog" aria-label="Add Skills" aria-hidden="true">
-  	<div class="modal-dialog modal-full-screen modal-add-skills">
-		<div class="container">
-			<div class="modal-content">          
-				<div class="modal-body">
-					<section class="title">
-						<div class="container">
-							<div class="d-flex justify-content-start">
-								<div class="mr-auto">
-									<h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1> 
-								</div>
-								<div class="p-1">
-									<skill-search></skill-search>
-								</div>
-								<div class="p-1">
-									<filter-skills [skillSetId]="selectedSkillSet.id"></filter-skills>
-								</div>      
-							</div>
-						</div>
-					</section>
-					<section class="content-main">
-						<div class="container">				
-							<div class="row">
-								<div class="col">									
-        							<div>
-										<div *ngIf="skillGroupings && skillGroupings.length > 1 && skillGrouping" class="float-right white-text"><span (click)="onChangeSkillGroupingClick()">{{skillGrouping.name}} <i class="folium-group" aria-hidden="true" role="button" aria-label="Change Skill Grouping" title="Change Skill Grouping"></i></span></div>
-										<h2>{{selectedSkillSet.name}}</h2>
-									</div>
-									<active-skill-filters></active-skill-filters>
-								</div>
-							</div>
-							<skill-group-list *ngIf="skillGroups" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [autoSave]="false" [user]="user" [readOnly]="false"></skill-group-list>
-						</div>
-					</section>
-				</div>
-				<div class="modal-footer">
-					<button class="btn btn-primary btn-shadow" (click)="skillsModal.hide()"> Done </button>
-				</div>
-			</div>
-		</div>		
+  <div class="modal-dialog modal-full-screen modal-add-skills">
+    <div class="container">
+      <div class="modal-content">
+        <div class="modal-body">
+          <section class="title">
+            <div class="container">
+              <div class="d-flex justify-content-start">
+                <div class="mr-auto">
+                  <h1 class="text-uppercase p-1 m-0"><span class="folium-skills small"></span> Skills</h1>
+                </div>
+                <div class="p-1">
+                  <skill-search></skill-search>
+                </div>
+                <div class="p-1">
+                  <filter-skills [skillSetId]="selectedSkillSet.id"></filter-skills>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="content-main">
+            <div class="container">
+              <div class="row">
+                <div class="col">
+                  <div>
+                    <div *ngIf="skillGroupings && skillGroupings.length > 1 && skillGrouping" class="float-right white-text"><span (click)="onChangeSkillGroupingClick()">{{skillGrouping.name}} <i class="folium-group" aria-hidden="true" role="button" aria-label="Change Skill Grouping" title="Change Skill Grouping"></i></span></div>
+                    <h2>{{selectedSkillSet.name}}</h2>
+                  </div>
+                  <active-skill-filters></active-skill-filters>
+                </div>
+              </div>
+              <skill-group-list *ngIf="skillGroups" [skillSetId]="selectedSkillSet.id" [skillGroups]="skillGroups" [autoSave]="false" [user]="user" [readOnly]="false"></skill-group-list>
+            </div>
+          </section>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-shadow" (click)="skillsModal.hide()"> Done </button>
+        </div>
+      </div>
     </div>
+  </div>
 </div>

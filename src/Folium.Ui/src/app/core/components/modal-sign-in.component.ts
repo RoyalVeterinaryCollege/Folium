@@ -53,10 +53,10 @@ export class ModalSignInComponent implements OnInit, OnDestroy {
   private onSignInRequested$: Subscription;
   private onSignInComplete$: Subscription;
 
-  @ViewChild("signInModal")
+  @ViewChild("signInModal", { static: true })
   public signInModal: ModalDirective;
 
-  @ViewChild("signInFrame")
+  @ViewChild("signInFrame", { static: true })
   public signInFrame: ElementRef;
 
   constructor(private securityService: SecurityService) { }

@@ -96,16 +96,17 @@
 
 //Media Queries
 @include media-breakpoint-up(sm) {
-    .app-card {
-        margin-left:0;
-        margin-right:0;
+  .app-card {
+    margin-left: 0px;
+    margin-right: 0px;
+  }
+
+  .nav-card {
+    .card-header {
+      font-size: 1.2rem;
     }
-    .nav-card {
-        .card-header {
-            font-size:1.2rem;
-        }
-    }
- }
+  }
+}
 
  @include media-breakpoint-up(lg) {
     .nav-card {

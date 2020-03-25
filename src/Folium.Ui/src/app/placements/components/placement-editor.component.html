@@ -22,11 +22,14 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 	<div class="card-body">
 		<form [formGroup]="placementForm" [fmAutoSave]="autoSave">
 			<div class="row">
-				<div class="col-md-6">
-					<mat-form-field class="large">
-						<input matInput placeholder="Title" formControlName="title" name="title" required autocomplete="off">
-					</mat-form-field>
-				</div>
+        <div class="col-md-6">
+          <mat-form-field class="large">
+            <input matInput placeholder="Title" formControlName="title" name="title" required autocomplete="off">
+          </mat-form-field>
+          <div *ngIf="title && title.errors && title.errors.maxlength" class="alert alert-danger">
+            Title cannot be more than 1000 characters.
+          </div>
+        </div>
 				<div class="col-md-3">
 					<mat-form-field class="large">
 						<input matInput [matDatepicker]="startPicker" placeholder="Start" formControlName="start" name="start" (focus)="openPicker(startPicker)" required autocomplete="off">
@@ -37,7 +40,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				<div class="col-md-3">
 					<mat-form-field class="large">
 						<input matInput [matDatepicker]="endPicker" [min]="placementForm.value.start" placeholder="End" formControlName="end" name="end" (focus)="openPicker(endPicker)" required autocomplete="off">
-						<mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+						<mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
 					</mat-form-field>
 					<mat-datepicker #endPicker [touchUi]="touchUi"></mat-datepicker>
 				</div>
@@ -53,17 +56,17 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 			</div>	
 			<div *ngIf="!isEdit" class="row">
 				<div class="col">		
-					<a href (click)="onCloseClick($event)" class="btn">Cancel</a>					
+					<button (click)="onCloseClick($event)" class="btn btn-link">Cancel</button>					
 				</div>				
 				<div class="col">
 					<button class="btn btn-primary btn-shadow float-right" (click)="onCreatePlacementClick()" type="submit" [disabled]="placementForm.pristine || !placementForm.valid || savePending">
-						<i class="fa fa-plus" aria-hidden="true"></i> Create
+						<i class="fas fa-plus" aria-hidden="true"></i> Create
 					</button>
 				</div>
 			</div>
 			<div *ngIf="isEdit" class="row text-right">
 				<div class="col">
-					<a *ngIf="autoSaveEnabled" href (click)="onCloseClick($event)" class="btn">Close</a>
+					<button *ngIf="autoSaveEnabled" (click)="onCloseClick($event)" class="btn btn-link">Close</button>
 					<button *ngIf="!autoSaveEnabled" type="submit" class="btn btn-primary btn-shadow mt-2 mt-sm-0" (click)="onSaveClick()">Save</button>
 				</div>
 			</div>

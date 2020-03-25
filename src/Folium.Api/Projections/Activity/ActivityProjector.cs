@@ -37,6 +37,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
 using Folium.Api.Models.Messaging;
+using System.Threading.Tasks;
 
 namespace Folium.Api.Projections.Activity {
 	[Projector(5)]
@@ -45,15 +46,18 @@ namespace Folium.Api.Projections.Activity {
         private readonly IEntryService _entryService;
         private readonly IUserService _userService;
         private readonly IOptions<Configuration> _applicationConfiguration;
+		private readonly ILogger<ActivityProjector> _logger;
+		private readonly IBackgroundJobClient _backgroundJobClient;
 
-        public ActivityProjector(
+		public ActivityProjector(
             IDbService dbService, 
             IPersistStreams persistStreams,
             IEntryService entryService,
             IUserService userService,
             ILogger<ActivityProjector> logger,
-            IOptions<Configuration> applicationConfiguration) : base(persistStreams, dbService) {
-            var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
+            IOptions<Configuration> applicationConfiguration,
+			IBackgroundJobClient backgroundJobClient) : base(persistStreams, dbService) {
+			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
                 logger.LogWarning($"Commit contains null events. CommitId:{commit.CommitId}, CommitSequence:{commit.CommitSequence}, StreamId:{commit.StreamId}, StreamRevision:{commit.StreamRevision}, EventCount:{commit.Events.Count}, AggregateId {commit.AggregateId()}");
             })
 				.FirstProject<EntryCreated>(OnEntryCreated)
@@ -68,12 +72,17 @@ namespace Folium.Api.Projections.Activity {
 				.ThenProject<EntryShared>(OnEntryShared)
 				.ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
 				.ThenProject<EntryCommentCreated>(OnEntryCommentCreated)
-                .ThenProject<MessageCreated>(OnMessageCreated);
+                .ThenProject<MessageCreated>(OnMessageCreated)
+				.ThenProject<EntrySignOffRequested>(OnEntrySignOffRequested)
+				.ThenProject<EntrySignOffUserRemoved>(OnEntrySignOffUserRemoved)
+				.ThenProject<EntrySignedOff>(OnEntrySignedOff);
 
             _conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
             _entryService = entryService;
             _userService = userService;
             _applicationConfiguration = applicationConfiguration;
+			_logger = logger;
+			_backgroundJobClient = backgroundJobClient;
         }
 
         public override void Project(ICommit commit) {
@@ -106,8 +115,8 @@ namespace Folium.Api.Projections.Activity {
             var insertedRowCount = tx.Connection.Execute(sql, (object)sqlParams, tx);
                         
             if (insertedRowCount == 1) {
-                // Schedule the email to be sent on a background thread.
-                BackgroundJob.Enqueue<IEmailService>(service => service.SendEmail(emailNotification.Id));
+				// Schedule the email to be sent on a background thread.
+				_backgroundJobClient.Enqueue<IEmailService>(service => service.SendEmail(emailNotification.Id));
             }
         }
 
@@ -279,32 +288,36 @@ namespace Folium.Api.Projections.Activity {
         }
 
 		private void OnEntryCommentCreated(IDbTransaction tx, ICommit commit, EntryCommentCreated @event) {
-            RecordActivity(tx, new Models.Activity {
-                UserId = @event.CreatedBy,
-                Type = (int)ActivityType.EntryCommentCreated,
-                When = @event.CreatedAt,
-                Link = $"{commit.AggregateId()},{@event.Id}"
-            });
-            var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
-            var author = new UserDto(_userService.GetUser(@event.CreatedBy, tx));
-            var collaborators = 
-                (_entryService.GetCollaborators(commit.AggregateId())).ToArray()
-                .Union(new[] { entryAuthor })
-                .Where(c => c.Id != @event.CreatedBy);
+			RecordActivity(tx, new Models.Activity {
+				UserId = @event.CreatedBy,
+				Type = (int)ActivityType.EntryCommentCreated,
+				When = @event.CreatedAt,
+				Link = $"{commit.AggregateId()},{@event.Id}"
+			});
+			var comment = _entryService.GetEntryComment(commit.AggregateId(), @event.Id, tx);
+			if (!comment.ForSignOff) {
+				// Only send an email for comments which are not for sign-off, these are handled by the sign-off event.
+				var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
+				var author = new UserDto(_userService.GetUser(@event.CreatedBy, tx));
+				var collaborators =
+					(_entryService.GetCollaborators(commit.AggregateId())).ToArray()
+					.Union(new[] { entryAuthor })
+					.Where(c => c.Id != @event.CreatedBy);
 
-            foreach(var collaborator in collaborators) {
-                var notification = new Models.EmailNotification {
-                    Id = Guid.NewGuid(),
-                    UserId = @event.CreatedBy,
-                    To = collaborator.Email,
-                    When = @event.CreatedAt,
-                    Subject = $"{author.FirstName} {author.LastName} has made a comment",
-                    HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has made a new comment on an entry in Folium.</p>",
-                    ActionLink = $"{_applicationConfiguration.Value.BaseUrl}/entries/{commit.AggregateId()}?comment-id={@event.Id}",
-                    ActionTitle = "View Entry"
-                };
-                CreateEmailNotification(tx, notification);
-            }
+				foreach (var collaborator in collaborators) {
+					var notification = new Models.EmailNotification {
+						Id = Guid.NewGuid(),
+						UserId = @event.CreatedBy,
+						To = collaborator.Email,
+						When = @event.CreatedAt,
+						Subject = $"{author.FirstName} {author.LastName} has made a comment",
+						HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has made a new comment on an entry in Folium.</p>",
+						ActionLink = $"{_applicationConfiguration.Value.UiBaseUrl}/entries/{commit.AggregateId()}?comment-id={@event.Id}",
+						ActionTitle = "View Entry"
+					};
+					CreateEmailNotification(tx, notification);
+				}
+			}
         }
 
 		private void OnEntryCollaboratorRemoved(IDbTransaction tx, ICommit commit, EntryCollaboratorRemoved @event) {
@@ -336,14 +349,76 @@ namespace Folium.Api.Projections.Activity {
                     When = commit.CommitStamp,
                     Subject = $"{author.FirstName} {author.LastName} has shared an entry with you",
                     HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has shared an entry in Folium with you.</p>{customText}<p style='line-height:2.5;'>Thanks<br>The Folium Team</p>",
-                    ActionLink = $"{_applicationConfiguration.Value.BaseUrl}/entries/{commit.AggregateId()}",
+                    ActionLink = $"{_applicationConfiguration.Value.UiBaseUrl}/entries/{commit.AggregateId()}",
                     ActionTitle = "View Entry"
                 };
                 CreateEmailNotification(tx, notification);
             }
-        }
-        
-        private void OnMessageCreated(IDbTransaction tx, ICommit comment, MessageCreated @event) {
+		}
+
+		private void OnEntrySignOffRequested(IDbTransaction tx, ICommit commit, EntrySignOffRequested @event) {
+			var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
+			
+			RecordActivity(tx, new Models.Activity {
+				UserId = entryAuthor.Id,
+				Type = (int)ActivityType.EntrySignOffRequested,
+				When = commit.CommitStamp,
+				Link = commit.AggregateId().ToString()
+			});
+
+			var authorisedUsers = @event.AuthorisedUserIds.Select(authorisedUserId => _userService.GetUser(authorisedUserId, tx));
+
+			foreach (var authorisedUser in authorisedUsers) {
+				var customText = string.IsNullOrWhiteSpace(@event.Message) ? "" : $"<p>{WebUtility.HtmlEncode(@event.Message)}</p>";
+				var notification = new Models.EmailNotification {
+					Id = Guid.NewGuid(),
+					UserId = entryAuthor.Id,
+					To = authorisedUser.Email,
+					When = commit.CommitStamp,
+					Subject = $"{entryAuthor.FirstName} {entryAuthor.LastName} has requested that you sign-off their entry",
+					HtmlBody = $"<p>{authorisedUser.FirstName} {authorisedUser.LastName},</p> <p>Just to let you know {entryAuthor.FirstName} {entryAuthor.LastName} has requested that you sign-off an entry they have written in Folium.</p>{customText}<p style='line-height:2.5;'>Thanks<br>The Folium Team</p>",
+					ActionLink = $"{_applicationConfiguration.Value.UiBaseUrl}/entries/{commit.AggregateId()}",
+					ActionTitle = "View Entry"
+				};
+				CreateEmailNotification(tx, notification);
+			}
+		}
+
+		private void OnEntrySignedOff(IDbTransaction tx, ICommit commit, EntrySignedOff @event) {
+			var comment = _entryService.GetEntryComment(commit.AggregateId(), @event.CommentId, tx);
+			RecordActivity(tx, new Models.Activity {
+				UserId = comment.Author.Id,
+				Type = (int)ActivityType.EntrySignedOff,
+				When = @event.When,
+				Link = $"{commit.AggregateId()},{@event.CommentId}"
+			});
+			var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
+			var author = new UserDto(_userService.GetUser(comment.Author.Id, tx));
+
+			var notification = new Models.EmailNotification {
+				Id = Guid.NewGuid(),
+				UserId = comment.Author.Id,
+				To = entryAuthor.Email,
+				When = @event.When,
+				Subject = $"{author.FirstName} {author.LastName} has signed off your entry.",
+				HtmlBody = $"<p>{entryAuthor.FirstName} {entryAuthor.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has signed off your entry in Folium.</p>",
+				ActionLink = $"{_applicationConfiguration.Value.UiBaseUrl}/entries/{commit.AggregateId()}?comment-id={@event.CommentId}",
+				ActionTitle = "View Entry"
+			};
+			CreateEmailNotification(tx, notification);
+		}
+
+		private void OnEntrySignOffUserRemoved(IDbTransaction tx, ICommit commit, EntrySignOffUserRemoved @event) {
+			var entryAuthor = _entryService.GetEntryAuthor(commit.AggregateId(), tx);
+			RecordActivity(tx, new Models.Activity {
+				UserId = entryAuthor.Id,
+				Type = (int)ActivityType.EntrySignOffUserRemoved,
+				When = commit.CommitStamp,
+				Link = commit.AggregateId().ToString()
+			});
+		}
+
+		private void OnMessageCreated(IDbTransaction tx, ICommit comment, MessageCreated @event) {
             // Get the users.
             var fromUser = _userService.GetUser(@event.FromUserId, tx);
             var toUser = _userService.GetUser(@event.ToUserId, tx);
@@ -371,7 +446,10 @@ namespace Folium.Api.Projections.Activity {
 			SelfAssessmentRemoved = 9,
 			EntryCommentCreated = 10,
 			EntryCollaboratorRemoved = 11,
-			EntryShared = 12
+			EntryShared = 12,
+			EntrySignOffRequested = 13,
+			EntrySignOffUserRemoved = 14,
+			EntrySignedOff = 15
 		}
 	}
 }

@@ -28,9 +28,8 @@ using System.Security.Claims;
 using Folium.Api.Dtos;
 using Folium.Api.Extensions;
 using Microsoft.AspNetCore.Hosting;
-using SixLabors.ImageSharp;
-using SixLabors.Primitives;
 using System.Data;
+using ImageMagick;
 
 namespace Folium.Api.Services {
     public interface IUserService {
@@ -86,7 +85,8 @@ namespace Folium.Api.Services {
 					        INNER JOIN [dbo].[User]
 						        ON [CourseEnrolment].[UserId] = [User].[Id]
 					        WHERE [User].[Email] = @Email
-					        AND [CourseEnrolment].[Active] = 1) THEN 1 ELSE 0
+					        AND [CourseEnrolment].[Active] = 1
+					        AND [Tutee].[Removed] = 0) THEN 1 ELSE 0
                         END AS HasTutor,
                         CASE WHEN EXISTS(
                             SELECT *
@@ -135,7 +135,8 @@ namespace Folium.Api.Services {
 					        INNER JOIN [dbo].[User]
 						        ON [CourseEnrolment].[UserId] = [User].[Id]
 					        WHERE [User].[Id] = @UserId
-					        AND [CourseEnrolment].[Active] = 1) THEN 1 ELSE 0
+					        AND [CourseEnrolment].[Active] = 1
+					        AND [Tutee].[Removed] = 0) THEN 1 ELSE 0
                         END AS HasTutor,
                         CASE WHEN EXISTS(
                             SELECT *
@@ -329,6 +330,7 @@ namespace Folium.Api.Services {
 					ON [CourseEnrolment].[UserId] = [User].Id
 					WHERE [CourseEnrolment].[Active] = 1
                     AND [TuteeGroup].[Removed] = 0
+					AND [Tutee].[Removed] = 0
 					UNION					
 					SELECT	[TuteeGroup].[Id]
 							,[Title] + ' Tutor Group' AS [Name]
@@ -384,30 +386,22 @@ namespace Folium.Api.Services {
 	        }
 
             // We want a 150x150 image.
-			using(var originalImage = Image.Load<Rgba32>(imageStream)) {
-				_logger.LogTrace($"Initialised image from stream");
-				// First we want to resize the image so that the smallist side is 150,  passing a 0 will maintain the aspect ratio.
-				var size = originalImage.Width == originalImage.Height
-                    ? new Size(150, 150)
-                    : originalImage.Width > originalImage.Height
-                        ? new Size(0, 150)
-                        : new Size(150, 0);
-
-                // The crop rectange needs to be adjusted on the x axis if the width>150, so we crop it in the centre.
-                var cropRectangle = originalImage.Width > originalImage.Height
-                    ? new Rectangle(((150 * originalImage.Width / originalImage.Height)-150)/2, 0, 150, 150)
-                    : new Rectangle(0, 0, 150, 150);
-
-				_logger.LogTrace($"Begin resize and crop image");
+			_logger.LogTrace($"Begin resize and crop image");
 				
-				using (var outputStream = new FileStream(filePath, FileMode.CreateNew)) {
-					originalImage.Mutate(x => x
-						.Resize(size) // resize to min 150 width or height.
-						.Crop(cropRectangle)); // crop to 150x150.
-					originalImage.SaveAsJpeg(outputStream); // save to disk.
-				}
-				_logger.LogTrace($"Finished resize and crop image");
-			}
-        }
+                // Create the requested thumbnail.
+                using (var image = new MagickImage(imageStream)) {
+                    var newImageSize = new MagickGeometry(150, 150);
+                    newImageSize.FillArea = true;
+                    image.Thumbnail(newImageSize);
+                    image.Crop(150, 150, Gravity.Center);
+                    image.RePage();
+
+                    // Save the result
+                    image.Write(filePath, MagickFormat.Jpeg);
+                }
+                
+			_logger.LogTrace($"Finished resize and crop image");
+		}
+
     }    
 }

@@ -48,7 +48,10 @@ namespace Folium.Api.Projections.Placement {
 				.ThenProject<EntryUpdated>(OnEntryUpdated)
 			    .ThenProject<EntryRemoved>(OnEntryRemoved)
 			    .ThenProject<EntryShared>(OnEntryShared)
-			    .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved);
+			    .ThenProject<EntryCollaboratorRemoved>(OnEntryCollaboratorRemoved)
+				.ThenProject<EntrySignOffRequested>(OnEntrySignOffRequested)
+				.ThenProject<EntrySignOffUserRemoved>(OnEntrySignOffUserRemoved)
+				.ThenProject<EntrySignedOff>(OnEntrySignedOff);
 
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
 			_logger = logger;
@@ -120,16 +123,28 @@ namespace Folium.Api.Projections.Placement {
 			var sqlParams = @event.ToDynamic();
 			sqlParams.Id = commit.AggregateId();
 
-			const string sql = @"
+			const string sql1 = @"
 				DELETE FROM [dbo].[PlacementProjector.Placement]
 				WHERE Id = @Id;";
-			tx.Connection.Execute(sql, (object) sqlParams, tx);
-		}
+			tx.Connection.Execute(sql1, (object) sqlParams, tx);
+
+            const string sql2 = @"
+				UPDATE [dbo].[PlacementProjector.Entry]
+                SET [PlacementId] = NULL
+				WHERE [PlacementId] = @Id;";
+            tx.Connection.Execute(sql2, (object)sqlParams, tx);
+        }
 		private void OnEntryCreated(IDbTransaction tx, ICommit commit, EntryCreated @event) {
 			var sqlParams = @event.ToDynamic();
 			sqlParams.Id = commit.AggregateId();
 
 			const string sql = @"
+				DECLARE @PlacementId uniqueidentifier;  
+				SELECT TOP 1 @PlacementId = [PlacementProjector_Placement].[Id]
+				FROM [dbo].[PlacementProjector.Placement] AS [PlacementProjector_Placement]
+				WHERE [FullyQualifiedTitle] = @Where
+				AND [UserId] = @UserId
+
 				INSERT INTO [dbo].[PlacementProjector.Entry]
 					   ([Id]
 					   ,[PlacementId]
@@ -142,18 +157,15 @@ namespace Folium.Api.Projections.Placement {
 					   ,[Shared])
 				SELECT TOP 1
 					   @Id
-					   ,Id
+					   ,@PlacementId
 					   ,@SkillSetId
 					   ,@Title
 					   ,@Description
 					   ,@UserId
-					   ,[FullyQualifiedTitle]
+					   ,@Where
 					   ,@When
 					   ,0 -- Not shared
-				FROM [PlacementProjector.Placement]
-				WHERE [FullyQualifiedTitle] = @Where
-				AND [UserId] = @UserId
-				AND NOT EXISTS(SELECT * FROM [dbo].[PlacementProjector.Entry] WHERE Id = @Id);";
+				WHERE NOT EXISTS(SELECT * FROM [dbo].[PlacementProjector.Entry] WHERE Id = @Id);";
 			tx.Connection.Execute(sql, (object)sqlParams, tx);
 		}
 		private void OnEntryCreatedWithType(IDbTransaction tx, ICommit commit, EntryCreatedWithType @event) {
@@ -162,9 +174,10 @@ namespace Folium.Api.Projections.Placement {
 
 			const string sql = @"
 			UPDATE [PlacementProjector.Entry]
-			SET	[TypeName] = [EntryType].[Name]
+			SET	[TypeName] = [EntryType].[Name],
+				[IsSignOffCompatible] = [EntryType].[IsSignOffCompatible]
 			FROM (
-				SELECT [Id], [Name]
+				SELECT [Id], [Name], CASE WHEN Template LIKE '%""signOff"":%' THEN 1 ELSE 0 END AS [IsSignOffCompatible]
 				FROM [dbo].[EntryType]) AS EntryType
 			WHERE
 				[EntryType].[Id] = @TypeId
@@ -182,16 +195,19 @@ namespace Folium.Api.Projections.Placement {
 				FROM [dbo].[PlacementProjector.Entry] AS [PlacementProjector_Entry]
 				WHERE Id = @Id;
 
+				DECLARE @PlacementId uniqueidentifier;  
+				SELECT TOP 1 @PlacementId = [PlacementProjector_Placement].[Id]
+				FROM [dbo].[PlacementProjector.Placement] AS [PlacementProjector_Placement]
+				WHERE [FullyQualifiedTitle] = @Where
+				AND [UserId] = @UserId
+
 				UPDATE [PlacementProjector_Entry]
 				SET [Title] = @Title
 					,[Description] = @Description
 					,[Where] = @Where
 					,[When] = @When
-					,[PlacementId] = [PlacementProjector_Placement].[Id]
+					,[PlacementId] = @PlacementId
 				FROM [dbo].[PlacementProjector.Entry] AS [PlacementProjector_Entry] 
-				INNER JOIN [dbo].[PlacementProjector.Placement] AS [PlacementProjector_Placement]
-						ON [PlacementProjector_Placement].[FullyQualifiedTitle] = @Where
-						AND [PlacementProjector_Placement].[UserId] = @UserId
 				WHERE [PlacementProjector_Entry].Id = @Id;
 
 				DELETE FROM [dbo].[PlacementProjector.Entry]
@@ -246,6 +262,47 @@ namespace Folium.Api.Projections.Placement {
 				WHERE [Id] = @EntryId;";
 				tx.Connection.Execute(sql, (object)sqlParams, tx);
 			}
+		}
+
+		private void OnEntrySignOffUserRemoved(IDbTransaction tx, ICommit commit, EntrySignOffUserRemoved @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				UserId = @event.RemoveUserId
+			};
+
+			const string sql = @"
+				UPDATE [PlacementProjector.Entry]
+				SET	[SignOffRequested] = CASE WHEN EXISTS (SELECT 1 FROM [dbo].[EntryProjector.SignOffRequest] WHERE [EntryId] = @EntryId) THEN 1 ELSE 0 END
+				WHERE [Id] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
+		}
+
+		private void OnEntrySignOffRequested(IDbTransaction tx, ICommit commit, EntrySignOffRequested @event) {
+			foreach (var authorisedUserIds in @event.AuthorisedUserIds) {
+				var sqlParams = new {
+					EntryId = commit.AggregateId()
+				};
+				const string sql = @"
+				UPDATE [PlacementProjector.Entry]
+				SET	[SignOffRequested] = 1
+				WHERE [Id] = @EntryId;";
+				tx.Connection.Execute(sql, (object)sqlParams, tx);
+			}
+		}
+
+		private void OnEntrySignedOff(IDbTransaction tx, ICommit commit, EntrySignedOff @event) {
+			var sqlParams = new {
+				EntryId = commit.AggregateId(),
+				UserId = @event.AuthorisedUserId,
+				@event.When
+			};
+			const string sql = @"
+			UPDATE [PlacementProjector.Entry]
+			SET	[SignedOffAt] = @When,
+				[SignedOffBy] = @UserId,
+				[SignedOff] = 1
+			WHERE [Id] = @EntryId;";
+			tx.Connection.Execute(sql, (object)sqlParams, tx);
 		}
 	}
 }

@@ -22,8 +22,8 @@ namespace Folium.Api.Models.Entry.Events {
 	internal class EntryUpdated {
 		public EntryUpdated(string title, string description, string where, DateTime when, DateTime lastUpdatedAt, int? skillGroupingId = null) {
 			Description = description;
-			Title = title;
-			Where = where;
+            Title = title.Substring(0, title.Length > 1000 ? 1000 : title.Length);
+            Where = where.Substring(0, where.Length > 1050 ? 1050 : where.Length); ;
 			When = when;
 			LastUpdatedAt = lastUpdatedAt;
             SkillGroupingId = skillGroupingId;

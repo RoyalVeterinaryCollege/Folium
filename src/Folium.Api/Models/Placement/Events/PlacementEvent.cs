@@ -22,7 +22,7 @@ namespace Folium.Api.Models.Placement.Events {
     public abstract class PlacementEvent {
 	    protected PlacementEvent(int userId, string title, DateTime start, DateTime end, string reference, int createdBy, DateTime createdAt, int lastUpdatedBy, DateTime lastUpdatedAt, string type = null) {
 			UserId = userId;
-			Title = title;
+			Title = title.Substring(0, title.Length > 1000 ? 1000 : title.Length); ;
 			Start = start;
 			End = end;
 			Reference = reference;

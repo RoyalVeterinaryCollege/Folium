@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 
 -->
-<div class="dialog-share-entry">
+<div class="dialog-entry">
 	<div mat-dialog-title>
 		<h1>Sharing</h1> 
 	</div>	
@@ -26,11 +26,11 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<div *ngIf="collaborators.length > 0" class="mb-3">
 			Shared with:
 			<mat-chip-list>
-				<mat-chip *ngFor="let collaborator of collaborators" [removable]="true" [selectable]="false" (remove)="onRemoveCollaboratorClick(collaborator)">
+				<mat-chip *ngFor="let collaborator of collaborators" [removable]="true" [selectable]="false" (removed)="onRemoveCollaboratorClick(collaborator)">
 					<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
 					{{getCollaboratorLabel(collaborator)}}
 					<mat-icon matChipRemove>
-						<i class="fa fa-times" aria-hidden="true"></i>
+						<i class="fas fa-times" aria-hidden="true"></i>
 						<span class="sr-only">Remove</span></mat-icon>
 				</mat-chip>
 			</mat-chip-list>
@@ -38,20 +38,18 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		<form>
 			<div class="row">
 				<div class="col">
-					<mat-form-field floatPlaceholder="never">
-						<!-- The floats for the label on an autocomplete field didn't seem to work correctly, the text remained whilst they typed, so using this instead.-->
-						<label for="collaboratorToInviteInput" class="mat-form-field-placeholder" style="display:block; top:-1em;">Invite people...</label>
+					<mat-form-field>
 						<mat-chip-list #collaboratorsToInviteChipList>
-							<mat-chip *ngFor="let collaborator of collaboratorsToInvite" [removable]="true" [selectable]="false" (click)="onRemoveCollaboratorToInviteClick(collaborator)" (remove)="onRemoveCollaboratorToInviteClick(collaborator)">
+							<mat-chip *ngFor="let collaborator of collaboratorsToInvite" [removable]="true" [selectable]="false" (removed)="onRemoveCollaboratorToInviteClick(collaborator)">
 								<img [fmUserPic]="collaborator" class="profile-pic img-fluid" alt="Profile picture">
 								{{getCollaboratorLabel(collaborator)}}
 								<mat-icon matChipRemove>
-									<i class="fa fa-times" aria-hidden="true"></i>
+									<i class="fas fa-times" aria-hidden="true"></i>
 									<span class="sr-only">Remove</span>
 								</mat-icon>
 							</mat-chip>
+							<input matInput id="collaboratorToInviteInput" #collaboratorToInviteInput [(ngModel)]="collaboratorToInviteQuery" aria-label="Invite people" placeholder="Invite people..." [matChipInputFor]="collaboratorsToInviteChipList" (input)="onCollaboratorInput()" [matAutocomplete]="auto" name="newCollaborator" autocomplete="off">
 						</mat-chip-list>
-						<input matInput id="collaboratorToInviteInput" #collaboratorToInviteInput [(ngModel)]="collaboratorToInviteQuery" aria-label="Invite people" [matChipInputFor]="collaboratorsToInviteChipList" (input)="onCollaboratorInput()" [matAutocomplete]="auto" name="newCollaborator" autocomplete="off" >
 						<mat-autocomplete #auto="matAutocomplete" (optionSelected)="onCollaboratorSelected($event)">
 							<mat-option *ngFor="let option of collaboratorOptions" [value]="option">
 								<span [innerHTML]='highlightMatch(option.name)'></span>
@@ -82,11 +80,11 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 			</div>
 		</form>
 	</div>
-	<div mat-dialog-actions class="d-flex justify-content-between"  *ngIf="collaboratorsToInvite.length > 0">
-		<button class="btn btn-primary btn-shadow" (click)="onSendInvites()">Submit</button>
-		<button class="btn btn-link" (click)="onCancelInvite()">Cancel</button>
-	</div>	
-	<div mat-dialog-actions *ngIf="collaboratorsToInvite.length == 0">
+  <div mat-dialog-actions class="d-flex justify-content-between" *ngIf="collaboratorsToInvite.length > 0">
+    <button class="btn btn-link" (click)="onCancelInvite()">Cancel</button>
+    <button class="btn btn-primary btn-shadow" (click)="onSendInvites()">Submit</button>
+  </div>	
+	<div mat-dialog-actions *ngIf="collaboratorsToInvite.length == 0" class="float-right">
 		<button cdk-focus-initial class="btn btn-primary btn-shadow" [mat-dialog-close]="collaborators.length > 0">Done</button>
 	</div>
 </div>

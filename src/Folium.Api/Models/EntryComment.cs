@@ -18,6 +18,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 
 namespace Folium.Api.Models {
     public class EntryComment {
@@ -25,5 +26,7 @@ namespace Folium.Api.Models {
 		public string Comment { get; set; }
 		public int CreatedBy { get; set; }
 		public DateTime CreatedAt { get; set; }
-	}
+        public List<Guid> FileIds { get; set; }
+        public bool ForSignOff { get; set; }
+    }
 }

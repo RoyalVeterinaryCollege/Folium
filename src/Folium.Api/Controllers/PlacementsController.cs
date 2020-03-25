@@ -67,8 +67,13 @@ namespace Folium.Api.Controllers {
 			if (!(IsValidPlacement("UpdatePlacement", currentUser, placementDto))) {
 				return new BadRequestResult();
 			}
-			// Update the placement.
-			_placementService.UpdatePlacement(currentUser, placementDto);
+            // Check the same user is updating the placement.
+            var currentPlacement = await _placementService.GetPlacementAsync(placementDto.Id);
+            if(currentPlacement.CreatedBy != currentUser.Id) {
+                return new BadRequestResult();
+            }
+            // Update the placement.
+            _placementService.UpdatePlacement(currentUser, placementDto);
 			return Json(placementDto);
 		}
 
@@ -80,7 +85,7 @@ namespace Folium.Api.Controllers {
 
 			var placementDto = await _placementService.GetPlacementAsync(placementId);
 			// validate to check the current user can modify the placement.
-			if (!(IsValidPlacement("RemovePlacement", currentUser, placementDto))) {
+			if (!(IsValidPlacement("RemovePlacement", currentUser, placementDto)) || placementDto.CreatedBy != currentUser.Id) {
 				return new BadRequestResult();
 			}
 			
@@ -139,21 +144,16 @@ namespace Folium.Api.Controllers {
 		// GET placements/{placementId}/entries
 		// Gets the requested placement entries.
 		public async Task<ActionResult> PlacementEntries(Guid placementId, int? userId = null, int skip = 0, int take = 20) {
-            var user = await _userService.GetUserAsync(User);
-            if (userId.HasValue && user.Id != userId.Value) {
+            var currentUser = await _userService.GetUserAsync(User);
+			if (userId.HasValue && currentUser.Id != userId.Value) {
                 var userToView = _userService.GetUser(userId.Value);
                 if (userToView == null) return Json(null);
-                if (await _userService.CanViewUserDataAsync(user, userToView)) {
-                    user = userToView;
-                }
-                else {
+                if (!await _userService.CanViewUserDataAsync(currentUser, userToView)) {
                     return Json(null);
                 }
             }
-
-            var placement = await _placementService.GetPlacementAsync(placementId);
             
-			var entries = await _placementService.GetPlacementEntriesAsync(placementId, skip, take);
+			var entries = await _placementService.GetPlacementEntriesAsync(currentUser, placementId, skip, take);
 
 			return Json(entries);
 		}
@@ -174,8 +174,13 @@ namespace Folium.Api.Controllers {
 			if (string.IsNullOrWhiteSpace(placementDto.Title)) {
 				_logger.LogWarning($"{caller} called with invalid title.");
 				return false;
-			}
-			if (placementDto.Start == DateTime.MinValue) {
+            } else {
+                if (placementDto.Title.Length > 1000) {
+                    _logger.LogInformation($"{caller} called with title of length {placementDto.Title.Length}");
+                    return false;
+                }
+            }
+            if (placementDto.Start == DateTime.MinValue) {
 				_logger.LogWarning($"{caller} called with invalid start date of {placementDto.Start}.");
 				return false;
 			}

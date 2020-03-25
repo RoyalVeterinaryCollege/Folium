@@ -196,6 +196,7 @@ namespace Folium.Api.Services {
 						ON [TuteeGroup].[TutorId] = [User].[Id]
 					WHERE [CourseEnrolment].[UserId] IN @UserIds
 					AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0
                     AND [TuteeGroup].[Removed] = 0;",
                             new {
                                 criteria.SkillSetId,
@@ -249,11 +250,16 @@ namespace Folium.Api.Services {
                           ,[SharedCount]
                           ,[SharedWithTutorCount]
                           ,[CommentCount]
+                          ,[IsSignOffCompatible]
+                          ,[SignOffRequestCount]
+                          ,[SignedOff]
                       FROM [dbo].[ReportingProjector.EntryEngagement]
                       WHERE [UserId] IN @UserIds "
                       + (criteria.EntryTypeIds != null && criteria.EntryTypeIds.Count > 0
-                        ? "AND ([EntryTypeId] IN @EntryTypeIds) "
-                        : "")
+                        ? criteria.BasicEntryType ? "AND (([EntryTypeId] IN @EntryTypeIds) OR EntryTypeId IS NULL)"
+                                                  : "AND ([EntryTypeId] IN @EntryTypeIds)"
+                        : criteria.BasicEntryType ? "AND EntryTypeId IS NULL"
+                                                  : "")
                       + @"
                         AND ([When] >= @From OR @From IS NULL)
                         AND ([When] <= @To OR @To IS NULL);
@@ -272,6 +278,7 @@ namespace Folium.Api.Services {
 						ON [TuteeGroup].[TutorId] = [User].[Id]
 					WHERE [CourseEnrolment].[UserId] IN @UserIds
 					AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0
                     AND [TuteeGroup].[Removed] = 0;",
                             new {
                                 criteria.EntryTypeIds,
@@ -342,6 +349,9 @@ namespace Folium.Api.Services {
                           ,[EntryCount]
                           ,[SharedEntryCount]
                           ,[SharedEntryWithTutorCount]
+                          ,[EntrySignOffCompatibleCount]
+                          ,[EntrySignOffRequestCount]
+                          ,[EntrySignedOffCount]
                       FROM [dbo].[ReportingProjector.PlacementEngagement]
                       WHERE [UserId] IN @UserIds
                         AND ([Start] >= @From OR @From IS NULL)
@@ -362,6 +372,7 @@ namespace Folium.Api.Services {
 						ON [TuteeGroup].[TutorId] = [User].[Id]
 					WHERE [CourseEnrolment].[UserId] IN @UserIds
 					AND [CourseEnrolment].[Active] = 1
+					AND [Tutee].[Removed] = 0
                     AND [TuteeGroup].[Removed] = 0;",
                             new {
                                 UserIds = userIds.GetRange(i, userIds.Count < (i + chunkSize) ? (userIds.Count - i) : chunkSize),

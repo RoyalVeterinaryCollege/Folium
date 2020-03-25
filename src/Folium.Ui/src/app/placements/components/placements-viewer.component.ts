@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, OnDestroy, Pipe, PipeTransform, Input, EventEmitter, Output } from "@angular/core";
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Subscription } from "rxjs";
 
@@ -75,8 +75,8 @@ export class PlacementsViewerComponent implements OnInit, OnDestroy {
 	  this.loadPlacements();
   }
 
-  canModifyPlacement(placement: Placement){
-    return this.user.id == placement.userId;
+  canModifyPlacement(placement: Placement) {
+    return this.user.id == placement.createdBy;
   }
 
   onViewPlacementClick(placement: Placement) {

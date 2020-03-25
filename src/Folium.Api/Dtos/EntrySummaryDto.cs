@@ -29,5 +29,10 @@ namespace Folium.Api.Dtos {
 		public bool Shared { get; set; }
         public int SkillSetId { get; set; }
         public UserDto Author { get; set; }
-	}
+        public EntryTypeDto EntryType { get; set; }
+        public bool IsSignOffCompatible { get; set; }
+        public bool SignOffRequested { get; set; }
+        public bool SignedOff { get; set; }
+        public bool IsAuthorisedToSignOff { get; set; }
+    }
 }

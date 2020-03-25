@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, OnInit, Input, OnDestroy } from "@angular/core";
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 
 import { Subscription, Observable } from "rxjs";
 
@@ -28,17 +28,33 @@ import { DialogDeleteConfirmComponent } from "../../core/components/dialog-delet
 import { PlacementsService } from "../../placements/placements.service";
 import { DialogShareEntryComponent } from "./dialog-share-entry.component";
 import { UserService } from "../../user/user.service";
+import { DialogRequestSignOffComponent } from "./dialog-request-sign-off.component";
+import { DialogSignOffComponent } from "./dialog-sign-off.component";
+import { NoFilter, Filter, PendingSignOffFilter, SignedOffFilter, SharedFilter, NotSharedFilter } from "../entry-filters";
+
 
 @Component({
   selector: "entries-viewer",
   templateUrl: "entries-viewer.component.html"
 })
 export class EntriesViewerComponent implements OnInit, OnDestroy {
-  // Used to hang the dummy filters off.
-  filters = {};
   entries: EntrySummary[];
   canLoadPages: boolean = false;
-  isNewEntryOpen: boolean = false; 
+  isNewEntryOpen: boolean = false;
+  noFilter = new NoFilter; // We have to set this here so the instance can be used as the default filter and matched on the MatSelect component.
+  activeFilter: Filter = this.noFilter;
+  sharedEntryFilters: Filter[] = [
+    this.noFilter,
+    new PendingSignOffFilter,
+    new SignedOffFilter,
+  ];
+  myEntryFilters: Filter[] = [
+    this.noFilter,
+    new SharedFilter,
+    new NotSharedFilter,
+    new PendingSignOffFilter,
+    new SignedOffFilter,
+  ];
 
   @Input()
   placement: Placement;
@@ -46,8 +62,11 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
   @Input()
   user: User;
 
+  @Input()
+  sharedEntriesOnly: boolean;
+
   private pageSize: number = 20;
-  private page: number = 0;
+  private page: number = 1;
   private signedInUser$: Subscription;
   private signedInUser: User;
   
@@ -59,8 +78,15 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
     private dialog: MatDialog) { }
 
   ngOnInit() {
-    this.loadEntries();
-    this.signedInUser$ = this.userService.signedInUser.subscribe(user => this.signedInUser = user);
+    this.signedInUser$ = this.userService.signedInUser.subscribe(user => {
+      this.signedInUser = user;
+      this.loadEntries(this.page);
+    });
+  }
+
+  filterChange() {
+    this.page = 1; // Reset the page.
+    this.loadEntries(this.page);
   }
 
   onNewEntryClick() {
@@ -77,8 +103,9 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
   }
 
   loadMoreEntries() {
-	  if (!this.canLoadPages) return;
-	  this.loadEntries();
+    if (!this.canLoadPages) return;
+    this.page++;
+    this.loadEntries(this.page);
   }
 
   onSelectEntryClick(event: Event, entry: EntrySummary) {
@@ -91,16 +118,23 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
     entry.viewing = false;
     if(updatedEntry) {
       // Share status could have changed.
-      this.upsertEntry(updatedEntry);
+      // Use a timeout for this as it can cause Angular change detection errors when used with the active-element.
+      window.setTimeout(() => {
+        this.upsertEntry(updatedEntry);
+      }, 0);
     }
   }
 
   onShareEntryClick(entry: EntrySummary) {
 		let dialogRef = this.dialog.open(DialogShareEntryComponent, {
-  		data: { entryId: entry.id, user: this.user },
+  		data: { entry: entry, user: this.user },
 		});
-		dialogRef.afterClosed().subscribe((result: boolean) => {
-			entry.shared = result;
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      // Share status could have changed.
+      if (entry.shared !== result) {
+        entry.shared = result;
+        this.upsertEntry(entry);
+      }
 		});
   }
   
@@ -111,9 +145,12 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
   
   onEditEntryClose(entry: EntrySummary, updatedEntry: Entry) {
 		entry.editing = false;
-    if(updatedEntry) {
-      let entrySummary = new EntrySummary(updatedEntry);
-      this.upsertEntry(entrySummary);
+    if (updatedEntry) {
+      // Use a timeout for this as it can cause Angular change detection errors when used with the active-element.
+      window.setTimeout(() => {
+        let entrySummary = new EntrySummary(updatedEntry);
+        this.upsertEntry(entrySummary);
+      }, 0);
     }
   }
 
@@ -130,11 +167,53 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
   get hasActiveElement(): boolean {
     return this.isNewEntryOpen || (this.entries && this.entries.find(e => e.editing || e.viewing) != undefined)
   }
-  
-  canModifyEntry(entry: Entry): boolean {
-    return entry.author.id === this.signedInUser.id
+
+  // Determines if there is a active filter
+  get hasActiveFilter(): boolean {
+    return this.activeFilter.filter ? true : false;
   }
-  
+
+  requestSignOff(entry: EntrySummary) {
+    let dialogRef = this.dialog.open(DialogRequestSignOffComponent, {
+      data: { entry: entry, user: this.user },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      // Status could have changed.
+      if (entry.signOffRequested !== result) {
+        entry.signOffRequested = result;
+        if (result) {
+          // If there is a signoff request then it must be shared.
+          entry.shared = result;
+        }
+        this.upsertEntry(entry);
+      }
+    });
+  }
+
+  signOff(entry: EntrySummary) {
+    let dialogRef = this.dialog.open(DialogSignOffComponent, {
+      data: { entry: entry },
+    });
+    dialogRef.afterClosed().subscribe((result: boolean) => {
+      // Status could have changed.
+      if (entry.signedOff !== result) {
+        entry.signedOff = result;
+        this.upsertEntry(entry);
+      }
+    });
+  }
+  canSignOffEntry(entry: EntrySummary): boolean {
+    return entry.signOffRequested && !entry.signedOff && entry.isAuthorisedToSignOff;
+  }
+  canRequestSignOff(entry: EntrySummary): boolean {
+    return this.canModifyEntry(entry) && entry.isSignOffCompatible && !entry.signedOff
+  }
+  isMyEntry(entry: EntrySummary): boolean {
+    return entry.author.id === this.signedInUser.id;
+  }
+  canModifyEntry(entry: EntrySummary): boolean {
+    return entry.author.id === this.signedInUser.id && !entry.signedOff;
+  }
   get viewingOwnEntries(): boolean {
     return this.signedInUser.id === this.user.id;
   }
@@ -144,12 +223,21 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
   }
 
   private upsertEntry(entry: EntrySummary) {
+    // Check the entry is valid for the current filter.
+    var isValidEntryForFilter = this.activeFilter.isValidEntryForFilter(entry);
+
     if(this.entries.findIndex(p => p.id == entry.id) >= 0){
       // Edit.
-      this.entries = this.entries.map(e => e.id == entry.id ? entry : e);
+      if (isValidEntryForFilter) {
+        this.entries = this.entries.map(e => e.id == entry.id ? entry : e); // update the entry.
+      } else {
+        this.entries = this.entries.filter((p => p.id !== entry.id)); // remove the entry from the array.
+      }
     } else {
       // New.
-      this.entries = [entry].concat(this.entries);
+      if (isValidEntryForFilter) {
+        this.entries = [entry].concat(this.entries); // add the entry.
+      }
     }
   }
 
@@ -157,7 +245,7 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
     this.entriesService.removeEntry(entry)
       .subscribe(() => {
         this.notificationService.addSuccess("Entry deleted");
-        this.entries = this.entries.filter((p => p.id !== entry.id)); // remove the placement from the array.
+        this.entries = this.entries.filter((p => p.id !== entry.id)); // remove the entry from the array.
         this.closeActiveEntry();
       },
       (error: any) => this.notificationService.addDanger(`There was an error trying to delete the entry, please try again.
@@ -174,20 +262,23 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
     })
   }
 
-  private loadEntries() {
-    this.page++;
+  private loadEntries(page: number) {
     let entrie$: Observable<EntrySummary[]>;
     if(this.placement) {
-      entrie$ = this.placementsService.getEntries(this.placement, this.page, this.pageSize);
+      entrie$ = this.placementsService.getPlacementEntries(this.placement, page, this.pageSize);
     } else {
-      entrie$ = this.entriesService.getEntries(this.user.id, this.page, this.pageSize);
+      // Are we viewing our own or someone elses entries?
+      if (this.viewingOwnEntries) {
+        // We either get our own entries or ones shared with us.
+        let filter = this.activeFilter.filter;
+        entrie$ = this.sharedEntriesOnly ? this.entriesService.getEntriesSharedWithMe(page, this.pageSize, filter) : this.entriesService.getMyEntries(page, this.pageSize, filter);
+      } else {
+        entrie$ = this.entriesService.getEntriesSharedWithMeBy(this.user.id, page, this.pageSize);
+      }
     }
 	  entrie$
       .subscribe((entries: EntrySummary[]) => {
-        if(!this.entries) {
-          this.entries = [];
-        }
-        this.entries = this.entries.concat(entries);
+        this.entries = page == 1 ? entries : this.entries.concat(entries);
         this.canLoadPages = entries.length === this.pageSize;
       },
       (error: any) => this.notificationService.addDanger(`There was an error trying to load the entries, please try again.

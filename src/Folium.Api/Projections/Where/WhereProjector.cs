@@ -200,7 +200,7 @@ namespace Folium.Api.Projections.Where {
 				AND [Name] = @OriginalWhere;
 
 				UPDATE [dbo].[WhereProjector.Where]
-				SET [UsageCount] = [UsageCount] + @where_count
+				SET [UsageCount] = [UsageCount] + ISNULL(@where_count, 0)
 				WHERE [UserId] = @UserId 
 				AND [Name] = @Where;
 
@@ -211,7 +211,7 @@ namespace Folium.Api.Projections.Where {
 				 SELECT
 					   @UserId
 					   ,@Where
-					   ,@where_count
+					   ,ISNULL(@where_count, 0)
 				WHERE NOT EXISTS(SELECT * FROM [dbo].[WhereProjector.Where] WHERE [UserId] = @UserId AND [Name] = @Where);";
 			tx.Connection.Execute(sql, (object)whereSqlParams, tx);
 		}

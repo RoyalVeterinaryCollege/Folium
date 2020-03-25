@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, Inject } from "@angular/core"
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 @Component({
 	template: "<manage-user-skill-sets [user]='user' (onDone)='onDone()'></manage-user-skill-sets>"

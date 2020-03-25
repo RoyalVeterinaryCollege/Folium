@@ -30,5 +30,8 @@ namespace Folium.Api.Dtos.Reporting {
         public int EntryCount { get; set; }
         public int SharedEntryCount { get; set; }
         public int SharedEntryWithTutorCount { get; set; }
+        public int EntrySignOffCompatibleCount { get; set; }
+        public int EntrySignOffRequestCount { get; set; }
+        public int EntrySignedOffCount { get; set; }
     }
 }

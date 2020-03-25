@@ -27,10 +27,21 @@ import {
 } from "@angular/core";
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from "@angular/forms";
 import { DomSanitizer } from "@angular/platform-browser";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { SecurityService } from "../security.service";
+import { environment } from '../../../environments/environment';
 
 var tinymce = require('tinymce/tinymce');
 require('tinymce/plugins/autoresize');
-require('tinymce/themes/modern/theme');
+require('tinymce/plugins/lists');
+require('tinymce/plugins/image');
+require('tinymce/plugins/link');
+require('tinymce/plugins/autolink');
+require('tinymce/plugins/code');
+require('tinymce/plugins/charmap');
+require('tinymce/plugins/fullscreen');
+require('tinymce/plugins/imagetools');
+require('tinymce/themes/silver/theme');
 
 export const TinyMceValueAccessor: Provider = {
     provide: NG_VALUE_ACCESSOR,
@@ -54,7 +65,9 @@ export class TinyMceDirective implements OnDestroy, AfterViewInit, ControlValueA
     init = false;
 
     constructor(
-		private zone: NgZone,
+      private zone: NgZone,
+      private securityService: SecurityService,
+      private http: HttpClient,
         private sanitizer: DomSanitizer) {
         this.uniqueId = `tinymce-host-${TinyMceDirective.nextUniqueId++}`;
     }
@@ -71,38 +84,61 @@ export class TinyMceDirective implements OnDestroy, AfterViewInit, ControlValueA
         }
     }
 
-    ngAfterViewInit(): void {
-
-        tinymce.baseURL = "/lib/tinymce";
-        tinymce.suffix = ".min";
-        tinymce.init({
-            selector: `[data-tinymce-uniqueid=${this.uniqueId}]`,
-            schema: "html5",
-            skin_url: "/lib/tinymce/skins/lightgray",
-            plugins : "autoresize",
-            autoresize_bottom_margin: 5,
-            autoresize_min_height: 100,
-            autoresize_max_height: 500,
-            menubar: false,
-            statusbar: false,
-            toolbar: "undo redo | bold italic | bullist numlist | link image",
-            setup: ed => {
-                ed.on("init", ed2 => {
-                    if (this.innerValue) ed2.target.setContent(this.innerValue);
-                    this.init = true;
-                });
-                ed.on("change keyup", () => {
-                    const content = ed.getContent();
-                    this.value = content;
-                });
-                ed.on("click", (e) => {
-                    ed.container.click(e); // bubble the click.
-                });
-            }
+  ngAfterViewInit(): void {
+    let self = this;
+    tinymce.baseURL = "/lib/tinymce";
+    tinymce.suffix = ".min";
+    tinymce.init({
+      selector: `[data-tinymce-uniqueid=${this.uniqueId}]`,
+      schema: "html5",
+      skin_url: "/lib/tinymce/skins/ui/oxide",
+      plugins: "autoresize, lists, link, autolink, image, code, charmap, fullscreen, imagetools",
+      autoresize_bottom_margin: 5,
+      min_height: 200,
+      max_height: 500,
+      menubar: false,
+      statusbar: false,
+      toolbar: ["undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist |",
+      " forecolor backcolor removeformat | link image charmap emoticons | fullscreen | code |"],
+      setup: ed => {
+        ed.on("init", ed2 => {
+          if (this.innerValue) ed2.target.setContent(this.innerValue);
+          this.init = true;
         });
+        ed.on("change keyup", () => {
+          const content = ed.getContent();
+          this.value = content;
+        });
+        ed.on("click", (e) => {
+          ed.container.click(e); // bubble the click.
+        });
+      },
+      images_upload_url: 'file-uploads/tinymce',
+      images_upload_handler: function (blobInfo, success, failure) {
+        const formData: FormData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename() /*fileName(blobInfo)*/);
 
-        // Update value on blur.
-        tinymce.activeEditor.on("blur", () => this.updateValue());
+        self.http.post('file-uploads/tinymce',
+          formData,
+          {
+            headers: new HttpHeaders({
+              'Authorization': `Bearer ${self.securityService.authenticationToken}`
+            }),
+          }).subscribe((response: any) => {
+            if (typeof response.location != 'string') {
+              failure('Invalid JSON: ' + response);
+              return;
+            }
+            success(
+              environment.apiRootUri + response.location);
+          });
+      },
+      image_class_list: [
+        { title: 'img-fluid', value: 'img-fluid' }
+      ]
+    });
+    // Update value on blur.
+    tinymce.activeEditor.on("blur", () => this.updateValue());
     }
 
     updateValue() {

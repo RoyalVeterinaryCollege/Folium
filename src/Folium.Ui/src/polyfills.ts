@@ -16,27 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
-import 'core-js/es6/symbol';
-import 'core-js/es6/object';
-import 'core-js/es6/function';
-import 'core-js/es6/parse-int';
-import 'core-js/es6/parse-float';
-import 'core-js/es6/number';
-import 'core-js/es6/math';
-import 'core-js/es6/string';
-import 'core-js/es6/date';
-import 'core-js/es6/array';
-import 'core-js/es6/regexp';
-import 'core-js/es6/map';
-import 'core-js/es6/set';
-import 'core-js/es6/weak-map';
-import 'core-js/es6/weak-set';
-import 'core-js/es6/typed';
-import 'core-js/es6/reflect';
 
-import 'core-js/es7/reflect';
-import 'core-js/es7/array';
+import 'events-polyfill/src/constructors/MouseEvent.js' // Need this for ngx-charts line chart - https://github.com/swimlane/ngx-charts/issues/384
+
+import 'classlist.js';
 
 import 'hammerjs'
 
 import 'zone.js/dist/zone';
+
+// IE11 fix
+// Ref: https://github.com/swimlane/ngx-charts/issues/386
+if (typeof (SVGElement) !== "undefined" && typeof SVGElement.prototype.contains === 'undefined') {
+  SVGElement.prototype.contains = HTMLDivElement.prototype.contains;
+}
+

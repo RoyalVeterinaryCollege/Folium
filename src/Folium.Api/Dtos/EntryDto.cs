@@ -48,5 +48,10 @@ namespace Folium.Api.Dtos {
 		public List<EntryCommentDto> Comments { get; set; }
 		public bool Shared { get; set; }
         public int? SkillGroupingId { get; set; }
-    }
+		public bool SignOffRequested { get; set; }
+		public DateTime? SignedOffAt { get; set; }
+		public bool SignedOff { get; set; }
+		public bool IsSignOffCompatible { get; set; }
+		public bool IsAuthorisedToSignOff { get; set; }
+	}
 }

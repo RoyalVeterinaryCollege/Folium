@@ -17,7 +17,9 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 using Folium.Api.Dtos;
+using Ganss.XSS;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Folium.Api.Extensions {
     public static class DtoExtensions {
@@ -26,8 +28,18 @@ namespace Folium.Api.Extensions {
 		/// </summary>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static dynamic DescriptionString(this EntryDto value) {
-			return value.EntryType == null ? value.Description : JsonConvert.SerializeObject(value.Description);
+		public static string DescriptionString(this EntryDto value) {
+            var sanitizer = new HtmlSanitizer(); // Sanitize html string.
+            if(value.EntryType == null) {
+                return sanitizer.Sanitize(value.Description);
+            } else {
+                var sanitizedDescriptions = new List<string>();
+                // This will be a list of descriptions.
+                foreach (string description in value.Description) {
+                    sanitizedDescriptions.Add(sanitizer.Sanitize(description));
+                }
+                return JsonConvert.SerializeObject(sanitizedDescriptions);
+            }
 		}
 	}
 }

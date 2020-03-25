@@ -33,7 +33,7 @@ namespace Folium.Api.Services {
 		void RemovePlacement(User user, Guid placementId);
 		Task<IEnumerable<PlacementDto>> GetPlacementsAsync(int userId, int skip, int take);
 	    Task<PlacementDto> GetPlacementAsync(Guid placementId);
-		Task<IEnumerable<EntrySummaryDto>> GetPlacementEntriesAsync(Guid placementId, int skip, int take);
+		Task<IEnumerable<EntrySummaryDto>> GetPlacementEntriesAsync(User currentUser, Guid placementId, int skip, int take);
     }
     public class PlacementService : IPlacementService {
         private readonly IDbService _dbService;
@@ -116,28 +116,50 @@ namespace Folium.Api.Services {
 			}
 		}
 
-	    public async Task<IEnumerable<EntrySummaryDto>> GetPlacementEntriesAsync(Guid placementId, int skip, int take) {
+	    public async Task<IEnumerable<EntrySummaryDto>> GetPlacementEntriesAsync(User currentUser, Guid placementId, int skip, int take) {
 			using (var connection = _dbService.GetConnection()) {
 				await connection.OpenAsync();
-				var entries = await connection.QueryAsync<EntrySummaryDto, UserDto, EntrySummaryDto>(@" 
+				var entries = await connection.QueryAsync<EntrySummaryDto, UserDto, EntryTypeDto, EntrySummaryDto>(@" 
                     SELECT [Entry].[Id]
 						,[Entry].[Title]
 						,[Entry].[Where]
 						,[Entry].[When]
 						,[Entry].[TypeName] AS [Type]
 						,[Entry].[Shared]
+                        ,[Entry].[SkillSetId]
+						,[Entry].[SignedOff]
+						,[Entry].[IsSignOffCompatible]
+						,[Entry].[SignOffRequested]
+						,CASE WHEN ([SignOffRequest].[EntryId] IS NOT NULL OR [CourseAdmin].[EntryTypeId] IS NOT NULL) THEN 1 ELSE 0 END AS [IsAuthorisedToSignOff]		
 						,[User].*
+						,[EntryType].*
                     FROM [dbo].[PlacementProjector.Entry] [Entry]
 					INNER JOIN [dbo].[User]
-					ON [Entry].[UserId] = [User].[Id]
+						ON [Entry].[UserId] = [User].[Id]
+					LEFT JOIN [dbo].[EntryType]
+						ON [EntryType].Id = [Entry].[TypeId]
+					LEFT JOIN [dbo].[EntryProjector.SignOffRequest] [SignOffRequest]
+						ON [Entry].Id = [SignOffRequest].[EntryId]
+						AND [SignOffRequest].[UserId] = @CurrentUserId
+					LEFT JOIN (
+						SELECT DISTINCT [SkillSetEntryType].EntryTypeId
+						FROM [dbo].[SkillSetEntryType]
+						INNER JOIN [dbo].[CourseSkillSet]
+								ON [SkillSetEntryType].[SkillSetId] = [CourseSkillSet].[SkillSetId]
+						INNER JOIN [dbo].[CourseAdministrator]
+								ON [CourseSkillSet].[CourseId] = [CourseAdministrator].[CourseId]
+						WHERE [CourseAdministrator].[UserId] = @CurrentUserId) AS [CourseAdmin]
+							ON [Entry].[TypeId] = [CourseAdmin].[EntryTypeId]
                     WHERE [PlacementId] = @PlacementId
 					ORDER BY [When] DESC
 					OFFSET (@Skip) ROWS FETCH NEXT (@Take) ROWS ONLY",
-					(entrySummaryDto, userDto) => {
+					(entrySummaryDto, userDto, EntryTypeDto) => {
 						entrySummaryDto.Author = userDto;
+						entrySummaryDto.EntryType = EntryTypeDto;
 						return entrySummaryDto;
 					},
 					new {
+						CurrentUserId = currentUser.Id,
 						PlacementId = placementId,
 						Skip = skip,
 						Take = take

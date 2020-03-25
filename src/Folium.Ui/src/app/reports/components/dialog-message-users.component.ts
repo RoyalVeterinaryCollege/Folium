@@ -17,7 +17,7 @@
  * along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Component, Inject } from "@angular/core"
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormGroup, FormBuilder, Validators } from "@angular/forms";
 
 import { User } from "../../core/dtos";
@@ -59,7 +59,7 @@ export class DialogMessageUsersComponent {
 	}
 	
 	onRemoveUserClick(user: User) {
-		if(this.toUsers.length > 1 && this.toUsers.includes(user)){
+    if (this.toUsers.length > 1 && this.toUsers.some(u => u.id == user.id)){
 			this.toUsers.splice(this.toUsers.indexOf(user), 1);
 		}
 	}

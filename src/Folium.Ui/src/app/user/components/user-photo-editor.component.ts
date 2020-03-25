@@ -28,13 +28,13 @@ declare var Slim: any;
   templateUrl: "user-photo-editor.component.html",
 })
 export class UserPhotoEditorComponent {
-  @ViewChild("originalUserPic")
+  @ViewChild("originalUserPic", { static: true })
   public originalUserPic: ElementRef;
 
-  @ViewChild("editedUserPic")
+  @ViewChild("editedUserPic", { static: true })
   public editedUserPic: ElementRef;
 
-  @ViewChild("slimImageCropper")
+  @ViewChild("slimImageCropper", { static: false })
   public slimImageCropper: ElementRef;
 
   @Input()

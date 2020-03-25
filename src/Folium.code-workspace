@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "Folium.Api"
+		},
+		{
+			"path": "Folium.Ui"
+		}
+	]
+}

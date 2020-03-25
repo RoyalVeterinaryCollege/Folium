@@ -18,21 +18,17 @@
 */
 using System;
 using System.Security.Claims;
-using IdentityModel;
 
 namespace Folium.Api.Extensions {
     public static class ClaimsPrincipleExtensions {
         public static string Email(this ClaimsPrincipal claimsPrincipal) {
-            return claimsPrincipal.FindFirst(JwtClaimTypes.Email)?.Value;
+            return claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value;
         }
         public static string FirstName(this ClaimsPrincipal claimsPrincipal) {
-            return claimsPrincipal.FindFirst(JwtClaimTypes.GivenName)?.Value;
-        }
-        public static string MiddleNames(this ClaimsPrincipal claimsPrincipal) {
-            return claimsPrincipal.FindFirst(JwtClaimTypes.MiddleName)?.Value;
+            return claimsPrincipal.FindFirst(ClaimTypes.GivenName)?.Value;
         }
         public static string LastName(this ClaimsPrincipal claimsPrincipal) {
-            return claimsPrincipal.FindFirst(JwtClaimTypes.FamilyName)?.Value;
+            return claimsPrincipal.FindFirst(ClaimTypes.Surname)?.Value;
         }
     }
 }

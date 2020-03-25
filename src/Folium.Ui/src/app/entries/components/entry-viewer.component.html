@@ -36,35 +36,53 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 		</div>
 		<div class="row d-none d-print-block">
 			<div class="col">
-				<hr class="d-print-none" >
+				<hr class="d-print-none">
 			</div>
 		</div>
 		<div class="row entry-header d-print-none">
-			<div class="col">
+			<div class="col-12">
 				<div class="d-flex justify-content-end pb-2">
-					<span class="col-2 col-sm-1 pr-0 mr-auto col-entry-share-status" [ngSwitch]="entry.shared">
-						<span *ngSwitchCase="false"></span>
-						<ng-container *ngSwitchCase="true">
-							<i *ngIf="canModifyEntry" class="fa fa-share-alt share-icon" aria-hidden="true"></i>
-							<img *ngIf="!canModifyEntry" [fmUserPic]="entry.author" class="img-fluid profile-pic-thumb" [attr.alt]="entry.author.firstName + ' ' + entry.author.lastName + ' profile picture'" [attr.title]="entry.author.firstName + ' ' + entry.author.lastName" >
-						</ng-container>
+					<span class="col-2 col-sm-1 pr-0 mr-auto col-entry-status-icon d-flex justify-content-center align-items-center">
+						<span *ngIf="entry.shared">
+							<i *ngIf="isMyEntry" class="fas fa-share-alt entry-status-icon mr-1" aria-hidden="true"></i>
+							<img *ngIf="!isMyEntry" [fmUserPic]="entry.author" class="img-fluid profile-pic-thumb" [attr.alt]="entry.author.firstName + ' ' + entry.author.lastName + ' profile picture'" [attr.title]="entry.author.firstName + ' ' + entry.author.lastName">
+						</span>
+						<span *ngIf="entry.signOffRequested && !entry.signedOff">
+							<i class="fas fa-external-link-alt entry-status-icon" aria-hidden="true"></i>
+						</span>
+						<span *ngIf="entry.signedOff">
+							<i class="fas fa-check-square entry-status-icon" aria-hidden="true"></i>
+						</span>
 					</span>
-					<button *ngIf="canModifyEntry" class="btn btn-link-icon mt-2 mt-sm-0 p-2" (click)="shareEntry()" title="Share">
-						<i class="fa fa-share-alt" aria-hidden="true"></i>
+					<button *ngIf="isMyEntry" class="btn btn-link-icon mt-2 mt-sm-0 p-2" (click)="shareEntry()" title="Share">
+						<i class="fas fa-share-alt" aria-hidden="true"></i>
+					</button>
+					<button class="btn btn-link-icon mt-2 mt-sm-0 p-2" *ngIf="isMyEntry && entry.isSignOffCompatible && !entry.signedOffAt" (click)="requestSignOff()" title="Request sign-off">
+						<i class="fas fa-external-link-alt" aria-hidden="true"></i>
+					</button>
+					<button *ngIf="canSignOffEntry" class="btn btn-link-icon mt-2 mt-sm-0" (click)="signOff()" title="Sign-off">
+						<i class="fas fa-check-square" aria-hidden="true"></i>
 					</button>
 					<button class="btn btn-link-icon mt-2 mt-sm-0" (click)="printEntry()" title="Print">
 						<span class="sr-only">Print</span>
-						<i class="fa fa-print" aria-hidden="true"></i>
+						<i class="fas fa-print" aria-hidden="true"></i>
 					</button>
 					<button *ngIf="canModifyEntry" class="btn btn-link-icon mt-2 mt-sm-0" (click)="editEntry()" title="Edit">
 						<span class="sr-only">Edit</span>
-						<i class="fa fa-pencil" aria-hidden="true"></i>
+						<i class="fas fa-pencil-alt" aria-hidden="true"></i>
 					</button>
-					<button *ngIf="canModifyEntry" class="btn btn-link-icon mt-2 mt-sm-0" (click)="removeEntry()" title="Delete">
+					<button *ngIf="isMyEntry" class="btn btn-link-icon mt-2 mt-sm-0" (click)="removeEntry()" title="Delete">
 						<span class="sr-only">Delete</span>
-						<i class="fa fa-trash" aria-hidden="true"></i>
+						<i class="fas fa-trash-alt" aria-hidden="true"></i>
+					</button>
+					<button *ngIf="!hideClose" class="btn btn-link-icon mt-2 mt-sm-0" (click)="onCloseClick($event)" title="Close">
+						<span class="sr-only">Close</span>
+						<i class="fas fa-window-close fa-lg" aria-hidden="true"></i>
 					</button>
 				</div>
+			</div>
+			<div class="col-12" *ngIf="!isMyEntry">
+				{{entry.author.firstName + ' ' + entry.author.lastName}}
 			</div>
 		</div>
 		<div class="row">
@@ -78,14 +96,14 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 				<h3>{{entry.where}}</h3>
 				<hr class="d-print-none" />
 			</div>
-		</div>	
-	
+		</div>
+
 		<div *ngIf="entry.entryType" class="row">
 			<div class="col">
 				<h3>{{entry.entryType.name}}</h3>
 				<hr class="d-print-none" />
 			</div>
-		</div>	
+		</div>
 		<div class="row">
 			<div class="col">
 				<div class="small pb-2">
@@ -93,55 +111,64 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 					<span *ngIf="!canModifyEntry">by {{entry.author.firstName}} {{entry.author.lastName}}</span>
 				</div>
 			</div>
-		</div>		
+		</div>
 		<div class="row d-none d-print-block mt--3">
 			<div class="col">
 				<hr>
 			</div>
-		</div>					
+		</div>
 		<div *ngIf="entry.entryType">
 			<div *ngFor="let input of entry.entryType.template.inputs; index as i" class="row">
 				<div class="col">
 					<h4>
 						{{input.title}}
 					</h4>
-					<div class="col" [innerHtml]="entry.description[i]">
+					<div class="col" [innerHtml]="entry.description[i] | safeHtml">
 					</div>
 					<p *ngIf="!entry.description[i]"> </p>
 				</div>
 			</div>
 		</div>
 		<div *ngIf="!entry.entryType" class="row">
-			<div class="col" [innerHtml]="entry.description">
-			</div>							
+			<div class="col" [innerHtml]="entry.description | safeHtml">
+			</div>
 		</div>
 		<div class="row d-none d-print-block">
 			<div class="col">
 				<hr>
 			</div>
 		</div>
-		<div class="row">
+		<!-- Loading Skills... -->
+		<div *ngIf="!skillGroups" class="row">
 			<div class="col">
-				<h3 class="d-flex align-items-center">
-					Skills
+				<div>
+					<h3>
+						SKILLS
+					</h3>
+					<hr class="d-print-none">
+				</div>
+				<div class="loader-container">
+					<div class="loader primary">Loading...</div>
+				</div>
+			</div>
+		</div>
+		<!-- Skills -->
+		<div class="row" *ngIf="skillGroups && bundleSize > 0">
+			<div class="col">
+				<h3>
+					SKILLS
 				</h3>
 				<hr class="d-print-none" />
 			</div>
 		</div>
-		<div *ngIf="!skillGroups" class="loader-container">
-			<div class="loader primary">Loading...</div>
-		</div>
 		<skill-group-list *ngIf="skillGroups && bundleSize > 0" [readOnly]="true" [bundleView]="true" [skillSetId]="entry.skillSetId" [skillGroups]="skillGroups" [user]="user"></skill-group-list>
-		<div class="row" *ngIf="skillGroups && bundleSize == 0">
-			<div class="col">
-				<p>There are no skills associated with this entry.</p>
-			</div>
-		</div>
+		<!-- Files -->
+		<entry-files [user]="user" [forComment]="false" [isEdit]="false" [files]="entryFiles" [entryId]="entry.id"></entry-files>
 		<!-- Comments -->
-		<comments [entry]="entry"></comments>
-		<div class="row text-right" *ngIf="!hideClose">
+		<comments [entry]="entry" [files]="entryFiles"></comments>
+		<div class="row" *ngIf="!hideClose">
 			<div class="col">
-				<a href (click)="onCloseClick($event)" class="btn">Close</a>
+				<button (click)="onCloseClick($event)" class="btn btn-link">Close</button>
 			</div>
 		</div>
 	</div>

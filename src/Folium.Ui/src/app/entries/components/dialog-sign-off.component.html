@@ -1,0 +1,52 @@
+<!--
+
+Copyright 2017 The Royal Veterinary College, jbullock AT rvc.ac.uk, pnunn AT rvc.ac.uk
+
+This file is part of Folium.
+
+Folium is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Folium is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Folium.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+	<div class="dialog-entry">
+		<form #commentForm="ngForm" (ngSubmit)="onSignOff()">
+			<div mat-dialog-title>
+				<h1>Sign-off Entry</h1>
+			</div>
+			<div mat-dialog-content>
+				<div class="row d-print-none">
+					<div class="col">
+						<div class="card-body">
+							<p>A comment is required to sign-off this Entry.</p>
+							<mat-form-field hideRequiredMarker>
+								<textarea required
+													matInput
+													placeholder="Write a comment..."
+													[(ngModel)]="newComment"
+													name="newComment"
+													cdkTextareaAutosize></textarea>
+							</mat-form-field>
+							<!-- Files -->
+							<entry-files [user]="signedInUser" [forComment]="true" [isEdit]="true" [files]="newCommentFiles" [entryId]="entry.id"></entry-files>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div mat-dialog-footer>
+				<div mat-dialog-actions class="d-flex justify-content-between">
+					<button class="btn btn-link" (click)="onCancelRequest()">Cancel</button>
+					<button class="btn btn-primary btn-shadow" type="submit" [disabled]="!commentForm.form.valid">Sign-off</button>
+				</div>
+			</div>
+		</form>
+	</div>
