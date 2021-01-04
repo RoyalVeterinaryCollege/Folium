@@ -20,7 +20,7 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.8" />
     <PackageReference Include="HangFire.Core" Version="1.7.8" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.7.8" />
-    <PackageReference Include="HtmlSanitizer" Version="4.0.217" />
+    <PackageReference Include="HtmlSanitizer" Version="5.0.372" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="7.15.0" />
     <PackageReference Include="MailKit" Version="1.18.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="2.2.0" />
