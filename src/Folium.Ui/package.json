@@ -34,7 +34,7 @@
     "ngx-bootstrap": "~5.5.0",
     "oidc-client": "~1.10.1",
     "rxjs": "~6.5.4",
-    "tinymce": "~5.1.6",
+    "tinymce": "~5.7.1",
     "url-parse": "~1.4.7",
     "uuid": "^3.3.3",
     "zone.js": "~0.9.1",
