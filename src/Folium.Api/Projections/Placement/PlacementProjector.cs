@@ -174,7 +174,8 @@ namespace Folium.Api.Projections.Placement {
 
 			const string sql = @"
 			UPDATE [PlacementProjector.Entry]
-			SET	[TypeName] = [EntryType].[Name],
+			SET	[TypeId] = [EntryType].[Id],
+				[TypeName] = [EntryType].[Name],
 				[IsSignOffCompatible] = [EntryType].[IsSignOffCompatible]
 			FROM (
 				SELECT [Id], [Name], CASE WHEN Template LIKE '%""signOff"":%' THEN 1 ELSE 0 END AS [IsSignOffCompatible]

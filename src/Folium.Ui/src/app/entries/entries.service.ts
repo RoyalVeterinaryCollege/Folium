@@ -73,15 +73,16 @@ export class EntriesService {
     return this.http.get<EntrySummary[]>(`${this.entriesUrl}?skip=${((page - 1) * pageSize)}&take=${pageSize}`);
   }
 	getMyEntries(page: number, pageSize: number, filter: EntryFilter): Observable<EntrySummary[]> {
-    let filterQuery = filter ? `&filter=${filter}` : '';
+    const filterQuery = filter ? `&filter=${filter}` : '';
     return this.http.get<EntrySummary[]>(`${this.entriesUrl}/my?skip=${((page - 1) * pageSize)}&take=${pageSize}${filterQuery}`);
   }
   getEntriesSharedWithMe(page: number, pageSize: number, filter: EntryFilter): Observable<EntrySummary[]> {
-    let filterQuery = filter ? `&filter=${filter}` : '';
+    const filterQuery = filter ? `&filter=${filter}` : '';
     return this.http.get<EntrySummary[]>(`${this.entriesUrl}/shared?skip=${((page - 1) * pageSize)}&take=${pageSize}${filterQuery}`);
   }
-  getEntriesSharedWithMeBy(userId: number, page: number, pageSize: number): Observable<EntrySummary[]> {
-    return this.http.get<EntrySummary[]>(`${this.entriesUrl}/shared/${userId}?skip=${((page - 1) * pageSize)}&take=${pageSize}`);
+  getEntriesSharedWithMeBy(userId: number, page: number, pageSize: number, filter: EntryFilter): Observable<EntrySummary[]> {
+    const filterQuery = filter ? `&filter=${filter}` : '';
+    return this.http.get<EntrySummary[]>(`${this.entriesUrl}/shared/${userId}?skip=${((page - 1) * pageSize)}&take=${pageSize}${filterQuery}`);
   }
 
 	createEntry(entry: Entry): Observable<Entry> {

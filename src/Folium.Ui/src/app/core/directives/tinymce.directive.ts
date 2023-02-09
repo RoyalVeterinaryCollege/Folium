@@ -41,6 +41,7 @@ require('tinymce/plugins/code');
 require('tinymce/plugins/charmap');
 require('tinymce/plugins/fullscreen');
 require('tinymce/plugins/imagetools');
+require('tinymce/plugins/paste');
 require('tinymce/themes/silver/theme');
 
 export const TinyMceValueAccessor: Provider = {
@@ -92,13 +93,13 @@ export class TinyMceDirective implements OnDestroy, AfterViewInit, ControlValueA
       selector: `[data-tinymce-uniqueid=${this.uniqueId}]`,
       schema: "html5",
       skin_url: "/lib/tinymce/skins/ui/oxide",
-      plugins: "autoresize, lists, link, autolink, image, code, charmap, fullscreen, imagetools",
+      plugins: "autoresize, lists, link, autolink, image, code, charmap, fullscreen, imagetools, paste",
       autoresize_bottom_margin: 5,
       min_height: 200,
       max_height: 500,
       menubar: false,
       statusbar: false,
-      toolbar: ["undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist |",
+      toolbar: ["undo redo | paste pastetext | bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist |",
       " forecolor backcolor removeformat | link image charmap emoticons | fullscreen | code |"],
       setup: ed => {
         ed.on("init", ed2 => {

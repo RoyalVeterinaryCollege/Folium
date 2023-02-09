@@ -267,13 +267,13 @@ export class EntriesViewerComponent implements OnInit, OnDestroy {
     if(this.placement) {
       entrie$ = this.placementsService.getPlacementEntries(this.placement, page, this.pageSize);
     } else {
+      const filter = this.activeFilter.filter;
       // Are we viewing our own or someone elses entries?
       if (this.viewingOwnEntries) {
         // We either get our own entries or ones shared with us.
-        let filter = this.activeFilter.filter;
         entrie$ = this.sharedEntriesOnly ? this.entriesService.getEntriesSharedWithMe(page, this.pageSize, filter) : this.entriesService.getMyEntries(page, this.pageSize, filter);
       } else {
-        entrie$ = this.entriesService.getEntriesSharedWithMeBy(this.user.id, page, this.pageSize);
+        entrie$ = this.entriesService.getEntriesSharedWithMeBy(this.user.id, page, this.pageSize, filter);
       }
     }
 	  entrie$

@@ -200,10 +200,17 @@ namespace Folium.Api.Projections.Activity {
 				SELECT [UserId]
 				FROM [dbo].[ActivityProjector.Entry]
 				WHERE [EntryId] = @Id;";
-			var userId = tx.Connection.QuerySingle<int>(sql, (object) sqlParams, tx);
+			var userId = tx.Connection.QuerySingleOrDefault<int?>(sql, (object) sqlParams, tx);
+
+            if (!userId.HasValue) {
+                // The entry has been removed, commit out of sequence??
+                // Report and do nothing.
+                _logger.LogWarning($"Received an event on Entry {sqlParams.Id} which does not exist in the projector table.");
+                return;
+            }
 
 			RecordActivity(tx, new Models.Activity {
-				UserId = userId,
+				UserId = userId.Value,
 				Type = (int) ActivityType.EntryUpdated,
 				When = @event.LastUpdatedAt,
 				Link = commit.AggregateId().ToString()
@@ -338,17 +345,22 @@ namespace Folium.Api.Projections.Activity {
 			});
 
             var author = _userService.GetUser(@event.UserId, tx);
+            var entryType = _entryService.GetEntryType(commit.AggregateId());
             var collaborators = @event.CollaboratorIds.Select(collaboratorId => _userService.GetUser(collaboratorId, tx));
 
-            foreach(var collaborator in collaborators) {
+            var entryDescription = entryType == null ? "an entry" : "a " + entryType.Name;
+
+
+			foreach (var collaborator in collaborators) {
                 var customText = string.IsNullOrWhiteSpace(@event.Message) ? "" : $"<p>{WebUtility.HtmlEncode(@event.Message)}</p>";
                 var notification = new Models.EmailNotification {
                     Id = Guid.NewGuid(),
                     UserId = @event.UserId,
                     To = collaborator.Email,
                     When = commit.CommitStamp,
-                    Subject = $"{author.FirstName} {author.LastName} has shared an entry with you",
-                    HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has shared an entry in Folium with you.</p>{customText}<p style='line-height:2.5;'>Thanks<br>The Folium Team</p>",
+                    Subject = $"{author.FirstName} {author.LastName} has shared {entryDescription} with you",
+
+                    HtmlBody = $"<p>{collaborator.FirstName} {collaborator.LastName},</p> <p>Just to let you know {author.FirstName} {author.LastName} has shared {entryDescription} in Folium with you.</p>{customText}<p style='line-height:2.5;'>Thanks<br>The Folium Team</p>",
                     ActionLink = $"{_applicationConfiguration.Value.UiBaseUrl}/entries/{commit.AggregateId()}",
                     ActionTitle = "View Entry"
                 };

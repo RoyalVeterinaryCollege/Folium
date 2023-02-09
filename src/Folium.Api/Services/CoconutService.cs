@@ -22,7 +22,9 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
+using Akka.IO;
 using CommonDomain.Persistence;
 using Dapper;
 using Folium.Api.Dtos;
@@ -31,6 +33,8 @@ using Folium.Api.Models.File;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Serilog.Sinks.Http;
+
 
 namespace Folium.Api.Services {
     public interface ICoconutService {
@@ -54,10 +58,11 @@ namespace Folium.Api.Services {
         public async Task RequestEntryFileEncodingAsync(string config) {
             try {
                 var apiKey = _applicationConfiguration.Value.CoconutAPIKey;
-                var url = $"{_applicationConfiguration.Value.CoconutApiUrl}/v1/job";
+                var url = $"{_applicationConfiguration.Value.CoconutApiUrl}/v2/jobs";
 
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{apiKey}:")));
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
                 var data = new StringContent(config);
                 var response = await _httpClient.PostAsync(url, data);
                 var responseCode = response.StatusCode;
@@ -74,6 +79,19 @@ namespace Folium.Api.Services {
                 _logger.LogError(e, "Coconut request failed with config: {0}", config);
             }
         }
+
+        //public class CreateObj
+        //{
+        //    public Dictionary<string, string> input { get; set; }
+        //    public Dictionary<string, string> notification { get; set; }
+        //    public Dictionary<string, string> stroage { get; set; }
+        //    public Dictionary<string, Dictionary<string, string>> outputs { get; set; }
+        //}
+
+        
+
+                
+            
         internal class CoconutJob {
             public int Id { get; set; }
             public string Status { get; set; }

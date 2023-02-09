@@ -279,8 +279,8 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 						<div class="row mb-4">
 							<div class="col-md-6">
 								<div class="border p-2 mb-2 pie-chart-container" (click)="onPieChartClick('requested_sign_off', $event.target, resultSummary)">
-									<h4>Have requested sign-off for all Entries</h4>
-									<ngx-charts-advanced-pie-chart [results]="resultSummary.allRequestedSignOff"
+									<h4>Have requested sign-off</h4>
+									<ngx-charts-advanced-pie-chart [results]="resultSummary.requestedSignOff"
 																								 [label]="'Total Users'"
 																								 [scheme]="reportsService.colorScheme"
 																								 (select)="onPieChartClick('requested_sign_off', $event, resultSummary)">
@@ -289,7 +289,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 							</div>
 							<div class="col-md-6">
 								<div class="border p-2 pie-chart-container" (click)="onPieChartClick('signed_off', $event.target, resultSummary)">
-									<h4>Have all Entries signed off</h4>
+									<h4>Have all requested Entries signed off</h4>
 									<ngx-charts-advanced-pie-chart [results]="resultSummary.allSignedOff"
 																								 [label]="'Total Users'"
 																								 [scheme]="reportsService.colorScheme"
@@ -315,10 +315,10 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
 							<span *ngSwitchCase="entryEngagementTypes.TutorSharedEntry_NonEngaged">users have not shared an entry with their tutor</span>
 							<span *ngSwitchCase="entryEngagementTypes.CommentedEntry_Engaged">users have made an entry which has a comment</span>
 							<span *ngSwitchCase="entryEngagementTypes.CommentedEntry_NonEngaged">users have not got an entry with a comment</span>
-							<span *ngSwitchCase="entryEngagementTypes.RequestedSignOffAllEntries_Engaged">users have requested sign-off on all entries</span>
-							<span *ngSwitchCase="entryEngagementTypes.RequestedSignOffAllEntries_NonEngaged">users have not requested sign-off on all entries</span>
-							<span *ngSwitchCase="entryEngagementTypes.SignedOffAllEntries_Engaged">users have had sign-off on all entries</span>
-							<span *ngSwitchCase="entryEngagementTypes.SignedOffAllEntries_NonEngaged">users have not had sign-off on all entries</span>
+							<span *ngSwitchCase="entryEngagementTypes.RequestedSignOff_Engaged">users have requested sign-off</span>
+							<span *ngSwitchCase="entryEngagementTypes.RequestedSignOff_NonEngaged">users have not requested sign-off</span>
+							<span *ngSwitchCase="entryEngagementTypes.SignedOffAllRequestedEntries_Engaged">users have had sign-off on all requested entries</span>
+							<span *ngSwitchCase="entryEngagementTypes.SignedOffAllRequestedEntries_NonEngaged">users have not had sign-off on all requested entries</span>
 							<span *ngSwitchDefault>total users</span>
 						</span>
 						&nbsp;<button class="btn btn-secondary" *ngIf="userList.data.length > 0" (click)="emailUsers()">Send E-mail</button>

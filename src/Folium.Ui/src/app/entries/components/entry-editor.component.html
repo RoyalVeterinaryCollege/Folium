@@ -166,7 +166,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
           <div *ngFor="let input of entry.entryType.template.inputs; index as i" class="row">
             <div class="col">
               <fieldset class="form-group">
-                <label [innerHtml]="input.title"> <i *ngIf="input.help" class="far fa-question-circle link-icon" aria-label="help" (click)="onHelpClick(input.help)"></i></label>
+                <label>{{input.title}} <span (click)="onHelpClick(input.help)" *ngIf="input.help"><i class="far fa-question-circle link-icon" aria-label="help"></i></span></label>
                 <textarea tinyMceEditor class="form-control" [formControlName]="'template_control_'+i" [name]="'template_control_'+i"></textarea>
               </fieldset>
             </div>

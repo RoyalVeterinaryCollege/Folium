@@ -29,6 +29,13 @@ export class GlobalErrorHandler extends ErrorHandler {
 
   handleError(error) {
     super.handleError(error);
+
+    // https://github.com/swimlane/ngx-charts/issues/1212
+    // Swallow the error for now.
+    if (error.message === 'Unable to get property \'name\' of undefined or null reference') {
+      // DO NOTHING
+      return;
+    }
     this.notificationService.addDanger(`An unhandled error occured, please try again:
       ${error}`);
   }

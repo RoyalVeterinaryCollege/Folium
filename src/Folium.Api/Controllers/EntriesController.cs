@@ -527,7 +527,7 @@ namespace Folium.Api.Controllers {
 		[HttpGet("shared/{userId}")]
 		// GET entries
 		// Gets just the entries by the specified user that are shared with the current user.
-		public async Task<ActionResult> EntriesSharedWithMeByUser(int userId, int skip = 0, int take = 20) {
+		public async Task<ActionResult> EntriesSharedWithMeByUser(int userId, int skip = 0, int take = 20, EntryService.EntriesFilter? filter = null) {
 			var currentUser = await _userService.GetUserAsync(User);
 			User user;
 			var userToView = _userService.GetUser(userId);
@@ -539,7 +539,7 @@ namespace Folium.Api.Controllers {
 			}
 
 			// Get the entries.
-			var entries = await _entryService.GetEntriesSharedWithMeByUserAsync(currentUser, skip, take, sharedByUser: user);
+			var entries = await _entryService.GetEntriesSharedWithMeByUserAsync(currentUser, skip, take, sharedByUser: user, filter);
 
 			return Json(entries);
 		}

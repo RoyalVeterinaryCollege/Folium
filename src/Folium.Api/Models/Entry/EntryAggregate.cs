@@ -211,13 +211,15 @@ namespace Folium.Api.Models.Entry {
 			SignedOffBy = @event.AuthorisedUserId;
 		}
 		void Apply(EntryCommentCreated @event) {
-			_comments.Add(@event.Id, new EntryComment {
-                Id = @event.Id,
-				Comment = @event.Comment,
-				CreatedAt = @event.CreatedAt,
-				CreatedBy = @event.CreatedBy
-			});
-		}
+            if (!_comments.ContainsKey(@event.Id)) {
+                _comments.Add(@event.Id, new EntryComment {
+                    Id = @event.Id,
+                    Comment = @event.Comment,
+                    CreatedAt = @event.CreatedAt,
+                    CreatedBy = @event.CreatedBy
+                });
+            }
+        }
 		void Apply(EntryFileCreated @event) {
 			if(!_files.ContainsKey(@event.FileId)) { 
 				_files.Add(@event.FileId, new EntryFile {

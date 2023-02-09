@@ -111,7 +111,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
           <h1 class="p-1 m-0"> <span class="folium-entries small"></span> <span class="text-uppercase">Entries</span> 
             <small class="text-muted">({{user.totalEntriesSharedWithYou}} shared with you)</small></h1>					
         </div>
-        <entries-viewer [user]='user'></entries-viewer>
+        <entries-viewer [user]='user' [sharedEntriesOnly]="true"></entries-viewer>
       </div>
       <!-- Placements -->
       <div *ngSwitchCase="tuteeContent.Placements">
@@ -125,7 +125,7 @@ along with Folium.  If not, see <http://www.gnu.org/licenses/>.
         <div class="d-flex justify-content-start">
           <h1 class="text-uppercase p-1 m-0"><span class="folium-placement small"></span> Placements </h1>				
         </div>
-        <placement-viewer [user]="user" [placement]="placement"></placement-viewer>	
+        <placement-viewer [user]="user" [placement]="placement" [sharedEntriesOnly]="true"></placement-viewer>	
       </div>
       <!-- Loading... -->
       <div *ngSwitchDefault>

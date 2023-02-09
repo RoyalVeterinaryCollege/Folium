@@ -306,17 +306,31 @@ export class ViewPlacementEngagementComponent implements OnInit {
   }
 
   downloadUsers(){
-    var options = { 
+    const options = { 
       showLabels: true, 
       headers: ['id', 'Email', 'First Name', 'Surname', 'Placements', 'With Entries', 'Can be signed off', 'All Entries requested for sign-off', 'All Entries signed off', 'Shared', 'Shared with Tutor', 'Tutors']
     };
-    
-    let users = Utils.deepClone(this.userList.data) as PlacementEngagementUser[];
-    users.forEach((user:PlacementEngagementUser) => {
-      user = this.reportsService.removeUserFieldsForCsvDownload(user);
+
+    const reportUsers: object[] = [];
+    this.userList.data.forEach((user: PlacementEngagementUser) => {
+      const reportUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        surname: user.lastName,
+        placements: user.placements,
+        withEntries: user.placementsWithEntries,
+        canBeSignOff: user.placementsWithEntriesCanBeSignOff,
+        requestedSignOff: user.placementsWithAllEntriesRequestedSignOff,
+        signedOff: user.placementsWithAllEntriesSignedOff,
+        shared: user.placementsWithSharedEntries,
+        sharedWithTutor: user.placementsWithTutorSharedEntries,
+        tutors: user.tutors && user.tutors.length > 0 ? user.tutors.join(",") : ""
+      };
+      reportUsers.push(reportUser);
     });
-    
-    new AngularCsv(users, 'Placement Engagement', options);
+        
+    new AngularCsv(reportUsers, 'Placement Engagement', options);
   }
 
 	private canAddToReportOnList(reportOn: ReportOnOption): boolean {

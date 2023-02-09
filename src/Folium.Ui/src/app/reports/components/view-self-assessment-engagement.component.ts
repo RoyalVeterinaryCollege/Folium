@@ -258,17 +258,25 @@ export class ViewSelfAssessmentEngagementComponent implements OnInit {
   }
   
   downloadUsers(){
-    var options = { 
+    const options = { 
       showLabels: true, 
       headers: ['id', 'Email', 'First Name', 'Surname', 'Average Assessment', 'Tutors']
     };
-    let users = Utils.deepClone(this.userList.data) as SelfAssessmentEngagementUser[];
-    users.forEach((user:SelfAssessmentEngagementUser) => {
-      user.averageAssessment = user.averageAssessment ? user.averageAssessment : 0;
-      user = this.reportsService.removeUserFieldsForCsvDownload(user);
+
+    const reportUsers: object[] = [];
+    this.userList.data.forEach((user: SelfAssessmentEngagementUser) => {
+      const reportUser = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        surname: user.lastName,
+        entries: user.averageAssessment,
+        tutors: user.tutors && user.tutors.length > 0 ? user.tutors.join(",") : ""
+      };
+      reportUsers.push(reportUser);
     });
     
-    new AngularCsv(users, 'Self Assessment Engagement', options);
+    new AngularCsv(reportUsers, 'Self Assessment Engagement', options);
   }
 
 	private canAddToReportOnList(reportOn: ReportOnOption): boolean {

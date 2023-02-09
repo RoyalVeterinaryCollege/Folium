@@ -150,7 +150,11 @@ namespace Folium.Api.Services {
 								ON [CourseSkillSet].[CourseId] = [CourseAdministrator].[CourseId]
 						WHERE [CourseAdministrator].[UserId] = @CurrentUserId) AS [CourseAdmin]
 							ON [Entry].[TypeId] = [CourseAdmin].[EntryTypeId]
+					LEFT JOIN [dbo].[PlacementProjector.EntrySharedWith] [Sharing]
+						ON [Entry].[Id] = [Sharing].[EntryId]
+						AND [Sharing].[UserId] = @CurrentUserId
                     WHERE [PlacementId] = @PlacementId
+						AND ([Entry].[UserId] = @CurrentUserId OR [Sharing].[UserId] IS NOT NULL) 
 					ORDER BY [When] DESC
 					OFFSET (@Skip) ROWS FETCH NEXT (@Take) ROWS ONLY",
 					(entrySummaryDto, userDto, EntryTypeDto) => {

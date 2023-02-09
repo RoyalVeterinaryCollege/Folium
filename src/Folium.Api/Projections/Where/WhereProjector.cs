@@ -34,6 +34,7 @@ namespace Folium.Api.Projections.Where {
 	[Projector(3)]
 	public class WhereProjector: ProjectorBase {
 		readonly ConventionBasedCommitProjecter _conventionProjector;
+		readonly ILogger<WhereProjector> _logger;
 
 		public WhereProjector(IDbService dbService, IPersistStreams persistStreams, ILogger<WhereProjector> logger) :base(persistStreams, dbService) {
 			var conventionalDispatcher = new ConventionBasedEventDispatcher(c => Checkpoint = c.ToSome(), commit => {
@@ -47,6 +48,7 @@ namespace Folium.Api.Projections.Where {
 				.ThenProject<PlacementRemoved>(OnPlacementRemoved);
 
 			_conventionProjector = new ConventionBasedCommitProjecter(this, dbService, conventionalDispatcher);
+			_logger = logger;
 		}
 		public override void Project(ICommit commit) {
 			_conventionProjector.Project(commit);
@@ -79,7 +81,15 @@ namespace Folium.Api.Projections.Where {
 					  ,[UserId]
 				FROM [dbo].[WhereProjector.Entry]
 				WHERE [EntryId] = @Id;";
-			var row = tx.Connection.QuerySingle<dynamic>(sql1, (object)sqlParams, tx);
+			var row = tx.Connection.QuerySingleOrDefault<dynamic>(sql1, (object)sqlParams, tx);
+
+            if (row == null) {
+                // The entry has been removed, commit out of sequence??
+                // Report and do nothing.
+                _logger.LogWarning($"Received an event on Entry {sqlParams.Id} which does not exist in the projector table.");
+                return;
+            }
+
 			var originalWhere = row.Where;
 			var userId = row.UserId;
 
@@ -189,6 +199,11 @@ namespace Folium.Api.Projections.Where {
 			};
 
 			const string sql = @"
+				UPDATE [dbo].[WhereProjector.Entry]
+				SET [Where] = @Where
+				WHERE [UserId] = @UserId
+                AND [Where] = @OriginalWhere;
+
 				DECLARE @where_count int;  
 				SELECT @where_count = [UsageCount]
 				FROM [dbo].[WhereProjector.Where]

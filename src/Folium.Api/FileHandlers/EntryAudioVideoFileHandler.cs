@@ -21,6 +21,7 @@ using Folium.Api.Extensions;
 using Folium.Api.Models;
 using Folium.Api.Models.Entry;
 using Folium.Api.Services;
+using Hangfire.Common;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
@@ -28,8 +29,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Utilities.Collections;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -39,6 +42,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using tusdotnet.Interfaces;
 using tusdotnet.Models;
+using static Folium.Api.FileHandlers.EntryAudioVideoFileHandler;
 
 namespace Folium.Api.FileHandlers
 {
@@ -56,19 +60,58 @@ namespace Folium.Api.FileHandlers
         private readonly ILogger<EntryAudioVideoFileHandler> _logger;
 
         private const string CoconutRequestPath = "/coconut";
-        private string CoconutConfig(string apiUrl, string hash, Guid entryId, Guid fileId) => $@"
-            set source = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}
-            set webhook = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}
+        //private string CoconutConfig(string apiUrl, string hash, Guid entryId, Guid fileId) => $@"
 
-            -> mp4:1080p  = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=mp4
-            -> webm:1080p = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=webm
-            -> jpg = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=jpg";
+        //    set input = {Url}{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}
+        //    set storage = {Url}{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}
+        //    set notification = {Url}{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}
+        //    set outputs=
+        //    -> mp4:720p  = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=mp4
+
+        //    -> jpg:480x = {apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=jpg";
+
+
+
         private const string HashKey = "hash";
         private const string FormatKey = "format";
         private const string EntryIdKey = "entry_id";
         private const string FileIdKey = "file_id";
+        
 
-        public EntryAudioVideoFileHandler(
+        public string CoconutConfig(string apiUrl, string hash, Guid entryId, Guid fileId)
+        {
+            var requestObject = new RequestObj
+            {
+                input = new Dictionary<string, string>
+                {
+                    ["url"] = $@"{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}"
+                },
+                notification = new Dictionary<string, string>
+                {
+                    ["type"] = "http",
+                    ["url"] = $@"{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}"
+                   
+                },
+                outputs = new Dictionary<string, Dictionary<string, string>>
+                {
+                    ["mp4:720p"] = new Dictionary<string, string>()
+                    {
+                        ["url"] = $@"{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=mp4"
+                    },
+                    ["webm"] = new Dictionary<string, string>()
+                    {
+                        ["url"] = $@"{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=webm"
+                    },
+                    ["jpg:480x"] = new Dictionary<string, string>()
+                    {
+                        ["url"] = $@"{apiUrl}?{HashKey}={hash}&{EntryIdKey}={entryId}&{FileIdKey}={fileId}&{FormatKey}=jpg"
+                    }
+                }
+            };
+            return JsonConvert.SerializeObject(requestObject);
+        }
+
+public EntryAudioVideoFileHandler(
             IHostingEnvironment hostingEnvironment,
             IFileService fileService,
             IConstructAggregates factory,
@@ -182,7 +225,7 @@ namespace Folium.Api.FileHandlers
                     }
                 }
 
-                if (response.Errors.output == null) {
+                if (response.@event == "job.completed") {
                     var entryAggregate = _repository.GetById<EntryAggregate>(Guid.Parse(entryId));
                     var filePath = GetEncodedAudioVideoFilePath(entryId, fileId);
                     var directory = Path.GetDirectoryName(filePath);
@@ -190,7 +233,7 @@ namespace Folium.Api.FileHandlers
                     _repository.Save(entryAggregate, commitId: Guid.NewGuid(), updateHeaders: null);
                 } else {
                     // Log the errors.
-                    _logger.LogError("Coconut encoding job with id {0} responded with errors {1}", response.Id, JsonConvert.SerializeObject((object)response.Errors.output));
+                    _logger.LogError("Coconut encoding job with id {0} responded with errors {1}", response.job_id, JsonConvert.SerializeObject((object)response.@event));
                 }
             }
         }
@@ -269,9 +312,26 @@ namespace Folium.Api.FileHandlers
         }
 
         internal class Response {
-            public dynamic Output_urls { get; set; }
-            public dynamic Errors { get; set; }
-            public long Id { get; set; }
+            public List<Output> outputs { get; set; }
+            public string job_id { get; set; }
+            public dynamic @event { get; set; }
+        }
+
+        public class Output
+        {
+            public string key { get; set; }
+            public string type { get; set; }
+            public string format { get; set; }
+            public string url { get; set; }
+            public string status { get; set; }
+        }
+
+        public class RequestObj
+        {
+            public Dictionary<string, string> input { get; set; }
+            public Dictionary<string, string> notification { get; set; }
+            public Dictionary<string, string> storage { get; set; }
+            public Dictionary<string, Dictionary<string, string>> outputs { get; set; }
         }
     }
 }

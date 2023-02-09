@@ -35,7 +35,7 @@ import { Placement, User } from "../../core/dtos";
       </div>
     </div>			
     <!-- Entries... -->
-    <entries-viewer [user]="user" [placement]="placement"></entries-viewer>
+    <entries-viewer [user]="user" [placement]="placement" [sharedEntriesOnly]="sharedEntriesOnly"></entries-viewer>
   </div>`
 })
 export class PlacementViewerComponent {
@@ -44,4 +44,7 @@ export class PlacementViewerComponent {
 
   @Input()
   user: User;
+
+  @Input()
+  sharedEntriesOnly: boolean;
 }

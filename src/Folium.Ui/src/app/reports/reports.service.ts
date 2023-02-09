@@ -115,7 +115,6 @@ export class ReportsService {
 		delete user.totalPlacements;
 		delete user.totalSelfAssessments;
 		let tutors = user.tutors && user.tutors.length > 0 ? user.tutors.join(",") : "";
-		delete user.tutors;
 		user.tutors = tutors;
 		return user;
 	}

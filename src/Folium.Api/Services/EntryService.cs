@@ -52,6 +52,7 @@ namespace Folium.Api.Services {
 	    Task<IEnumerable<UserDto>> GetCollaboratorsAsync(Guid entryId);
         IEnumerable<UserDto> GetCollaborators(Guid entryId, IDbTransaction transaction = null);
         UserDto GetEntryAuthor(Guid entryId, IDbTransaction transaction = null);
+        EntryTypeDto GetEntryType(Guid entryId);
 		Task<IEnumerable<EntryFileDto>> GetEntryFilesAsync(Guid entryId);
 		Task<EntryFileDetail> GetEntryFileDetailAsync(Guid entryId, Guid fileId);
 		Task<IEnumerable<UserDto>> GetEntrySignOffUsersAsync(Guid entryId, bool includeCourseAdmins = false);
@@ -562,6 +563,23 @@ namespace Folium.Api.Services {
 				return types.ToList();
 			}
 		}
+
+        public EntryTypeDto GetEntryType(Guid entryId) {
+            using (var connection = _dbService.GetConnection()) {
+                connection.Open();
+
+                var type = connection.QueryFirstOrDefault<EntryTypeDto>(@" 
+                    SELECT [EntryType].*
+                    FROM [dbo].[EntryType]
+                    INNER JOIN [dbo].[EntryProjector.Entry] [Entry]
+							ON [EntryType].Id = [Entry].[TypeId]
+                    WHERE [Entry].[Id] =  @EntryId",
+                    new {
+                        EntryId = entryId
+                    });
+                return type;
+            }
+        }
 
 		public async Task<IEnumerable<UserDto>> GetCollaboratorsAsync(Guid entryId) {
 			using (var connection = _dbService.GetConnection()) {

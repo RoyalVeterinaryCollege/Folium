@@ -47,6 +47,7 @@ namespace Folium.Api.Projections.Reporting {
         private readonly IUserService _userService;
         private readonly ITutorGroupService _tutorGroupService;
         private readonly IOptions<Configuration> _applicationConfiguration;
+        private readonly ILogger<ReportingProjector> _logger;
 
         public ReportingProjector(
             IDbService dbService, 
@@ -81,6 +82,7 @@ namespace Folium.Api.Projections.Reporting {
             _userService = userService;
             _tutorGroupService = tutorGroupService;
             _applicationConfiguration = applicationConfiguration;
+            _logger = logger;
         }
 
 		public override void Project(ICommit commit) {
@@ -174,6 +176,13 @@ namespace Folium.Api.Projections.Reporting {
                 FROM [dbo].[ReportingProjector.EntryEngagement]
 				WHERE [EntryId] = @Id;",
                 (object)sqlParams, tx);
+
+            if (result == null) {
+                // The entry has been removed, commit out of sequence??
+                // Report and do nothing.
+                _logger.LogWarning($"Received an event on Entry {sqlParams.Id} which does not exist in the projector table.");
+                return;
+            }
 
             sqlParams.UserId = result.UserId;
             sqlParams.OldWhere = result.Where;

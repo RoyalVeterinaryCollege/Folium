@@ -455,8 +455,9 @@ namespace Folium.Api.Services {
                     }
                 }
                 if (who.IsCourse && courses.Any(c => c.Id == who.Id)) {
-                    var courseEnrolments = _courseService.GetCourseEnrolments(who.Id, who.EnrolmentYear, who.CourseYear)
-                        .Where(e => (!criteria.To.HasValue || criteria.To.Value.ToUniversalTime().Date == DateTime.UtcNow.Date) ? e.Active : e.LastUpdatedAt.Date >= criteria.To.Value.ToUniversalTime().Date); // If a to date has been specified make sure it is less than the last update date of the enrolment, to make sure it is valid.
+                    var courseEnrolments = _courseService.GetCourseEnrolments(who.Id, who.EnrolmentYear, who.CourseYear);
+                        // Removed the below - not sure it is needed?
+                        //.Where(e => (!criteria.To.HasValue || criteria.To.Value.ToUniversalTime().Date == DateTime.UtcNow.Date) ? e.Active : e.LastUpdatedAt.Date >= criteria.To.Value.ToUniversalTime().Date); // If a to date has been specified make sure it is less than the last update date of the enrolment, to make sure it is valid.
                     userIds.AddRange(courseEnrolments.Select(e => e.UserId));
                 }
             }

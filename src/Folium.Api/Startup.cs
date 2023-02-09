@@ -157,7 +157,6 @@ namespace Folium.Api {
                 .AllowAnyOrigin()
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .AllowCredentials()
                 .WithExposedHeaders(tusdotnet.Helpers.CorsHelper.GetExposedHeaders()));
 
             app.UseStaticFiles();

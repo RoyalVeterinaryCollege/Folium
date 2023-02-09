@@ -37,9 +37,18 @@
     padding:.5rem !important;
     font-size: 1.176rem;
 }
+body.tox-fullscreen {
+  /* When editor is full screen */
+  section.title {
+    position: unset; /* Hide the Folium title */
+  }
+  .footer-main {
+    display: none; /* Hide the footer (only shown on smaller screens) */
+  }
+}
 
 @include media-breakpoint-up(sm) {
-    .mce-content-body {
-        font-size: 1rem;
-    }
+  .mce-content-body {
+    font-size: 1rem;
+  }
 }
